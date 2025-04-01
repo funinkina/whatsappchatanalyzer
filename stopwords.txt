@@ -2528,7 +2528,6 @@ huh
 ya
 nah
 cool
-chill
 sup
 yaa
 haa
@@ -2550,3 +2549,6 @@ yall
 .
 +
 guys
+lot
+gonna
+feel
