@@ -68,3 +68,4 @@ ehthumbs.db
 
 .venv
 .env
+output*
