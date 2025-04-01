@@ -62,7 +62,7 @@ with open(chat_file, "r", encoding="utf-8") as f:
 
         # Clean message - remove URLs first
         message = clean_message(message)
-        
+
         # Skip if message is empty after cleaning or is a system message
         if not message or any(pattern in message for pattern in system_message_patterns):
             continue
@@ -70,7 +70,7 @@ with open(chat_file, "r", encoding="utf-8") as f:
         # Parse timestamp
         try:
             timestamp = datetime.strptime(f"{date} {time}", "%d/%m/%Y %H:%M")
-        except:
+        except ValueError:
             timestamp = datetime.strptime(f"{date} {time}", "%d/%m/%y %H:%M")
 
         # Check if this is a new conversation (more than CONVO_BREAK_MINUTES since last message)
