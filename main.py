@@ -13,6 +13,11 @@ system_message_patterns = [
     "Media omitted",
     "You deleted this message",
     "deleted message",
+    "This message edited",
+    "<",
+    ">",
+    "}",
+    "{"
 ]
 
 def load_stopwords(file_path="stopwords.txt"):
@@ -51,6 +56,7 @@ def analyze_chat(chat_file, convo_break_minutes=60, stopwords_file="stopwords.tx
     user_first_texts = Counter()
     word_counter = Counter()
     emoji_counter = Counter()
+    user_messages = defaultdict(list)  # New: Store messages by user
 
     CONVO_BREAK_MINUTES = convo_break_minutes
     last_timestamp = None
@@ -68,6 +74,7 @@ def analyze_chat(chat_file, convo_break_minutes=60, stopwords_file="stopwords.tx
             date, time, sender, message = full_match.groups()
 
             message = clean_message(message)
+            # Changed: Check if any system message pattern is contained in the message
             if not message or any(pattern in message for pattern in system_message_patterns):
                 continue
 
@@ -93,6 +100,13 @@ def analyze_chat(chat_file, convo_break_minutes=60, stopwords_file="stopwords.tx
 
             # Count messages per user
             user_message_count[sender] += 1
+
+            # Store cleaned message for this user
+            # Remove stopwords from the message
+            words = message.split()
+            filtered_message = ' '.join([word for word in words
+                                        if word.lower() not in stopwords])
+            user_messages[sender].append(filtered_message)
 
             # Track first text of the day
             if date != last_date:
@@ -138,7 +152,8 @@ def analyze_chat(chat_file, convo_break_minutes=60, stopwords_file="stopwords.tx
             "percentage": first_text_percentage
         },
         "common_words": dict(word_counter.most_common(10)),
-        "common_emojis": {emoji_char: count for emoji_char, count in emoji_counter.most_common(10)}
+        "common_emojis": {emoji_char: count for emoji_char, count in emoji_counter.most_common(10)},
+        # "user_messages": user_messages  # Add the messages by user to the results
     }
 
     return results
@@ -174,3 +189,7 @@ if __name__ == "__main__":
     print("\n😊 Most Used Emojis:")
     for emoji_char, count in results["common_emojis"].items():
         print(f"{emoji_char}: {count}")
+
+    # Display a sample of messages for each user
+    # print(results["user_messages"]['Aayush Jain GDSC'])
+    # print(len(results["user_messages"]['Aryan Kushwaha']))

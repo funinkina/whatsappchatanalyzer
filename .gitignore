@@ -67,3 +67,4 @@ ehthumbs.db
 .ipynb_checkpoints
 
 .venv
+.env

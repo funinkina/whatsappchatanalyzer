@@ -2,11 +2,13 @@ annotated-types==0.7.0
 anyio==4.9.0
 certifi==2025.1.31
 click==8.1.8
+distro==1.9.0
 dnspython==2.7.0
 email_validator==2.2.0
 emoji==2.14.1
 fastapi==0.115.12
 fastapi-cli==0.0.7
+groq==0.20.0
 h11==0.14.0
 httpcore==1.0.7
 httptools==0.6.4
