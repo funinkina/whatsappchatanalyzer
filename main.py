@@ -36,6 +36,31 @@ def clean_message(message):
     message = url_pattern.sub('', message)
     return message.strip()
 
+def preprocess_messages(chat_file, stopwords_file, convo_break_minutes):
+    stopwords = load_stopwords(stopwords_file)
+    messages_data = []
+    last_timestamp = None
+    with open(chat_file, "r", encoding="utf-8") as f:
+        for line in f:
+            full_match = timestamp_pattern.match(line)
+            if not full_match:
+                continue
+            date, time, sender, message = full_match.groups()
+            message = clean_message(message)
+            if not message or any(pattern in message for pattern in system_message_patterns):
+                continue
+            try:
+                timestamp = datetime.strptime(f"{date} {time}", "%d/%m/%Y %H:%M")
+            except ValueError:
+                timestamp = datetime.strptime(f"{date} {time}", "%d/%m/%y %H:%M")
+            filtered_message = ' '.join(
+                [word for word in message.split()
+                 if word.lower() not in stopwords]
+            )
+            messages_data.append((timestamp, date, sender, filtered_message))
+            last_timestamp = timestamp
+    return messages_data
+
 def analyze_chat(chat_file, convo_break_minutes=60, stopwords_file="stopwords.txt"):
     """
     Analyze WhatsApp chat and return statistics
@@ -48,7 +73,8 @@ def analyze_chat(chat_file, convo_break_minutes=60, stopwords_file="stopwords.tx
     Returns:
         dict: Chat analysis results
     """
-    stopwords = load_stopwords(stopwords_file)
+    # Preprocess all messages first
+    messages_data = preprocess_messages(chat_file, stopwords_file, convo_break_minutes)
 
     user_message_count = defaultdict(int)
     user_starts_convo = defaultdict(int)
@@ -56,7 +82,7 @@ def analyze_chat(chat_file, convo_break_minutes=60, stopwords_file="stopwords.tx
     user_first_texts = Counter()
     word_counter = Counter()
     emoji_counter = Counter()
-    user_messages = defaultdict(list)  # New: Store messages by user
+    user_messages = defaultdict(list)
 
     CONVO_BREAK_MINUTES = convo_break_minutes
     last_timestamp = None
@@ -65,72 +91,49 @@ def analyze_chat(chat_file, convo_break_minutes=60, stopwords_file="stopwords.tx
     last_date = None
     current_convo_start = True
 
-    with open(chat_file, "r", encoding="utf-8") as f:
-        for line in f:
-            full_match = timestamp_pattern.match(line)
-            if not full_match:
-                continue
-
-            date, time, sender, message = full_match.groups()
-
-            message = clean_message(message)
-            # Changed: Check if any system message pattern is contained in the message
-            if not message or any(pattern in message for pattern in system_message_patterns):
-                continue
-
-            try:
-                timestamp = datetime.strptime(f"{date} {time}", "%d/%m/%Y %H:%M")
-            except ValueError:
-                timestamp = datetime.strptime(f"{date} {time}", "%d/%m/%y %H:%M")
-
-            is_new_convo = False
-            if last_timestamp:
-                time_diff = (timestamp - last_timestamp).total_seconds() / 60
-                if time_diff > CONVO_BREAK_MINUTES:
-                    is_new_convo = True
-                    current_convo_start = True
-            else:
-                # First message in the chat starts a conversation
+    for (timestamp, date, sender, filtered_message) in messages_data:
+        is_new_convo = False
+        if last_timestamp:
+            time_diff = (timestamp - last_timestamp).total_seconds() / 60
+            if time_diff > CONVO_BREAK_MINUTES:
                 is_new_convo = True
+                current_convo_start = True
+        else:
+            is_new_convo = True
 
-            # Count conversation starts
-            if current_convo_start:
-                user_starts_convo[sender] += 1
-                current_convo_start = False
+        # Count conversation starts
+        if current_convo_start:
+            user_starts_convo[sender] += 1
+            current_convo_start = False
 
-            # Count messages per user
-            user_message_count[sender] += 1
+        # Count messages per user
+        user_message_count[sender] += 1
 
-            # Store cleaned message for this user
-            # Remove stopwords from the message
-            words = message.split()
-            filtered_message = ' '.join([word for word in words
-                                        if word.lower() not in stopwords])
-            user_messages[sender].append(filtered_message)
+        # Store cleaned message for this user
+        user_messages[sender].append(filtered_message)
 
-            # Track first text of the day
-            if date != last_date:
-                user_first_texts[sender] += 1
-                last_date = date
+        # Track first text of the day
+        if date != last_date:
+            user_first_texts[sender] += 1
+            last_date = date
 
-            # Count words (excluding stopwords)
-            words = re.findall(r'\b\w+\b', message.lower())
-            filtered_words = [word for word in words if word not in stopwords]
-            word_counter.update(filtered_words)
+        # Count words (excluding stopwords)
+        words = re.findall(r'\b\w+\b', filtered_message.lower())
+        word_counter.update(words)
 
-            # Count emojis
-            message_emojis = [char for char in message if char in emoji.EMOJI_DATA]
-            emoji_counter.update(message_emojis)
+        # Count emojis
+        message_emojis = [char for char in filtered_message if char in emoji.EMOJI_DATA]
+        emoji_counter.update(message_emojis)
 
-            # Detect ignored messages
-            if last_sender and last_sender != sender:
-                user_last_message[last_sender] = sender
-            elif last_sender and last_sender not in user_last_message:
-                user_ignored_count[last_sender] += 1
+        # Detect ignored messages
+        if last_sender and last_sender != sender:
+            user_last_message[last_sender] = sender
+        elif last_sender and last_sender not in user_last_message:
+            user_ignored_count[last_sender] += 1
 
-            # Update last sender and timestamp
-            last_sender = sender
-            last_timestamp = timestamp
+        # Update last sender and timestamp
+        last_sender = sender
+        last_timestamp = timestamp
 
     # Convert counts to percentages
     total_messages = sum(user_message_count.values())
