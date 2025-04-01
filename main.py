@@ -43,6 +43,15 @@ user_last_message = {}
 last_date = None
 current_convo_start = True  # Track if this is the start of a new conversation
 
+# URL pattern to filter out links
+url_pattern = re.compile(r'https?://\S+|www\.\S+')
+
+def clean_message(message):
+    """Remove URLs and normalize message for processing"""
+    # Remove URLs
+    message = url_pattern.sub('', message)
+    return message.strip()
+
 with open(chat_file, "r", encoding="utf-8") as f:
     for line in f:
         full_match = timestamp_pattern.match(line)
@@ -51,8 +60,11 @@ with open(chat_file, "r", encoding="utf-8") as f:
 
         date, time, sender, message = full_match.groups()
 
-        # Ignore system messages
-        if any(pattern in message for pattern in system_message_patterns):
+        # Clean message - remove URLs first
+        message = clean_message(message)
+        
+        # Skip if message is empty after cleaning or is a system message
+        if not message or any(pattern in message for pattern in system_message_patterns):
             continue
 
         # Parse timestamp
@@ -77,7 +89,6 @@ with open(chat_file, "r", encoding="utf-8") as f:
             user_starts_convo[sender] += 1
             current_convo_start = False
 
-        # Rest of your existing code...
         # Count messages per user
         user_message_count[sender] += 1
 
