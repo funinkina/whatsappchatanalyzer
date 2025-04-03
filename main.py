@@ -14,6 +14,7 @@ system_message_patterns = [
     "You deleted this message",
     "deleted message",
     "This message edited",
+    ".vcf",
     "<",
     ">",
     "}",
