@@ -41,7 +41,7 @@ def filter_short_words(text):
     """Filter out words that are only 1 or 2 characters long."""
     return ' '.join([word for word in text.split() if len(word) > 2])
 
-def preprocess_messages(chat_file, stopwords_file, convo_break_minutes):
+def preprocess_messages(chat_file, stopwords_file='stopwords.txt'):
     stopwords = load_stopwords(stopwords_file)
     messages_data = []
     last_timestamp = None
