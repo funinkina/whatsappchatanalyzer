@@ -4,7 +4,7 @@ import shutil
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 import uvicorn
-from statistic_analysis import analyze_chat
+from main_analysis import analyze_chat
 from dotenv import load_dotenv
 
 load_dotenv()

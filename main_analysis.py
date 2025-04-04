@@ -1,5 +1,6 @@
 import re
 import asyncio
+import argparse
 from collections import defaultdict, Counter
 from datetime import datetime
 import emoji
@@ -130,11 +131,16 @@ async def analyze_chat(chat_file, convo_break_minutes=60, stopwords_file="stopwo
     return results
 
 async def main():
-    # Default chat file path
-    chat_file = "sample_files/WhatsApp Chat with Aayush Jain GDSC.txt"
+    parser = argparse.ArgumentParser(description="Analyze WhatsApp chat data.")
+    parser.add_argument("--file", required=True, help="Path to the WhatsApp chat file.")
+    parser.add_argument("--convo_break_minutes", type=int, default=60, help="Minutes of inactivity to consider a new conversation.")
+    args = parser.parse_args()
+
+    chat_file = args.file
+    convo_break_minutes = args.convo_break_minutes
 
     # Run the analysis
-    results = await analyze_chat(chat_file)
+    results = await analyze_chat(chat_file, convo_break_minutes)
 
     print("\n🔥 Most Active Users (% of total messages):")
     for user, percentage in sorted(results["most_active_users"].items(), key=lambda x: x[1], reverse=True):
