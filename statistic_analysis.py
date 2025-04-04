@@ -1,25 +1,10 @@
 import re
+import asyncio
 from collections import defaultdict, Counter
 from datetime import datetime
 import emoji
-
-message_pattern = re.compile(r"\d{2}/\d{2}/\d{2,4}, \d{2}:\d{2} - (.*?): (.*)")
-timestamp_pattern = re.compile(r"(\d{2}/\d{2}/\d{2,4}), (\d{2}:\d{2}) - (.*?): (.*)")
-
-# Ignore system messages
-system_message_patterns = [
-    "Messages and calls are end-to-end encrypted",
-    "Disappearing messages were turned",
-    "Media omitted",
-    "You deleted this message",
-    "deleted message",
-    "This message edited",
-    ".vcf",
-    "<",
-    ">",
-    "}",
-    "{"
-]
+from ai_analysis import analyze_messages_with_llm
+from utils import preprocess_messages
 
 def load_stopwords(file_path="stopwords.txt"):
     try:
@@ -29,11 +14,9 @@ def load_stopwords(file_path="stopwords.txt"):
         print(f"Warning: Stopwords file '{file_path}' not found. Using empty stopwords set.")
         return set()
 
-# URL pattern to filter out links
 url_pattern = re.compile(r'https?://\S+|www\.\S+')
 
 def clean_message(message):
-    # Remove URLs
     message = url_pattern.sub('', message)
     return message.strip()
 
@@ -41,32 +24,7 @@ def filter_short_words(text):
     """Filter out words that are only 1 or 2 characters long."""
     return ' '.join([word for word in text.split() if len(word) > 2])
 
-def preprocess_messages(chat_file, stopwords_file='stopwords.txt'):
-    stopwords = load_stopwords(stopwords_file)
-    messages_data = []
-    last_timestamp = None
-    with open(chat_file, "r", encoding="utf-8") as f:
-        for line in f:
-            full_match = timestamp_pattern.match(line)
-            if not full_match:
-                continue
-            date, time, sender, message = full_match.groups()
-            message = clean_message(message)
-            if not message or any(pattern in message for pattern in system_message_patterns):
-                continue
-            try:
-                timestamp = datetime.strptime(f"{date} {time}", "%d/%m/%Y %H:%M")
-            except ValueError:
-                timestamp = datetime.strptime(f"{date} {time}", "%d/%m/%y %H:%M")
-            filtered_message = ' '.join(
-                [word for word in message.split()
-                 if word.lower() not in stopwords and len(word) > 2]
-            )
-            messages_data.append((timestamp, date, sender, filtered_message))
-            last_timestamp = timestamp
-    return messages_data
-
-def analyze_chat(chat_file, convo_break_minutes=60, stopwords_file="stopwords.txt"):
+async def analyze_chat(chat_file, convo_break_minutes=60, stopwords_file="stopwords.txt"):
     """
     Analyze WhatsApp chat and return statistics
 
@@ -78,8 +36,9 @@ def analyze_chat(chat_file, convo_break_minutes=60, stopwords_file="stopwords.tx
     Returns:
         dict: Chat analysis results
     """
-    # Preprocess all messages first
-    messages_data = preprocess_messages(chat_file, stopwords_file, convo_break_minutes)
+    messages_data = preprocess_messages(chat_file, stopwords_file)
+
+    ai_analysis_task = asyncio.create_task(analyze_messages_with_llm(messages_data))
 
     user_message_count = defaultdict(int)
     user_starts_convo = defaultdict(int)
@@ -150,6 +109,9 @@ def analyze_chat(chat_file, convo_break_minutes=60, stopwords_file="stopwords.tx
     most_first_texter = user_first_texts.most_common(1)[0][0] if user_first_texts else "N/A"
     first_text_percentage = round((user_first_texts[most_first_texter] / sum(user_first_texts.values())) * 100, 2) if sum(user_first_texts.values()) > 0 else 0
 
+    # Wait for the AI analysis to complete
+    ai_analysis = await ai_analysis_task
+
     # Format results as dictionary suitable for API response
     results = {
         "most_active_users": dict(sorted(most_active_users.items(), key=lambda x: x[1], reverse=True)),
@@ -161,19 +123,19 @@ def analyze_chat(chat_file, convo_break_minutes=60, stopwords_file="stopwords.tx
         },
         "common_words": dict(word_counter.most_common(10)),
         "common_emojis": {emoji_char: count for emoji_char, count in emoji_counter.most_common(10)},
+        "ai_analysis": ai_analysis,
         # "user_messages": user_messages  # Add the messages by user to the results
     }
 
     return results
 
-if __name__ == "__main__":
+async def main():
     # Default chat file path
     chat_file = "sample_files/WhatsApp Chat with Aayush Jain GDSC.txt"
 
     # Run the analysis
-    results = analyze_chat(chat_file)
+    results = await analyze_chat(chat_file)
 
-    # Display results in user-friendly format
     print("\n🔥 Most Active Users (% of total messages):")
     for user, percentage in sorted(results["most_active_users"].items(), key=lambda x: x[1], reverse=True):
         print(f"{user}: {percentage}%")
@@ -198,6 +160,8 @@ if __name__ == "__main__":
     for emoji_char, count in results["common_emojis"].items():
         print(f"{emoji_char}: {count}")
 
-    # Display a sample of messages for each user
-    # print(results["user_messages"]['Aayush Jain GDSC'])
-    # print(len(results["user_messages"]['Aryan Kushwaha']))
+    print("\n🤖 AI Analysis:")
+    print(results["ai_analysis"])
+
+if __name__ == "__main__":
+    asyncio.run(main())

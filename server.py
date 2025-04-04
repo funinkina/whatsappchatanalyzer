@@ -4,8 +4,10 @@ import shutil
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 import uvicorn
-from main import analyze_chat
+from statistic_analysis import analyze_chat
+from dotenv import load_dotenv
 
+load_dotenv()
 
 app = FastAPI(
     title="WhatsApp Chat Analyzer API",
@@ -13,7 +15,6 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Define the path for stopwords relative to this script's location
 STOPWORDS_FILE = os.path.join(os.path.dirname(__file__), "stopwords.txt")
 
 @app.post("/analyze/",
@@ -30,14 +31,8 @@ async def analyze_whatsapp_chat(file: UploadFile = File(..., description="WhatsA
     Returns a JSON object with chat statistics.
     Raises HTTPException on errors (e.g., file type, processing error).
     """
-    # Basic validation for file type (optional but recommended)
     if not file.filename.endswith(".txt"):
         raise HTTPException(status_code=400, detail="Invalid file type. Please upload a .txt file.")
-
-    # Create a temporary file to store the uploaded content
-    # Using NamedTemporaryFile ensures it has a path accessible by analyze_chat
-    # We use delete=False because analyze_chat needs to open the file by path.
-    # We will manually delete it in the finally block.
     temp_file_path = None
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".txt", mode="wb") as temp_file:
@@ -50,7 +45,7 @@ async def analyze_whatsapp_chat(file: UploadFile = File(..., description="WhatsA
             raise HTTPException(status_code=500, detail="Failed to create temporary file.")
 
         # Run the analysis using the function from main.py
-        results = analyze_chat(
+        results = await analyze_chat(
             chat_file=temp_file_path,
             convo_break_minutes=convo_break_minutes,
             stopwords_file=STOPWORDS_FILE
@@ -78,16 +73,11 @@ async def analyze_whatsapp_chat(file: UploadFile = File(..., description="WhatsA
             raise HTTPException(status_code=500, detail=f"An internal error occurred: {e}")
 
     except Exception as e:
-        # Catch any other errors during processing
-        # Log the error for debugging (optional)
-        # logger.error(f"Error processing file {file.filename}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Error processing chat file: {e}")
 
     finally:
-        # Clean up the temporary file if it was created
         if temp_file_path and os.path.exists(temp_file_path):
             os.remove(temp_file_path)
-        # Close the uploaded file stream
         await file.close()
 
 

@@ -1,8 +1,9 @@
-import groq
+from groq import AsyncGroq
 import random
 import os
+import asyncio
 from dotenv import load_dotenv
-from main import preprocess_messages
+from utils import preprocess_messages
 import json
 
 load_dotenv()
@@ -67,17 +68,32 @@ def stratify_messages(topics):
 
     return consolidated_messages
 
-def analyze_messages_with_groq(messages):
+async def analyze_messages_with_llm(data, gap_hours=3):
     """
-    Use Groq API to analyze the messages and provide insights.
+    Analyze messages using Groq API by grouping and stratifying them first.
+
+    Args:
+        data: List of messages to analyze
+        gap_hours: Time gap in hours to group messages into topics
+
+    Returns:
+        Structured analysis from the Groq API
     """
+    # Group messages by topic
+    topics = group_messages_by_topic(data, gap_hours)
+
+    # Stratify messages
+    consolidated_messages = stratify_messages(topics)
+    consolidated_messages_json = json.dumps(consolidated_messages, indent=2)
+
+    # Use Groq API to analyze the messages
     groq_api_key = os.getenv("GROQ_API_KEY")
 
     if not groq_api_key:
         print("Error: GROQ_API_KEY not found in environment variables")
         return None
 
-    client = groq.Groq(api_key=groq_api_key)
+    client = AsyncGroq(api_key=groq_api_key)
 
     system_prompt = """
         You will be given messages exchanged between different people in a WhatsApp chat:
@@ -92,11 +108,11 @@ def analyze_messages_with_groq(messages):
         """
 
     try:
-        response = client.chat.completions.create(
+        response = await client.chat.completions.create(
             model="llama3-70b-8192",
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": messages}
+                {"role": "user", "content": consolidated_messages_json}
             ],
             temperature=0.5,
             max_tokens=1024
@@ -110,16 +126,10 @@ if __name__ == "__main__":
     data = preprocess_messages(
         chat_file="sample_files/WhatsApp Chat with Mahima.txt",
         stopwords_file="stopwords.txt",
-        convo_break_minutes=60,
     )
-    topics = group_messages_by_topic(data)
-    consolidated_messages = stratify_messages(topics)
-    consolidated_messages_json = json.dumps(consolidated_messages, indent=2)
 
-    analysis_result = analyze_messages_with_groq(consolidated_messages_json)
+    analysis_result = asyncio.run(analyze_messages_with_llm(data))
 
-    # Display both the messages and the analysis
-    # print("=== CONSOLIDATED MESSAGES ===")
-    # print(consolidated_messages_json)
+    # Display the analysis
     print("\n=== GROQ ANALYSIS ===")
     print(analysis_result)
