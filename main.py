@@ -37,6 +37,10 @@ def clean_message(message):
     message = url_pattern.sub('', message)
     return message.strip()
 
+def filter_short_words(text):
+    """Filter out words that are only 1 or 2 characters long."""
+    return ' '.join([word for word in text.split() if len(word) > 2])
+
 def preprocess_messages(chat_file, stopwords_file, convo_break_minutes):
     stopwords = load_stopwords(stopwords_file)
     messages_data = []
@@ -56,7 +60,7 @@ def preprocess_messages(chat_file, stopwords_file, convo_break_minutes):
                 timestamp = datetime.strptime(f"{date} {time}", "%d/%m/%y %H:%M")
             filtered_message = ' '.join(
                 [word for word in message.split()
-                 if word.lower() not in stopwords]
+                 if word.lower() not in stopwords and len(word) > 2]
             )
             messages_data.append((timestamp, date, sender, filtered_message))
             last_timestamp = timestamp
@@ -118,8 +122,8 @@ def analyze_chat(chat_file, convo_break_minutes=60, stopwords_file="stopwords.tx
             user_first_texts[sender] += 1
             last_date = date
 
-        # Count words (excluding stopwords)
-        words = re.findall(r'\b\w+\b', filtered_message.lower())
+        # Count words (excluding stopwords and words with 1-2 characters)
+        words = re.findall(r'\b\w{3,}\b', filtered_message.lower())
         word_counter.update(words)
 
         # Count emojis

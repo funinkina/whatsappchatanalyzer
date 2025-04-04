@@ -1,9 +1,7 @@
 import groq
-import os
 import random
 from dotenv import load_dotenv
 from main import preprocess_messages
-import datetime
 import json
 
 data = preprocess_messages(
