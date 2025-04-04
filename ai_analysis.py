@@ -4,11 +4,14 @@ import random
 from dotenv import load_dotenv
 from main import preprocess_messages
 import datetime
+import json
+
 data = preprocess_messages(
     chat_file="sample_files/WhatsApp Chat with Mahima.txt",
     stopwords_file="stopwords.txt",
     convo_break_minutes=60,
 )
+
 def group_messages_by_topic(data, gap_hours=3):
     # data_sorted = sorted(data, key=lambda x: x[0])
     data_sorted = data
@@ -29,6 +32,7 @@ def group_messages_by_topic(data, gap_hours=3):
     return topics
 
 topics = group_messages_by_topic(data)
+consolidated_messages = {}
 for idx, topic in enumerate(topics, start=1):
     if len(topic) < 2:
         continue
@@ -49,14 +53,14 @@ for idx, topic in enumerate(topics, start=1):
 
     distinct_senders = list(unique_senders.keys())
     random.shuffle(distinct_senders)
-    selected = []
+    sampled_messages = []
     for sender in distinct_senders[:5]:
-        selected.append(random.choice(unique_senders[sender]))
+        sampled_messages.append(random.choice(unique_senders[sender]))
 
-    print(f"Topic {idx}:")
-    for s in selected:
-        print(f"{s[2]}: {s[3]}")
-    print()
-    # Here you can pass 'selected' to an LLM for analysis
+    for msg in sampled_messages:
+        sender = msg[2]
+        if sender not in consolidated_messages:
+            consolidated_messages[sender] = []
+        consolidated_messages[sender].append(msg[3])
 
-# print(data)
+print(json.dumps(consolidated_messages, indent=2))
