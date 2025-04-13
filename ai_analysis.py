@@ -27,7 +27,7 @@ async def analyze_messages_with_llm(data, gap_hours=3):
         print("Error: GROQ_API_KEY not found in environment variables")
         return None
 
-    client = AsyncGroq(api_key=groq_api_key)Instagram story - 38.png
+    client = AsyncGroq(api_key=groq_api_key)
     system_prompt = """
         You will be given messages exchanged between different people in a WhatsApp chat:
 
