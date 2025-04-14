@@ -38,6 +38,7 @@ async def analyze_messages_with_llm(data, gap_hours=3):
         4. Any interesting observations about the conversation dynamics
 
         Format your response as a structured analysis.
+        Keep the response very short, within 2-3 lines.
         """
 
     try:

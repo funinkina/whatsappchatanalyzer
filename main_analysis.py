@@ -2,28 +2,10 @@ import re
 import asyncio
 import argparse
 from collections import defaultdict, Counter
-from datetime import datetime
+from datetime import datetime, timedelta
 import emoji
 from ai_analysis import analyze_messages_with_llm
 from utils import preprocess_messages
-
-def load_stopwords(file_path="stopwords.txt"):
-    try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            return set(f.read().splitlines())
-    except FileNotFoundError:
-        print(f"Warning: Stopwords file '{file_path}' not found. Using empty stopwords set.")
-        return set()
-
-url_pattern = re.compile(r'https?://\S+|www\.\S+')
-
-def clean_message(message):
-    message = url_pattern.sub('', message)
-    return message.strip()
-
-def filter_short_words(text):
-    """Filter out words that are only 1 or 2 characters long."""
-    return ' '.join([word for word in text.split() if len(word) > 2])
 
 async def analyze_chat(chat_file, convo_break_minutes=60, stopwords_file="stopwords.txt"):
     """
@@ -48,6 +30,9 @@ async def analyze_chat(chat_file, convo_break_minutes=60, stopwords_file="stopwo
     word_counter = Counter()
     emoji_counter = Counter()
     user_messages = defaultdict(list)
+    monthly_message_count = defaultdict(int)
+    total_response_time_seconds = 0
+    response_count = 0
 
     CONVO_BREAK_MINUTES = convo_break_minutes
     last_timestamp = None
@@ -63,6 +48,13 @@ async def analyze_chat(chat_file, convo_break_minutes=60, stopwords_file="stopwo
             if time_diff > CONVO_BREAK_MINUTES:
                 is_new_convo = True
                 current_convo_start = True
+
+            # Calculate response time if sender changed and within 12 hours
+            if last_sender and sender != last_sender:
+                response_diff_seconds = (timestamp - last_timestamp).total_seconds()
+                if response_diff_seconds < 12 * 60 * 60:  # Less than 12 hours
+                    total_response_time_seconds += response_diff_seconds
+                    response_count += 1
         else:
             is_new_convo = True
 
@@ -90,30 +82,62 @@ async def analyze_chat(chat_file, convo_break_minutes=60, stopwords_file="stopwo
         message_emojis = [char for char in filtered_message if char in emoji.EMOJI_DATA]
         emoji_counter.update(message_emojis)
 
-        # Detect ignored messages
-        if last_sender and last_sender != sender:
-            user_last_message[last_sender] = sender
-        elif last_sender and last_sender not in user_last_message:
-            user_ignored_count[last_sender] += 1
-
         # Update last sender and timestamp
         last_sender = sender
         last_timestamp = timestamp
 
-    # Convert counts to percentages
-    total_messages = sum(user_message_count.values())
-    most_active_users = {user: round((count / total_messages) * 100, 2) for user, count in user_message_count.items()}
-    conversation_starters = {user: round((count / sum(user_starts_convo.values())) * 100, 2) if sum(user_starts_convo.values()) > 0 else 0 for user, count in user_starts_convo.items()}
-    most_ignored_users = {user: round((count / sum(user_ignored_count.values())) * 100, 2) if sum(user_ignored_count.values()) > 0 else 0 for user, count in user_ignored_count.items()}
+        # Count messages per month
+        month_key = timestamp.strftime('%Y-%m')
+        monthly_message_count[month_key] += 1
 
-    # Get the user who texts first most often
+    user_ignored_count = defaultdict(int)
+    previous_sender = None
+    previous_timestamp = None
+
+    for i, (timestamp, date, sender, filtered_message) in enumerate(messages_data):
+        if i > 0:
+            if previous_sender == sender:
+                user_ignored_count[sender] += 1
+
+        previous_sender = sender
+        previous_timestamp = timestamp
+
+    average_response_time_minutes = 0
+    if response_count > 0:
+        average_response_time_minutes = round((total_response_time_seconds / response_count) / 60, 2)
+
+    total_messages = sum(user_message_count.values())
+    most_active_users = {user: round((count / total_messages) * 100, 2) if total_messages > 0 else 0 for user, count in user_message_count.items()}
+    conversation_starters = {user: round((count / sum(user_starts_convo.values())) * 100, 2) if sum(user_starts_convo.values()) > 0 else 0 for user, count in user_starts_convo.items()}
+    total_ignored = sum(user_ignored_count.values())
+    most_ignored_users = {user: round((count / total_ignored) * 100, 2) if total_ignored > 0 else 0 for user, count in user_ignored_count.items()}
+
     most_first_texter = user_first_texts.most_common(1)[0][0] if user_first_texts else "N/A"
     first_text_percentage = round((user_first_texts[most_first_texter] / sum(user_first_texts.values())) * 100, 2) if sum(user_first_texts.values()) > 0 else 0
 
-    # Wait for the AI analysis to complete
+    monthly_activity = []
+    today = datetime.now()
+    start_date = (today.replace(day=1) - timedelta(days=1)).replace(day=1)
+    for i in range(12):
+        target_month = (start_date.replace(day=1) - timedelta(days=i * 30)).strftime('%Y-%m')
+        current_year = today.year
+        current_month = today.month
+        target_month_num = current_month - i
+        target_year = current_year
+        while target_month_num <= 0:
+            target_month_num += 12
+            target_year -= 1
+        target_month_key = f"{target_year}-{target_month_num:02d}"
+
+        monthly_activity.append({
+            "month": target_month_key,
+            "count": monthly_message_count.get(target_month_key, 0)
+        })
+
+    monthly_activity.sort(key=lambda x: x['month'])
+
     ai_analysis = await ai_analysis_task
 
-    # Format results as dictionary suitable for API response
     results = {
         "most_active_users": dict(sorted(most_active_users.items(), key=lambda x: x[1], reverse=True)),
         "conversation_starters": dict(sorted(conversation_starters.items(), key=lambda x: x[1], reverse=True)),
@@ -124,8 +148,9 @@ async def analyze_chat(chat_file, convo_break_minutes=60, stopwords_file="stopwo
         },
         "common_words": dict(word_counter.most_common(10)),
         "common_emojis": {emoji_char: count for emoji_char, count in emoji_counter.most_common(10)},
+        "monthly_activity": monthly_activity,
+        "average_response_time_minutes": average_response_time_minutes,
         "ai_analysis": ai_analysis,
-        # "user_messages": user_messages  # Add the messages by user to the results
     }
 
     return results
@@ -139,7 +164,6 @@ async def main():
     chat_file = args.file
     convo_break_minutes = args.convo_break_minutes
 
-    # Run the analysis
     results = await analyze_chat(chat_file, convo_break_minutes)
 
     print("\n🔥 Most Active Users (% of total messages):")
@@ -165,6 +189,12 @@ async def main():
     print("\n😊 Most Used Emojis:")
     for emoji_char, count in results["common_emojis"].items():
         print(f"{emoji_char}: {count}")
+
+    print(f"\n⏱️ Average Response Time (minutes, excluding >12h gaps): {results['average_response_time_minutes']}")
+
+    print("\n📅 Monthly Activity (Last 12 Months):")
+    for month_data in results["monthly_activity"]:
+        print(f"{month_data['month']}: {month_data['count']} messages")
 
     print("\n🤖 AI Analysis:")
     print(results["ai_analysis"])
