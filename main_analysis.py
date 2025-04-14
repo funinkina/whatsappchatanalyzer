@@ -7,7 +7,7 @@ import emoji
 from ai_analysis import analyze_messages_with_llm
 from utils import preprocess_messages
 
-async def analyze_chat(chat_file, convo_break_minutes=60):
+async def analyze_chat(chat_file):
     """
     Analyze WhatsApp chat and return statistics
 
@@ -35,7 +35,7 @@ async def analyze_chat(chat_file, convo_break_minutes=60):
     total_response_time_seconds = 0
     response_count = 0
 
-    CONVO_BREAK_MINUTES = convo_break_minutes
+    CONVO_BREAK_MINUTES = 60
     last_timestamp = None
     last_sender = None
     user_last_message = {}

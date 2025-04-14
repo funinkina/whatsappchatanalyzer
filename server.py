@@ -21,7 +21,7 @@ STOPWORDS_FILE = os.path.join(os.path.dirname(__file__), "stopwords.txt")
           summary="Analyze WhatsApp Chat File",
           description="Upload a .txt WhatsApp chat export file. Returns JSON analysis.",
           tags=["Analysis"])
-async def analyze_whatsapp_chat(file: UploadFile = File(..., description="WhatsApp chat export file (.txt)"), convo_break_minutes: int = 60):
+async def analyze_whatsapp_chat(file: UploadFile = File(..., description="WhatsApp chat export file (.txt)")):
     """
     Endpoint to upload and analyze a WhatsApp chat file.
 
@@ -47,7 +47,6 @@ async def analyze_whatsapp_chat(file: UploadFile = File(..., description="WhatsA
         # Run the analysis using the function from main.py
         results = await analyze_chat(
             chat_file=temp_file_path,
-            convo_break_minutes=convo_break_minutes,
         )
 
         # Return the results as JSON
@@ -62,7 +61,6 @@ async def analyze_whatsapp_chat(file: UploadFile = File(..., description="WhatsA
             try:
                 results = analyze_chat(
                     chat_file=temp_file_path,
-                    convo_break_minutes=convo_break_minutes,
                 )
                 return JSONResponse(content=results)
             except Exception as inner_e:
