@@ -31,6 +31,7 @@ async def analyze_chat(chat_file, convo_break_minutes=60):
     emoji_counter = Counter()
     user_messages = defaultdict(list)
     monthly_message_count = defaultdict(int)
+    hourly_message_count = Counter()
     total_response_time_seconds = 0
     response_count = 0
 
@@ -90,6 +91,10 @@ async def analyze_chat(chat_file, convo_break_minutes=60):
         month_key = timestamp.strftime('%Y-%m')
         monthly_message_count[month_key] += 1
 
+        # Count messages per hour
+        hour_key = timestamp.hour
+        hourly_message_count[hour_key] += 1
+
     user_ignored_count = defaultdict(int)
     previous_sender = None
     previous_timestamp = None
@@ -114,6 +119,8 @@ async def analyze_chat(chat_file, convo_break_minutes=60):
 
     most_first_texter = user_first_texts.most_common(1)[0][0] if user_first_texts else "N/A"
     first_text_percentage = round((user_first_texts[most_first_texter] / sum(user_first_texts.values())) * 100, 2) if sum(user_first_texts.values()) > 0 else 0
+
+    peak_hour = hourly_message_count.most_common(1)[0][0] if hourly_message_count else "N/A"
 
     monthly_activity = []
     today = datetime.now()
@@ -150,54 +157,8 @@ async def analyze_chat(chat_file, convo_break_minutes=60):
         "common_emojis": {emoji_char: count for emoji_char, count in emoji_counter.most_common(10)},
         "monthly_activity": monthly_activity,
         "average_response_time_minutes": average_response_time_minutes,
+        "peak_hour": f"{peak_hour}:00 - {peak_hour + 1}:00" if isinstance(peak_hour, int) else peak_hour,
         "ai_analysis": ai_analysis,
     }
 
     return results
-
-async def main():
-    parser = argparse.ArgumentParser(description="Analyze WhatsApp chat data.")
-    parser.add_argument("--file", required=True, help="Path to the WhatsApp chat file.")
-    parser.add_argument("--convo_break_minutes", type=int, default=60, help="Minutes of inactivity to consider a new conversation.")
-    args = parser.parse_args()
-
-    chat_file = args.file
-    convo_break_minutes = args.convo_break_minutes
-
-    results = await analyze_chat(chat_file, convo_break_minutes)
-
-    print("\n🔥 Most Active Users (% of total messages):")
-    for user, percentage in sorted(results["most_active_users"].items(), key=lambda x: x[1], reverse=True):
-        print(f"{user}: {percentage}%")
-
-    print("\n💬 Users Who Start Conversations Most (% of convos started):")
-    for user, percentage in sorted(results["conversation_starters"].items(), key=lambda x: x[1], reverse=True):
-        print(f"{user}: {percentage}%")
-
-    print("\n👻 Most Ignored Users (% of ignored messages):")
-    for user, percentage in sorted(results["most_ignored_users"].items(), key=lambda x: x[1], reverse=True):
-        print(f"{user}: {percentage}%")
-
-    print("\n🌅 User Who Texts First Most Often:")
-    first_texter = results["first_text_champion"]
-    print(f"{first_texter['user']}: {first_texter['percentage']}% of first texts")
-
-    print("\n📝 Most Common Words:")
-    for word, count in results["common_words"].items():
-        print(f"{word}: {count}")
-
-    print("\n😊 Most Used Emojis:")
-    for emoji_char, count in results["common_emojis"].items():
-        print(f"{emoji_char}: {count}")
-
-    print(f"\n⏱️ Average Response Time (minutes, excluding >12h gaps): {results['average_response_time_minutes']}")
-
-    print("\n📅 Monthly Activity (Last 12 Months):")
-    for month_data in results["monthly_activity"]:
-        print(f"{month_data['month']}: {month_data['count']} messages")
-
-    print("\n🤖 AI Analysis:")
-    print(results["ai_analysis"])
-
-if __name__ == "__main__":
-    asyncio.run(main())

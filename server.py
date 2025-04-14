@@ -48,7 +48,6 @@ async def analyze_whatsapp_chat(file: UploadFile = File(..., description="WhatsA
         results = await analyze_chat(
             chat_file=temp_file_path,
             convo_break_minutes=convo_break_minutes,
-            stopwords_file=STOPWORDS_FILE
         )
 
         # Return the results as JSON
@@ -64,7 +63,6 @@ async def analyze_whatsapp_chat(file: UploadFile = File(..., description="WhatsA
                 results = analyze_chat(
                     chat_file=temp_file_path,
                     convo_break_minutes=convo_break_minutes,
-                    stopwords_file=STOPWORDS_FILE
                 )
                 return JSONResponse(content=results)
             except Exception as inner_e:
