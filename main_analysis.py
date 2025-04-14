@@ -7,7 +7,7 @@ import emoji
 from ai_analysis import analyze_messages_with_llm
 from utils import preprocess_messages
 
-async def analyze_chat(chat_file, convo_break_minutes=60, stopwords_file="stopwords.txt"):
+async def analyze_chat(chat_file, convo_break_minutes=60):
     """
     Analyze WhatsApp chat and return statistics
 
@@ -19,7 +19,7 @@ async def analyze_chat(chat_file, convo_break_minutes=60, stopwords_file="stopwo
     Returns:
         dict: Chat analysis results
     """
-    messages_data = preprocess_messages(chat_file, stopwords_file)
+    messages_data = preprocess_messages(chat_file)
 
     ai_analysis_task = asyncio.create_task(analyze_messages_with_llm(messages_data))
 

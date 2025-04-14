@@ -19,12 +19,12 @@ system_message_patterns = [
 ]
 url_pattern = re.compile(r'https?://\S+|www\.\S+')
 
-def load_stopwords(file_path="stopwords.txt"):
+def load_stopwords():
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open("stopwords.txt", 'r', encoding='utf-8') as f:
             return set(f.read().splitlines())
     except FileNotFoundError:
-        print(f"Warning: Stopwords file '{file_path}' not found. Using empty stopwords set.")
+        print("Warning: Stopwords file 'stopwords.txt' not found. Using empty stopwords set.")
         return set()
 
 def clean_message(message):
@@ -32,9 +32,9 @@ def clean_message(message):
     message = url_pattern.sub('', message)
     return message.strip()
 
-def preprocess_messages(chat_file, stopwords_file='stopwords.txt'):
+def preprocess_messages(chat_file):
     """Preprocess chat messages."""
-    stopwords = load_stopwords(stopwords_file)
+    stopwords = load_stopwords()
     messages_data = []
     with open(chat_file, "r", encoding="utf-8") as f:
         for line in f:
