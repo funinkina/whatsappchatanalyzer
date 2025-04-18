@@ -6,6 +6,10 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation'; // Use next/navigation for App Router
 import { DM_Sans } from 'next/font/google';
 
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+});
+
 export default function HomePage() {
   const [file, setFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -42,21 +46,13 @@ export default function HomePage() {
       });
 
       if (!response.ok) {
-        // Try to get error message from backend response body
         const errorData = await response.json().catch(() => ({ message: 'An error occurred during upload.' }));
         throw new Error(errorData.message || `HTTP error! Status: ${response.status}`);
       }
 
       const resultData = await response.json();
-
-      // Store results temporarily (e.g., sessionStorage) to pass to the next page
-      // Using sessionStorage is simple but has size limits.
-      // For larger data, consider state management (Context, Zustand) or other strategies.
       sessionStorage.setItem('analysisResults', JSON.stringify(resultData));
-
-      // Navigate to the results page
       router.push('/results');
-
     } catch (err: any) {
       console.error('Upload failed:', err);
       setError(err.message || 'An unexpected error occurred.');
@@ -66,55 +62,73 @@ export default function HomePage() {
   };
 
   return (
-    <main className="flex flex-col items-center justify-center p-4">
+    <main className={`${dmSans.className} flex flex-col items-center justify-center p-4 h-screen`}>
       {/* Logo */}
       <div className="mb-10">
         <Image
-          src="/bloop_logo.svg" // Make sure logo.png is in public folder
+          src="/bloop_logo.svg"
           alt="Your Company Logo"
-          width={500} // Adjust width as needed
-          height={100} // Adjust height as needed
-          priority // Load logo quickly
+          width={500}
+          height={100}
+          priority
         />
       </div>
 
-      <div>
-        <p className="text-blue-950/90 text-4xl font-normal text-center mb-16 w-3/4">
-          Over-analyze and Nit-pick your Whatsapp Chats with Bloop
+      <div className='w-1/4 mb-10'>
+        <p className="text-blue-950/90 text-4xl font-normal text-center mb-16">
+          Over-analyze <Image src="/icons/smiley.svg" alt="Smiley" width={40} height={40} className="inline" /> and Nit-pick your <Image src="/icons/whatsapp.svg" alt="whatsapp icon" width={50} height={50} className="inline" /> Whatsapp Chats with <Image src="/bloop_logo.svg" alt="Your Company Logo" width={100} height={10} className='inline mb-2'></Image>
         </p>
       </div>
 
       {/* File Upload Box */}
-      <div className="w-96 h-56 relative bg-green-200 rounded-md outline-2 outline-neutral-800 p-4 ">
-        <div className='flex flex-row items-center justify-center mb-4 '>
+      <div className="w-96 relative bg-green-200 rounded-md outline-2 outline-neutral-800 p-4 shadow-[7px_7px_0px_0px_rgba(0,0,0,0.85)]">
+        <div className='flex flex-row items-center justify-start mb-4 text-emerald-800'>
           <Image
-            src="/icons/upload_icon.svg" // Make sure upload_icon.svg is in public folder
+            src="/icons/upload_icon.svg"
             alt="Upload Icon"
-            width={50} // Adjust width as needed
-            height={50} // Adjust height as needed
-            className="absolute top-4 left-4" // Positioning the icon
+            width={80}
+            height={80}
+            className="mr-4"
           />
-          <h2 className="text-2xl font-bold text-center text-gray-800">Upload the Chat</h2>
+          <div>
+            <h2 className="text-xl font-medium">Upload the Chat</h2>
+            <p className='text-xs font-light'>We never store any file, everything is cleared after processing</p>
+          </div>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="file-upload" className="block text-sm font-medium text-gray-700 sr-only">
               Choose file
             </label>
-            <input
-              id="file-upload"
-              name="file-upload"
-              type="file"
-              onChange={handleFileChange}
-              className={`block w-full text-sm text-gray-500
-                file:mr-4 file:py-2 file:px-4
-                file:rounded-md file:border-0
-                file:text-sm file:font-semibold
-                file:bg-blue-50 file:text-blue-700
-                hover:file:bg-blue-100 ${!file ? 'border border-dashed border-gray-300 p-2 rounded-md' : ''}`
-              }
-              accept=".txt,.pdf,.docx" // Optional: Specify acceptable file types
-            />
+            <div className="relative">
+              <input
+                id="file-upload"
+                name="file-upload"
+                type="file"
+                onChange={handleFileChange}
+                className="sr-only"
+                accept=".txt,.zip"
+              />
+              <label
+                htmlFor="file-upload"
+                className={`flex flex-col items-center justify-center w-full p-3 rounded-md cursor-pointer
+              ${file
+                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                    : 'bg-emerald-700 hover:bg-emerald-600 text-gray-300 border-2 border-dashed border-amber-50'
+                  } transition duration-150 ease-in-out`}
+              >
+                <Image
+                  src="/icons/white_upload.svg"
+                  alt="Upload Icon"
+                  width={40}
+                  height={40}
+                  className="mb-2"
+                />
+                <span className="text-sm font-medium">
+                  {file ? 'File Selected' : 'Upload File (. txt or .zip)'}
+                </span>
+              </label>
+            </div>
             {file && <p className="mt-2 text-xs text-gray-600">Selected: {file.name}</p>}
           </div>
 
@@ -125,13 +139,23 @@ export default function HomePage() {
           <button
             type="submit"
             disabled={isLoading || !file}
-            className={`w-full px-4 py-2 text-white font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
+            className={`w-full px-4 py-2 text-blue-950 font-medium rounded-md outline-2 outline-neutral-800 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]
               ${isLoading || !file
                 ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-700'
-              } transition duration-150 ease-in-out`}
+                : 'bg-amber-50 hover:shadow-[7px_7px_0px_0px_rgba(0,0,0,0.85)] hover:cursor-pointer'
+              } transition duration-150 ease-in-out flex items-center justify-center`}
           >
-            {isLoading ? 'Uploading...' : 'Upload and Analyze'}
+            {isLoading ? 'Uploading...' : (
+              <>
+                <span className="mr-2">{'Upload and Analyze'}</span>
+                <Image
+                  src="/icons/right_arrow.svg"
+                  alt="Bloop Icon"
+                  width={30}
+                  height={30}
+                />
+              </>
+            )}
           </button>
         </form>
       </div>
