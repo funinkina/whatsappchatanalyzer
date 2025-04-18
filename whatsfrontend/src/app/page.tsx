@@ -74,7 +74,7 @@ export default function HomePage() {
         />
       </div>
 
-      <div className='w-1/4 mb-10'>
+      <div className='w-1/4'>
         <p className="text-blue-950/90 text-4xl font-normal text-center mb-16">
           Over-analyze <Image src="/icons/smiley.svg" alt="Smiley" width={40} height={40} className="inline" /> and Nit-pick your <Image src="/icons/whatsapp.svg" alt="whatsapp icon" width={50} height={50} className="inline" /> Whatsapp Chats with <Image src="/bloop_logo.svg" alt="Your Company Logo" width={100} height={10} className='inline mb-2'></Image>
         </p>
