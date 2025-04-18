@@ -1,6 +1,4 @@
 import re
-import asyncio
-import argparse
 from collections import defaultdict, Counter
 from datetime import datetime, timedelta
 import emoji
@@ -21,7 +19,7 @@ async def analyze_chat(chat_file):
     """
     messages_data = preprocess_messages(chat_file)
 
-    ai_analysis_task = asyncio.create_task(analyze_messages_with_llm(messages_data))
+    # ai_analysis_task = asyncio.create_task(analyze_messages_with_llm(messages_data))
 
     user_message_count = defaultdict(int)
     user_starts_convo = defaultdict(int)
@@ -143,7 +141,7 @@ async def analyze_chat(chat_file):
 
     monthly_activity.sort(key=lambda x: x['month'])
 
-    ai_analysis = await ai_analysis_task
+    # ai_analysis = await ai_analysis_task
 
     results = {
         "most_active_users": dict(sorted(most_active_users.items(), key=lambda x: x[1], reverse=True)),
@@ -158,7 +156,7 @@ async def analyze_chat(chat_file):
         "monthly_activity": monthly_activity,
         "average_response_time_minutes": average_response_time_minutes,
         "peak_hour": f"{peak_hour}:00 - {peak_hour + 1}:00" if isinstance(peak_hour, int) else peak_hour,
-        "ai_analysis": ai_analysis,
+        # "ai_analysis": ai_analysis,
     }
 
     return results
