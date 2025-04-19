@@ -24,7 +24,7 @@ async def analyze_chat(chat_file):
 
     user_message_count = defaultdict(int)
     user_starts_convo = defaultdict(int)
-    user_ignored_count = defaultdict(int)
+    # user_ignored_count = defaultdict(int) # This is calculated later
     user_first_texts = Counter()
     word_counter = Counter()
     emoji_counter = Counter()
@@ -33,6 +33,13 @@ async def analyze_chat(chat_file):
     hourly_message_count = Counter()
     total_response_time_seconds = 0
     response_count = 0
+    interaction_matrix = defaultdict(lambda: defaultdict(int))
+
+    # Variables for longest monologue
+    max_monologue_count = 0
+    max_monologue_sender = None
+    current_streak_count = 0
+    current_streak_sender = None
 
     CONVO_BREAK_MINUTES = 60
     last_timestamp = None
@@ -41,7 +48,7 @@ async def analyze_chat(chat_file):
     last_date = None
     current_convo_start = True
 
-    for (timestamp, date, sender, filtered_message) in messages_data:
+    for i, (timestamp, date, sender, filtered_message) in enumerate(messages_data):
         is_new_convo = False
         if last_timestamp:
             time_diff = (timestamp - last_timestamp).total_seconds() / 60
@@ -55,6 +62,8 @@ async def analyze_chat(chat_file):
                 if response_diff_seconds < 12 * 60 * 60:  # Less than 12 hours
                     total_response_time_seconds += response_diff_seconds
                     response_count += 1
+                # Track interactions (User A's message followed by User B's)
+                interaction_matrix[last_sender][sender] += 1
         else:
             is_new_convo = True
 
@@ -73,6 +82,18 @@ async def analyze_chat(chat_file):
         if date != last_date:
             user_first_texts[sender] += 1
             last_date = date
+
+        # Track longest monologue (consecutive messages)
+        if sender == current_streak_sender:
+            current_streak_count += 1
+        else:
+            # Check if the previous streak was the longest
+            if current_streak_sender is not None and current_streak_count > max_monologue_count:
+                max_monologue_count = current_streak_count
+                max_monologue_sender = current_streak_sender
+            # Start new streak
+            current_streak_sender = sender
+            current_streak_count = 1
 
         # Count words (excluding stopwords and words with 1-2 characters)
         words = re.findall(r'\b\w{3,}\b', filtered_message.lower())
@@ -94,17 +115,20 @@ async def analyze_chat(chat_file):
         hour_key = timestamp.hour
         hourly_message_count[hour_key] += 1
 
+    # Final check for the last monologue streak after the loop
+    if current_streak_sender is not None and current_streak_count > max_monologue_count:
+        max_monologue_count = current_streak_count
+        max_monologue_sender = current_streak_sender
+
+    # Calculate ignored count (consecutive messages from the same user)
+    # Note: This is similar but distinct from monologue count. Ignored counts *pairs* of consecutive messages.
     user_ignored_count = defaultdict(int)
-    previous_sender = None
-    previous_timestamp = None
-
-    for i, (timestamp, date, sender, filtered_message) in enumerate(messages_data):
-        if i > 0:
-            if previous_sender == sender:
-                user_ignored_count[sender] += 1
-
-        previous_sender = sender
-        previous_timestamp = timestamp
+    if len(messages_data) > 1:
+        for i in range(1, len(messages_data)):
+            previous_sender = messages_data[i - 1][2]
+            current_sender = messages_data[i][2]
+            if previous_sender == current_sender:
+                user_ignored_count[current_sender] += 1
 
     average_response_time_minutes = 0
     if response_count > 0:
@@ -122,23 +146,43 @@ async def analyze_chat(chat_file):
     peak_hour = hourly_message_count.most_common(1)[0][0] if hourly_message_count else "N/A"
 
     monthly_activity = []
-    today = datetime.now()
-    start_date = (today.replace(day=1) - timedelta(days=1)).replace(day=1)
-    for i in range(12):
-        target_month = (start_date.replace(day=1) - timedelta(days=i * 30)).strftime('%Y-%m')
-        current_year = today.year
-        current_month = today.month
-        target_month_num = current_month - i
-        target_year = current_year
-        while target_month_num <= 0:
-            target_month_num += 12
-            target_year -= 1
-        target_month_key = f"{target_year}-{target_month_num:02d}"
+    # Ensure monthly activity covers the last 12 full months relative to the latest message, not today
+    if messages_data:
+        latest_message_date = messages_data[-1][0]
+        # Calculate the start date for the 12-month period ending before the month of the latest message
+        end_month_start = latest_message_date.replace(day=1)
+        start_date = (end_month_start - timedelta(days=1)).replace(day=1)
+        for i in range(12):
+            # Calculate the target month by subtracting months correctly
+            current_year = start_date.year
+            current_month = start_date.month
+            target_month_num = current_month - i
+            target_year = current_year
+            while target_month_num <= 0:
+                target_month_num += 12
+                target_year -= 1
+            target_month_key = f"{target_year}-{target_month_num:02d}"
 
-        monthly_activity.append({
-            "month": target_month_key,
-            "count": monthly_message_count.get(target_month_key, 0)
-        })
+            monthly_activity.append({
+                "month": target_month_key,
+                "count": monthly_message_count.get(target_month_key, 0)
+            })
+    else:  # Handle case with no messages
+        today = datetime.now()
+        start_date = (today.replace(day=1) - timedelta(days=1)).replace(day=1)
+        for i in range(12):
+            current_year = start_date.year
+            current_month = start_date.month
+            target_month_num = current_month - i
+            target_year = current_year
+            while target_month_num <= 0:
+                target_month_num += 12
+                target_year -= 1
+            target_month_key = f"{target_year}-{target_month_num:02d}"
+            monthly_activity.append({
+                "month": target_month_key,
+                "count": 0
+            })
 
     monthly_activity.sort(key=lambda x: x['month'])
 
@@ -154,6 +198,10 @@ async def analyze_chat(chat_file):
             "user": most_first_texter,
             "percentage": first_text_percentage
         },
+        "longest_monologue": {
+            "user": max_monologue_sender if max_monologue_sender else None,
+            "count": max_monologue_count
+        },
         "common_words": dict(word_counter.most_common(10)),
         "common_emojis": {emoji_char: count for emoji_char, count in emoji_counter.most_common(10)},
         "monthly_activity": monthly_activity,
@@ -161,5 +209,10 @@ async def analyze_chat(chat_file):
         "peak_hour": f"{peak_hour}:00 - {peak_hour + 1}:00" if isinstance(peak_hour, int) else peak_hour,
         # "ai_analysis": ai_analysis,
     }
+
+    # Add interaction matrix only if more than 2 users
+    if len(user_message_count) > 2:
+        # Convert defaultdict to dict for cleaner output
+        results["user_interaction_matrix"] = {sender: dict(targets) for sender, targets in interaction_matrix.items()}
 
     return results
