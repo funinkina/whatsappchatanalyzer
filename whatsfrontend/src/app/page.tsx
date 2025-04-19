@@ -130,7 +130,7 @@ export default function HomePage() {
             />
             <div>
               <h2 className="text-2xl font-semibold">upload the chat</h2>
-              <p className='text-sm font-light'>dw, we never store any file, so we don't look through your chats</p>
+              <p className='text-sm font-light'>dw, we never store any file, so we don't snoop through your chats</p>
             </div>
           </div>
           <form onSubmit={handleSubmit} className="space-y-4">
