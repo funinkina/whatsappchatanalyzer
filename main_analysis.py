@@ -240,7 +240,7 @@ async def analyze_chat(chat_file):
             "user": max_monologue_sender if max_monologue_sender else None,
             "count": max_monologue_count
         },
-        "common_words": dict(word_counter.most_common(5)),
+        "common_words": dict(word_counter.most_common(10)),
         "common_emojis": {emoji_char: count for emoji_char, count in emoji_counter.most_common(5)},
         "daily_activity": daily_activity,  # Changed from monthly_activity
         "average_response_time_minutes": average_response_time_minutes,
