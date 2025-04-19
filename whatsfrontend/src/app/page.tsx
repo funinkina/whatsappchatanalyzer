@@ -183,7 +183,7 @@ export default function HomePage() {
             >
               {isLoading ? 'Uploading...' : (
                 <>
-                  <span className="mr-2">{'Analyze'}</span>
+                  <span className="mr-2">{'discover yo secrets'}</span>
                   <Image
                     src="/icons/right_arrow.svg"
                     alt="Bloop Icon"
@@ -231,7 +231,7 @@ export default function HomePage() {
             </div>
             <div className="text-lg text-gray-800 mt-10 text-center bg-amber-50 w-full h-24 flex items-center justify-center p-10 border-y-2 border-neutral-800">
               <h1 className='text-4xl font-extrabold mr-4'>2.</h1>
-              <p>Click on <strong>Export Chat</strong>.</p>
+              <p>click on <strong>Export Chat</strong>.</p>
             </div>
           </div>
 
@@ -242,7 +242,7 @@ export default function HomePage() {
             </div>
             <div className="text-lg text-gray-800 mt-10 text-center bg-amber-50 w-full h-24 flex items-center justify-center p-10 border-y-2 border-neutral-800">
               <h1 className='text-4xl font-extrabold mr-4'>3.</h1>
-              <p>Choose <strong>Without Media</strong>.</p>
+              <p>choose <strong>Without Media</strong>.</p>
             </div>
           </div>
 
@@ -253,7 +253,7 @@ export default function HomePage() {
             </div>
             <div className="text-lg text-gray-800 mt-10 text-center bg-amber-50 w-full h-24 flex items-center justify-center p-10 border-y-2 border-neutral-800">
               <h1 className='text-4xl font-extrabold mr-4'>4.</h1>
-              <p>Save the file to your device for uploading.</p>
+              <p>save the file to your device for uploading.</p>
             </div>
           </div>
         </div>
@@ -261,7 +261,7 @@ export default function HomePage() {
 
       {/* listing features */}
       <div className='flex flex-col items-center justify-center p-4 mb-20'>
-        <h1 className='text-center text-6xl font-bold my-20 text-blue-950'>What you will get?</h1>
+        <h1 className='text-center text-6xl font-bold my-20 text-blue-950'>what are you in for?</h1>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
           {/* Feature 1 */}
           <div className="w-80 h-80 bg-rose-50 text-red-600 rounded-lg border-2 border-neutral-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] p-6 flex flex-col items-start hover:shadow-[15px_15px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
@@ -272,7 +272,7 @@ export default function HomePage() {
           {/* Feature 2 */}
           <div className="w-80 h-80 bg-sky-50 text-sky-700 rounded-lg border-2 border-neutral-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] p-6 flex flex-col items-start hover:shadow-[15px_15px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
             <Image src="/icons/frown.svg" alt="Ignored" width={80} height={80} className="mb-4" />
-            <h2 className="text-3xl font-semibold text-start">who is the most ignored one?</h2>
+            <h2 className="text-3xl font-semibold text-start">who gets ignored the most?</h2>
           </div>
 
           {/* Feature 3 */}
@@ -284,7 +284,7 @@ export default function HomePage() {
           {/* Feature 4 */}
           <div className="w-80 h-80 bg-purple-100 text-violet-800 rounded-lg border-2 border-neutral-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] p-6 flex flex-col items-start hover:shadow-[15px_15px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
             <Image src="/icons/chat.svg" alt="Words and Emojis" width={80} height={80} className="mb-4" />
-            <h2 className="text-3xl font-semibold text-start">most used words and emojis</h2>
+            <h2 className="text-3xl font-semibold text-start">which words and emojis do yall use the most?</h2>
           </div>
 
           {/* Feature 5 */}
