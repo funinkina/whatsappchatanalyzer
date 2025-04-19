@@ -31,9 +31,11 @@ async def analyze_chat(chat_file):
     user_messages = defaultdict(list)
     monthly_message_count = defaultdict(int)
     hourly_message_count = Counter()
+    daily_message_count = Counter()  # Count messages per day of the week (0=Monday, 6=Sunday)
     total_response_time_seconds = 0
     response_count = 0
     interaction_matrix = defaultdict(lambda: defaultdict(int))
+    activity_heatmap = defaultdict(lambda: defaultdict(int))
 
     # Variables for longest monologue
     max_monologue_count = 0
@@ -115,6 +117,13 @@ async def analyze_chat(chat_file):
         hour_key = timestamp.hour
         hourly_message_count[hour_key] += 1
 
+        # Populate Activity Heatmap (Day of Week vs Hour)
+        day_of_week = timestamp.weekday()  # 0=Monday, 6=Sunday
+        activity_heatmap[day_of_week][hour_key] += 1
+
+        # Count messages per day of the week
+        daily_message_count[day_of_week] += 1
+
     # Final check for the last monologue streak after the loop
     if current_streak_sender is not None and current_streak_count > max_monologue_count:
         max_monologue_count = current_streak_count
@@ -186,6 +195,17 @@ async def analyze_chat(chat_file):
 
     monthly_activity.sort(key=lambda x: x['month'])
 
+    # Convert activity heatmap defaultdict to dict for JSON serialization
+    activity_heatmap_dict = {day: dict(hours) for day, hours in activity_heatmap.items()}
+
+    # Calculate average messages per weekday vs weekend day
+    total_weekday_messages = sum(daily_message_count[day] for day in range(5))  # Monday to Friday
+    total_weekend_messages = sum(daily_message_count[day] for day in range(5, 7))  # Saturday and Sunday
+
+    # Avoid division by zero if the chat spans less than a full week or has no messages on weekdays/weekends
+    average_weekday_messages = round(total_weekday_messages / 5, 2) if total_weekday_messages > 0 else 0
+    average_weekend_messages = round(total_weekend_messages / 2, 2) if total_weekend_messages > 0 else 0
+
     # ai_analysis = await ai_analysis_task
     # if ai_analysis is None:
     #     ai_analysis = "Unable to retrieve AI analysis."
@@ -207,6 +227,14 @@ async def analyze_chat(chat_file):
         "monthly_activity": monthly_activity,
         "average_response_time_minutes": average_response_time_minutes,
         "peak_hour": f"{peak_hour}:00 - {peak_hour + 1}:00" if isinstance(peak_hour, int) else peak_hour,
+        "activity_heatmap": activity_heatmap_dict,
+        "weekday_vs_weekend_avg": {
+            "average_weekday_messages": average_weekday_messages,
+            "average_weekend_messages": average_weekend_messages,
+            "difference": round(average_weekday_messages - average_weekend_messages, 2),
+            # Optional: Calculate percentage difference relative to weekday average
+            "percentage_difference": round(((average_weekday_messages - average_weekend_messages) / average_weekday_messages) * 100, 2) if average_weekday_messages > 0 else 0
+        },
         # "ai_analysis": ai_analysis,
     }
 
