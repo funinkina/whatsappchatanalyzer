@@ -186,7 +186,7 @@ export default function HomePage() {
       {/* how to section */}
       <div className='mb-10 mt-10'>
         <div className='border-2 border-neutral-800'>
-          <h1 className='text-center text-6xl font-bold my-5'>How to get the chat file?</h1>
+          <h1 className='text-center text-6xl font-bold my-5 text-blue-950'>How to get the chat file?</h1>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
           {/* Step 1 */}
@@ -231,6 +231,48 @@ export default function HomePage() {
               <h1 className='text-4xl font-extrabold mr-4'>4.</h1>
               <p>Save the file to your device for uploading.</p>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* listing features */}
+      <div className='flex flex-col items-center justify-center p-4 mb-20'>
+        <h1 className='text-center text-6xl font-bold my-20 text-blue-950'>What you will get?</h1>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+          {/* Feature 1 */}
+          <div className="w-80 h-80 bg-rose-50 text-red-600 rounded-lg border-2 border-neutral-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] p-6 flex flex-col items-start">
+            <Image src="/icons/prize.svg" alt="Active Member" width={50} height={50} className="mb-4" />
+            <h2 className="text-3xl font-semibold text-start">Most active member and conversation starter</h2>
+          </div>
+
+          {/* Feature 2 */}
+          <div className="w-80 h-80 bg-sky-50 text-sky-700 rounded-lg border-2 border-neutral-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] p-6 flex flex-col items-start">
+            <Image src="/icons/frown.svg" alt="Ignored" width={80} height={80} className="mb-4" />
+            <h2 className="text-3xl font-semibold text-start">Who is the most ignored one?</h2>
+          </div>
+
+          {/* Feature 3 */}
+          <div className="w-80 h-80 bg-red-100 text-orange-700 rounded-lg border-2 border-neutral-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] p-6 flex flex-col items-start">
+            <Image src="/icons/time.svg" alt="Average Reply Time" width={50} height={50} className="mb-4" />
+            <h2 className="text-3xl font-semibold text-start">How long does it take on average to get a reply?</h2>
+          </div>
+
+          {/* Feature 4 */}
+          <div className="w-80 h-80 bg-purple-100 text-violet-800 rounded-lg border-2 border-neutral-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] p-6 flex flex-col items-start">
+            <Image src="/icons/chat.svg" alt="Words and Emojis" width={80} height={80} className="mb-4" />
+            <h2 className="text-3xl font-semibold text-start">Most commonly used words and emojis.</h2>
+          </div>
+
+          {/* Feature 5 */}
+          <div className="w-80 h-80 bg-rose-50 text-red-700 rounded-lg border-2 border-neutral-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] p-6 flex flex-col items-start">
+            <Image src="/icons/graph.svg" alt="Trends" width={80} height={80} className="mb-4" />
+            <h2 className="text-3xl font-semibold text-start">Trends and activity over the past year.</h2>
+          </div>
+
+          {/* Feature 6 */}
+          <div className="w-80 h-80 bg-emerald-100 text-emerald-700 rounded-lg border-2 border-neutral-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] p-6 flex flex-col items-start">
+            <Image src="/icons/sparkle.svg" alt="AI Analysis" width={60} height={60} className="mb-4" />
+            <h2 className="text-3xl font-semibold text-start">AI powered analysis and charcter assingning.</h2>
           </div>
         </div>
       </div>
