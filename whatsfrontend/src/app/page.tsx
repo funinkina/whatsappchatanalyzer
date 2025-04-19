@@ -62,8 +62,7 @@ export default function HomePage() {
 
   return (
     <main className="relative">
-
-      <div className='flex flex-col items-center justify-center p-4 h-screen'>
+      <div className='absolute top-0 left-0 w-full h-screen z-0'>
         {/* Floating Images */}
         <div className="absolute top-50 left-70 animate-float hover:-translate-x-20 hover:-translate-y-20 transition-transform duration-300" style={{ animationDelay: '0.3s' }}>
           <Image src="/floater_1.svg" alt="Floating Icon 1" width={250} height={250} style={{ height: "auto" }} />
@@ -77,6 +76,8 @@ export default function HomePage() {
         <div className="absolute bottom-40 right-60 animate-float hover:translate-x-20 hover:translate-y-30 transition-transform duration-300" style={{ animationDelay: '1.9s' }}>
           <Image src="/floater_4.svg" alt="Floating Icon 4" width={300} height={300} style={{ height: "auto" }} />
         </div>
+      </div>
+      <div className='flex flex-col items-center justify-center p-4 h-screen z-10'>
         {/* Logo */}
         <div className="mb-10">
           <Image
@@ -169,6 +170,57 @@ export default function HomePage() {
               )}
             </button>
           </form>
+        </div>
+      </div>
+      {/* how to section */}
+      <div className='mb-10 mt-10'>
+        <div className='border-2 border-neutral-800'>
+          <h1 className='text-center text-6xl font-bold my-5'>How to get the chat file?</h1>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+          {/* Step 1 */}
+          <div className="bg-green-100 pt-4 flex flex-col justify-between items-center border-r-2 border-r-neutral-800">
+            <div className='flex items-center justify-center h-full'>
+              <Image src="/step_1.png" alt="Step 1" width={150} height={50} className="rounded-md" />
+            </div>
+            <div className="text-lg text-gray-800 mt-10 text-left bg-amber-50 w-full h-24 flex items-center justify-center p-10 border-y-2 border-neutral-800">
+              <h1 className='text-4xl font-extrabold mr-4'>1.</h1>
+              <p>Open a chat, click on the <strong>Three Dots</strong> and click on <strong>More</strong>.</p>
+            </div>
+          </div>
+
+          {/* Step 2 */}
+          <div className="bg-pink-100 pt-4 flex flex-col justify-between items-center border-r-2 border-r-neutral-800">
+            <div className='flex items-center justify-center h-full'>
+              <Image src="/step_2.png" alt="Step 2" width={150} height={200} className="rounded-md" />
+            </div>
+            <div className="text-lg text-gray-800 mt-10 text-center bg-amber-50 w-full h-24 flex items-center justify-center p-10 border-y-2 border-neutral-800">
+              <h1 className='text-4xl font-extrabold mr-4'>2.</h1>
+              <p>Click on <strong>Export Chat</strong>.</p>
+            </div>
+          </div>
+
+          {/* Step 3 */}
+          <div className="bg-purple-100 pt-4 flex flex-col justify-between items-center border-r-2 border-r-neutral-800">
+            <div className='flex items-center justify-center h-full'>
+              <Image src="/step_3.png" alt="Step 3" width={300} height={200} className="rounded-md" />
+            </div>
+            <div className="text-lg text-gray-800 mt-10 text-center bg-amber-50 w-full h-24 flex items-center justify-center p-10 border-y-2 border-neutral-800">
+              <h1 className='text-4xl font-extrabold mr-4'>3.</h1>
+              <p>Choose <strong>Without Media</strong>.</p>
+            </div>
+          </div>
+
+          {/* Step 4 */}
+          <div className="bg-blue-100 pt-4 flex flex-col justify-between items-center">
+            <div className='flex items-center justify-center h-full'>
+              <Image src="/step_4.png" alt="Step 4" width={400} height={200} className="rounded-md" />
+            </div>
+            <div className="text-lg text-gray-800 mt-10 text-center bg-amber-50 w-full h-24 flex items-center justify-center p-10 border-y-2 border-neutral-800">
+              <h1 className='text-4xl font-extrabold mr-4'>4.</h1>
+              <p>Save the file to your device for uploading.</p>
+            </div>
+          </div>
         </div>
       </div>
     </main>

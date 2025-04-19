@@ -99,6 +99,21 @@ export default function ResultsPage() {
                     </ul>
                 </section>
 
+                {/* Most Ignored Users */}
+                <section className="p-4 border rounded-lg bg-white shadow-sm">
+                    <h2 className="text-xl font-semibold mb-2 text-gray-700">Most Ignored Users</h2>
+                    <ul>
+                        {Object.entries(results.most_ignored_users)
+                            .sort(([, percentageA], [, percentageB]) => percentageB - percentageA)
+                            .slice(0, 1)
+                            .map(([user]) => (
+                                <li key={user}>
+                                    {user}
+                                </li>
+                            ))}
+                    </ul>
+                </section>
+
                 {/* Common Words */}
                 <section className="p-4 border rounded-lg bg-white shadow-sm">
                     <h2 className="text-xl font-semibold mb-2 text-gray-700">Common Words</h2>
@@ -151,7 +166,7 @@ export default function ResultsPage() {
                 <section className="p-4 border rounded-lg bg-white shadow-sm">
                     <h2 className="text-xl font-semibold mb-2 text-gray-700">First Text Champion</h2>
                     <p>
-                        {results.first_text_champion.user}: {results.first_text_champion.percentage.toFixed(2)}%
+                        {results.first_text_champion.user}
                     </p>
                 </section>
             </div>
