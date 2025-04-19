@@ -1,9 +1,8 @@
-// src/app/page.tsx
-"use client"; // Required for using hooks like useState, useRouter
+"use client";
 
 import { useState, FormEvent } from 'react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation'; // Use next/navigation for App Router
+import { useRouter } from 'next/navigation';
 
 export default function HomePage() {
   const [file, setFile] = useState<File | null>(null);
@@ -21,7 +20,7 @@ export default function HomePage() {
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault(); // Prevent default form submission
+    event.preventDefault();
 
     if (!file) {
       setError('Please select a file first.');
@@ -57,7 +56,21 @@ export default function HomePage() {
   };
 
   return (
-    <main>
+    <main className="relative">
+      {/* Floating Images */}
+      <div className="fixed top-50 left-70 animate-float hover:-translate-x-20 hover:-translate-y-20 transition-transform duration-300" style={{ animationDelay: '0.3s' }}>
+        <Image src="/floater_1.svg" alt="Floating Icon 1" width={250} height={250} priority />
+      </div>
+      <div className="fixed top-60 right-50 animate-float hover:translate-x-30 hover:-translate-y-30 transition-transform duration-300" style={{ animationDelay: '0.8s' }}>
+        <Image src="/floater_2.svg" alt="Floating Icon 2" width={200} height={200} priority />
+      </div>
+      <div className="fixed bottom-10 left-4 animate-float hover:translate-x-50 hover:-translate-y-20 transition-transform duration-300" style={{ animationDelay: '1.4s' }}>
+        <Image src="/floater_3.svg" alt="Floating Icon 3" width={400} height={400} priority />
+      </div>
+      <div className="fixed bottom-40 right-60 animate-float hover:translate-x-20 hover:translate-y-30 transition-transform duration-300" style={{ animationDelay: '1.9s' }}>
+        <Image src="/floater_4.svg" alt="Floating Icon 4" width={300} height={300} priority />
+      </div>
+
       <div className='flex flex-col items-center justify-center p-4 h-screen'>
         {/* Logo */}
         <div className="mb-10">
@@ -67,6 +80,7 @@ export default function HomePage() {
             width={500}
             height={100}
             priority
+            draggable="false"
           />
         </div>
         <div className='w-lg'>

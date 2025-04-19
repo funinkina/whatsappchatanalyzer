@@ -11,6 +11,22 @@
   --font-sans: var(--font-dm-sans);
 }
 
+@theme {
+  --animate-float: float 2s ease-in-out infinite;
+  
+  @keyframes float {
+    0% {
+      transform: translate(0, 0);
+    }
+    50% {
+      transform: translate(-10px, -10px);
+    }
+    100% {
+      transform: translate(0, 0);
+    }
+  }
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #F7F4E9;
