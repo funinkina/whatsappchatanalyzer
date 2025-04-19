@@ -57,11 +57,25 @@ def load_stopwords():
         print("Warning: Stopwords file 'stopwords.txt' not found. Using empty stopwords set.")
         return set()
 
+# Load stopwords globally
+STOPWORDS = {word.lower() for word in load_stopwords()}
+if not STOPWORDS:
+    print("Warning: Stopwords set is empty. Ensure 'stopwords.txt' exists and is populated.")
 
 def clean_message(message):
-    """Remove URLs, emojis, and strip whitespace."""
+    """Remove URLs, emojis, normalize text, remove stopwords, and strip whitespace."""
     message = remove_emojis_and_links(message)
-    return message.strip()
+    message = message.strip()
+
+    def normalize_word(word):
+        return word.strip(string.punctuation).lower()
+
+    filtered_words = [
+        w for w in map(normalize_word, message.split())
+        if w not in STOPWORDS and len(w) > 2
+    ]
+
+    return ' '.join(filtered_words)
 
 def preprocess_messages(chat_file):
     """Parse chat messages, extract timestamp, sender, and raw message content, filtering system messages."""
@@ -113,27 +127,16 @@ def group_messages_by_topic(data, gap_hours=6):
 
     # Second pass: Clean and filter messages within each grouped topic
     processed_topics = []
+    # Inside group_messages_by_topic
     for raw_topic in grouped_topics_raw:
         processed_topic = []
         for timestamp, date, sender, raw_message in raw_topic:
             cleaned_message = clean_message(raw_message)
-            if not cleaned_message:
-                continue
-
-            def normalize_word(word):
-                return word.strip(string.punctuation).lower()
-
-            # Normalize words and filter stopwords
-            filtered_message = ' '.join(
-                [w for w in map(normalize_word, cleaned_message.split())
-                 if w not in stopwords and len(w) > 2]
-            )
-
-            if filtered_message:  # Only add if message still has content after filtering
-                processed_topic.append((timestamp, date, sender, filtered_message))
-
-        if processed_topic:  # Only add non-empty topics
+            if cleaned_message:
+                processed_topic.append((timestamp, date, sender, cleaned_message))
+        if processed_topic:
             processed_topics.append(processed_topic)
+
 
     return processed_topics
 

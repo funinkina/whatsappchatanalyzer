@@ -34,9 +34,11 @@ async def analyze_messages_with_llm(data, gap_hours=3):
 
     # Define system message prompt
     system_prompt = """
-        You will be given messages exchanged between different people in a WhatsApp chat:
-        give a short summary of the chat. describe character of the two people in the convo.
-        Keep the response very short, within 5-6 lines.
+        You will be given WhatsApp chats:
+        give a fun, short insight into what the chat is like in 7-8 lines.
+        describe character of the two people in the convo in a fun way with the limited chats.
+        but keep it a broader judgement.
+        in 4-5 lines each.
         """
 
     try:
