@@ -141,7 +141,7 @@ export default function ResultsPage() {
 
                 {/* Most Ignored Users */}
                 <section className="p-4 border rounded-lg bg-white shadow-sm">
-                    <h2 className="text-xl font-semibold mb-2 text-gray-700">Most Ignored Users</h2>
+                    <h2 className="text-xl font-semibold mb-2 text-gray-700">who gets ignored the most?</h2>
                     <ul>
                         {Object.entries(results.most_ignored_users)
                             .sort(([, percentageA], [, percentageB]) => percentageB - percentageA)
@@ -156,7 +156,7 @@ export default function ResultsPage() {
 
                 {/* First Text Champion */}
                 <section className="p-4 border rounded-lg bg-white shadow-sm">
-                    <h2 className="text-xl font-semibold mb-2 text-gray-700">First Text Champion</h2>
+                    <h2 className="text-xl font-semibold mb-2 text-gray-700">who texts first usually?</h2>
                     <p>
                         {results.first_text_champion.user}: {results.first_text_champion.percentage.toFixed(2)}%
                     </p>
