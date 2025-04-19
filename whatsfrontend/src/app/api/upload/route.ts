@@ -26,17 +26,22 @@ interface BackendResponse {
   common_emojis: {
     [emoji: string]: number; // Emoji as key and its frequency as value
   };
-  monthly_activity: Array<{
-    month: string; // Month in "YYYY-MM" format
-    count: number; // Number of activities/messages in that month
+  daily_activity: Array<{ // Changed from monthly_activity
+    day: string; // format must be YYYY-MM-DD
+    value: number;
   }>;
   average_response_time_minutes: number; // Average response time in minutes
   peak_hour: string; // Peak activity hour range in "HH:mm - HH:mm" format
-  activity_heatmap: {
-    [month: string]: {
-      [day: string]: number; // Day as key and count as value
-    }
-  };
+  
+  // Updated structure for user_monthly_activity to match what backend returns
+  user_monthly_activity: Array<{
+    id: string;
+    data: Array<{
+      x: string; // month in yyyy-mm format
+      y: number; // number of messages
+    }>;
+  }>;
+  
   weekday_vs_weekend_avg: {
     average_weekday_messages: number;
     average_weekend_messages: number;
@@ -44,10 +49,12 @@ interface BackendResponse {
     percentage_difference: number;
   };
   user_interaction_matrix?: {
-    [username: string]: {
-      [username: string]: number; // Username as key and interaction count as value
-    }
-  };
+    id: string;
+    data: {
+        x: string | number;
+        y: number | null;
+    }[];
+  }[] | null; // Updated type
 }
 
 export async function POST(request: NextRequest) {

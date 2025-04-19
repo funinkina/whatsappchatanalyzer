@@ -29,13 +29,13 @@ async def analyze_chat(chat_file):
     word_counter = Counter()
     emoji_counter = Counter()
     user_messages = defaultdict(list)
-    monthly_message_count = defaultdict(int)
+    daily_message_count_by_date = Counter()  # Added for daily activity
     hourly_message_count = Counter()
-    daily_message_count = Counter()  # Count messages per day of the week (0=Monday, 6=Sunday)
+    daily_message_count_by_weekday = Counter()  # Count messages per day of the week (0=Monday, 6=Sunday)
+    monthly_activity_by_user = defaultdict(lambda: Counter()) # For user monthly activity heatmap
     total_response_time_seconds = 0
     response_count = 0
     interaction_matrix = defaultdict(lambda: defaultdict(int))
-    activity_heatmap = defaultdict(lambda: defaultdict(int))
 
     # Variables for longest monologue
     max_monologue_count = 0
@@ -47,14 +47,15 @@ async def analyze_chat(chat_file):
     last_timestamp = None
     last_sender = None
     user_last_message = {}
-    last_date = None
+    last_date_str = None  # Changed from last_date
     current_convo_start = True
+    all_months = set() # Keep track of all months present in the chat
 
     # Track the first and latest message timestamps
-    first_message_date = messages_data[0][0] if messages_data else None
-    latest_message_date = messages_data[-1][0] if messages_data else None
+    first_message_timestamp = messages_data[0][0] if messages_data else None
+    latest_message_timestamp = messages_data[-1][0] if messages_data else None
 
-    for i, (timestamp, date, sender, filtered_message) in enumerate(messages_data):
+    for i, (timestamp, date_obj, sender, filtered_message) in enumerate(messages_data):  # Renamed date to date_obj
         is_new_convo = False
         if last_timestamp:
             time_diff = (timestamp - last_timestamp).total_seconds() / 60
@@ -85,9 +86,10 @@ async def analyze_chat(chat_file):
         user_messages[sender].append(filtered_message)
 
         # Track first text of the day
-        if date != last_date:
+        current_date_str = timestamp.strftime('%Y-%m-%d')  # Use timestamp for consistency
+        if current_date_str != last_date_str:
             user_first_texts[sender] += 1
-            last_date = date
+            last_date_str = current_date_str
 
         # Track longest monologue (consecutive messages)
         if sender == current_streak_sender:
@@ -113,20 +115,21 @@ async def analyze_chat(chat_file):
         last_sender = sender
         last_timestamp = timestamp
 
-        # Count messages per month
-        month_key = timestamp.strftime('%Y-%m')
-        monthly_message_count[month_key] += 1
+        # Count messages per specific date
+        daily_message_count_by_date[current_date_str] += 1
 
         # Count messages per hour
         hour_key = timestamp.hour
         hourly_message_count[hour_key] += 1
 
-        # Populate Activity Heatmap (Day of Week vs Hour)
-        day_of_week = timestamp.weekday()  # 0=Monday, 6=Sunday
-        activity_heatmap[day_of_week][hour_key] += 1
+        # Populate User Monthly Activity
+        month_str = timestamp.strftime('%Y-%m')
+        monthly_activity_by_user[sender][month_str] += 1
+        all_months.add(month_str) # Add month to the set
 
         # Count messages per day of the week
-        daily_message_count[day_of_week] += 1
+        day_of_week = timestamp.weekday() # Still needed for weekday/weekend avg
+        daily_message_count_by_weekday[day_of_week] += 1
 
     # Final check for the last monologue streak after the loop
     if current_streak_sender is not None and current_streak_count > max_monologue_count:
@@ -151,8 +154,9 @@ async def analyze_chat(chat_file):
 
     # Calculate days since first message if data exists
     days_since_first_message = None
-    if first_message_date and latest_message_date:
-        days_since_first_message = (latest_message_date - first_message_date).days
+    if first_message_timestamp and latest_message_timestamp:
+        # Calculate difference between the dates only, ignoring time
+        days_since_first_message = (latest_message_timestamp.date() - first_message_timestamp.date()).days + 1  # Add 1 to include both start and end days
 
     most_active_users = {user: round((count / total_messages) * 100, 2) if total_messages > 0 else 0 for user, count in user_message_count.items()}
     conversation_starters = {user: round((count / sum(user_starts_convo.values())) * 100, 2) if sum(user_starts_convo.values()) > 0 else 0 for user, count in user_starts_convo.items()}
@@ -164,53 +168,38 @@ async def analyze_chat(chat_file):
 
     peak_hour = hourly_message_count.most_common(1)[0][0] if hourly_message_count else "N/A"
 
-    monthly_activity = []
-    # Ensure monthly activity covers the last 12 full months relative to the latest message, not today
-    if messages_data:
-        latest_message_date = messages_data[-1][0]
-        # Calculate the start date for the 12-month period ending before the month of the latest message
-        end_month_start = latest_message_date.replace(day=1)
-        start_date = (end_month_start - timedelta(days=1)).replace(day=1)
-        for i in range(12):
-            # Calculate the target month by subtracting months correctly
-            current_year = start_date.year
-            current_month = start_date.month
-            target_month_num = current_month - i
-            target_year = current_year
-            while target_month_num <= 0:
-                target_month_num += 12
-                target_year -= 1
-            target_month_key = f"{target_year}-{target_month_num:02d}"
-
-            monthly_activity.append({
-                "month": target_month_key,
-                "count": monthly_message_count.get(target_month_key, 0)
+    # Generate daily activity data
+    daily_activity = []
+    if first_message_timestamp and latest_message_timestamp:
+        current_date = first_message_timestamp.date()
+        end_date = latest_message_timestamp.date()
+        delta = timedelta(days=1)
+        while current_date <= end_date:
+            date_str = current_date.strftime('%Y-%m-%d')
+            daily_activity.append({
+                "day": date_str,
+                "value": daily_message_count_by_date.get(date_str, 0)
             })
-    else:  # Handle case with no messages
-        today = datetime.now()
-        start_date = (today.replace(day=1) - timedelta(days=1)).replace(day=1)
-        for i in range(12):
-            current_year = start_date.year
-            current_month = start_date.month
-            target_month_num = current_month - i
-            target_year = current_year
-            while target_month_num <= 0:
-                target_month_num += 12
-                target_year -= 1
-            target_month_key = f"{target_year}-{target_month_num:02d}"
-            monthly_activity.append({
-                "month": target_month_key,
-                "count": 0
-            })
+            current_date += delta
+    # Ensure daily_activity is sorted by date (it should be already, but just in case)
+    daily_activity.sort(key=lambda x: x['day'])
 
-    monthly_activity.sort(key=lambda x: x['month'])
+    # Format user monthly activity for Nivo heatmap
+    nivo_user_monthly_activity = []
+    sorted_months = sorted(list(all_months)) # Ensure months are chronological
+    all_users_list = sorted(list(user_message_count.keys())) # Get all users sorted
 
-    # Convert activity heatmap defaultdict to dict for JSON serialization
-    activity_heatmap_dict = {day: dict(hours) for day, hours in activity_heatmap.items()}
+    for user in all_users_list:
+        user_data = []
+        user_month_counts = monthly_activity_by_user.get(user, Counter()) # Get user's monthly counts or empty Counter
+        for month_str in sorted_months:
+            count = user_month_counts.get(month_str, 0) # Get count for the month, default 0
+            user_data.append({"x": month_str, "y": count})
+        nivo_user_monthly_activity.append({"id": user, "data": user_data})
 
     # Calculate average messages per weekday vs weekend day
-    total_weekday_messages = sum(daily_message_count[day] for day in range(5))  # Monday to Friday
-    total_weekend_messages = sum(daily_message_count[day] for day in range(5, 7))  # Saturday and Sunday
+    total_weekday_messages = sum(daily_message_count_by_weekday[day] for day in range(5))  # Monday to Friday
+    total_weekend_messages = sum(daily_message_count_by_weekday[day] for day in range(5, 7))  # Saturday and Sunday
 
     # Avoid division by zero if the chat spans less than a full week or has no messages on weekdays/weekends
     average_weekday_messages = round(total_weekday_messages / 5, 2) if total_weekday_messages > 0 else 0
@@ -219,6 +208,21 @@ async def analyze_chat(chat_file):
     # ai_analysis = await ai_analysis_task
     # if ai_analysis is None:
     #     ai_analysis = "Unable to retrieve AI analysis."
+
+    # Prepare user interaction matrix for Nivo heatmap if more than 1 user
+    nivo_interaction_matrix = None
+    # A heatmap makes sense even for 2 users to see the interaction pattern.
+    if len(user_message_count) > 1:
+        nivo_interaction_matrix = []
+        for sender in all_users_list:
+            sender_data = []
+            # Ensure data exists for every user pair, even if count is 0
+            for target_user in all_users_list:
+                # Get interaction count from sender to target_user
+                # interaction_matrix[sender] is a defaultdict(int), so .get() handles missing targets gracefully
+                count = interaction_matrix[sender].get(target_user, 0)
+                sender_data.append({"x": target_user, "y": count})
+            nivo_interaction_matrix.append({"id": sender, "data": sender_data})
 
     results = {
         "total_messages": total_messages,
@@ -236,10 +240,10 @@ async def analyze_chat(chat_file):
         },
         "common_words": dict(word_counter.most_common(10)),
         "common_emojis": {emoji_char: count for emoji_char, count in emoji_counter.most_common(10)},
-        "monthly_activity": monthly_activity,
+        "daily_activity": daily_activity,  # Changed from monthly_activity
         "average_response_time_minutes": average_response_time_minutes,
         "peak_hour": f"{peak_hour}:00 - {peak_hour + 1}:00" if isinstance(peak_hour, int) else peak_hour,
-        "activity_heatmap": activity_heatmap_dict,
+        "user_monthly_activity": nivo_user_monthly_activity, # Added user monthly activity
         "weekday_vs_weekend_avg": {
             "average_weekday_messages": average_weekday_messages,
             "average_weekend_messages": average_weekend_messages,
@@ -248,7 +252,7 @@ async def analyze_chat(chat_file):
             "percentage_difference": round(((average_weekday_messages - average_weekend_messages) / average_weekday_messages) * 100, 2) if average_weekday_messages > 0 else 0
         },
         # "ai_analysis": ai_analysis,
-        "user_interaction_matrix": {sender: dict(targets) for sender, targets in interaction_matrix.items()} if len(user_message_count) > 2 else None
+        "user_interaction_matrix": nivo_interaction_matrix
     }
 
     return results

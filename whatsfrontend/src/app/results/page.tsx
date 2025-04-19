@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { ResponsiveHeatMap } from '@nivo/heatmap';
+import { ResponsiveLine } from '@nivo/line';
 
 // Define an interface for the expected data structure
 interface AnalysisResults {
@@ -14,14 +16,17 @@ interface AnalysisResults {
     longest_monologue: { user: string; count: number };
     common_words: { [word: string]: number };
     common_emojis: { [emoji: string]: number };
-    monthly_activity: Array<{ month: string; count: number }>;
+    daily_activity: Array<{ day: string; value: number }>;
     average_response_time_minutes: number;
     peak_hour: string;
-    activity_heatmap: {
-        [day: string]: {
-            [hour: string]: number;
-        }
-    };
+    // Updated structure for user_monthly_activity
+    user_monthly_activity: Array<{
+        id: string;
+        data: Array<{
+            x: string;
+            y: number;
+        }>;
+    }>;
     weekday_vs_weekend_avg: {
         average_weekday_messages: number;
         average_weekend_messages: number;
@@ -29,10 +34,12 @@ interface AnalysisResults {
         percentage_difference: number;
     };
     user_interaction_matrix: {
-        [username: string]: {
-            [username: string]: number;
-        }
-    } | null;
+        id: string;
+        data: {
+            x: string | number;
+            y: number | null;
+        }[];
+    }[] | null;
 }
 
 export default function ResultsPage() {
@@ -89,6 +96,11 @@ export default function ResultsPage() {
             </div>
         );
     }
+
+    // Prepare data for User Interaction Heatmap
+    const userInteractionKeys = results.user_interaction_matrix
+        ? results.user_interaction_matrix[0]?.data.map(d => String(d.x)) ?? []
+        : [];
 
     return (
         <main className="container mx-auto p-6">
@@ -182,18 +194,6 @@ export default function ResultsPage() {
                     </ul>
                 </section>
 
-                {/* Monthly Activity */}
-                <section className="p-4 border rounded-lg bg-white shadow-sm">
-                    <h2 className="text-xl font-semibold mb-2 text-gray-700">Monthly Activity</h2>
-                    <ul>
-                        {results.monthly_activity.map(({ month, count }) => (
-                            <li key={month}>
-                                {month}: {count} messages
-                            </li>
-                        ))}
-                    </ul>
-                </section>
-
                 {/* Average Response Time */}
                 <section className="p-4 border rounded-lg bg-white shadow-sm">
                     <h2 className="text-xl font-semibold mb-2 text-gray-700">Average Response Time</h2>
@@ -217,59 +217,147 @@ export default function ResultsPage() {
                     </ul>
                 </section>
 
-                {/* Activity Heatmap (Plain text representation) */}
-                <section className="p-4 border rounded-lg bg-white shadow-sm">
-                    <h2 className="text-xl font-semibold mb-2 text-gray-700">Activity Heatmap</h2>
-                    <p className="mb-2 text-sm">Day and hour distribution of messages</p>
-                    <div className="text-xs space-y-2">
-                        {Object.entries(results.activity_heatmap).map(([dayNum, hours]) => {
-                            // Convert day number to day name (0 = Monday, 6 = Sunday)
-                            const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-                            const dayName = dayNames[parseInt(dayNum)];
 
-                            return (
-                                <div key={dayNum} className="mb-2">
-                                    <p className="font-medium">{dayName}:</p>
-                                    <ul className="pl-4">
-                                        {Object.entries(hours).map(([hour, count]) => (
-                                            <li key={`${dayNum}-${hour}`}>
-                                                {hour}:00 - {hour}:59: {count} messages
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </section>
-
-                {/* User Interaction Matrix (Only shown if data exists) */}
-                {results.user_interaction_matrix && (
+                {/* User Interaction Matrix (Heatmap) */}
+                {results.user_interaction_matrix && results.user_interaction_matrix.length > 0 && (
                     <section className="p-4 border rounded-lg bg-white shadow-sm">
-                        <h2 className="text-xl font-semibold mb-2 text-gray-700">User Interactions</h2>
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full bg-white border">
-                                <thead>
-                                    <tr>
-                                        <th className="py-2 px-4 border">User</th>
-                                        {Object.keys(results.user_interaction_matrix).map(user => (
-                                            <th key={user} className="py-2 px-4 border text-xs">{user.split(' ')[0]}</th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {Object.entries(results.user_interaction_matrix).map(([user, interactions]) => (
-                                        <tr key={user}>
-                                            <td className="py-2 px-4 border font-medium text-xs">{user.split(' ')[0]}</td>
-                                            {results.user_interaction_matrix && Object.keys(results.user_interaction_matrix).map(otherUser => (
-                                                <td key={otherUser} className="py-2 px-4 border text-center text-xs">
-                                                    {interactions[otherUser] || 0}
-                                                </td>
-                                            ))}
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                        <h2 className="text-xl font-semibold mb-4 text-gray-700">User Interactions Heatmap</h2>
+                        <div className="h-96 w-full">
+                            <ResponsiveHeatMap
+                                data={results.user_interaction_matrix || []}
+                                keys={userInteractionKeys}
+                                indexBy="id"
+                                margin={{ top: 80, right: 110, bottom: 80, left: 110 }}
+                                valueFormat=">.0f"
+                                axisTop={{
+                                    tickSize: 5,
+                                    tickPadding: 5,
+                                    tickRotation: -45,
+                                    legend: 'Recipient User',
+                                    legendOffset: -50,
+                                    legendPosition: 'middle'
+                                }}
+                                axisLeft={{
+                                    tickSize: 5,
+                                    tickPadding: 5,
+                                    tickRotation: 0,
+                                    legend: 'Sending User',
+                                    legendPosition: 'middle',
+                                    legendOffset: -72
+                                }}
+                                colors={{
+                                    type: 'sequential',
+                                    scheme: 'blues',
+                                }}
+                                cellOpacity={1}
+                                cellBorderColor={{ from: 'color', modifiers: [['darker', 0.4]] }}
+                                labelTextColor={{ from: 'color', modifiers: [['darker', 1.8]] }}
+                                legends={[
+                                    {
+                                        anchor: 'bottom',
+                                        translateX: 0,
+                                        translateY: 30,
+                                        length: 400,
+                                        thickness: 8,
+                                        direction: 'row',
+                                        tickPosition: 'after',
+                                        tickSize: 3,
+                                        tickSpacing: 4,
+                                        tickOverlap: false,
+                                        tickFormat: '>-.2s',
+                                        title: 'Messages Sent →',
+                                        titleAlign: 'start',
+                                        titleOffset: 4
+                                    }
+                                ]}
+                                animate={true}
+                                motionConfig="gentle"
+                                hoverTarget="cell"
+                                cellHoverOthersOpacity={0.25}
+                            />
+                        </div>
+                    </section>
+                )}
+
+                {/* User Monthly Activity using Nivo Line */}
+                {results.user_monthly_activity && results.user_monthly_activity.length > 0 && (
+                    <section className="p-4 border rounded-lg bg-white shadow-sm">
+                        <h2 className="text-xl font-semibold mb-4 text-gray-700">User Monthly Activity</h2>
+                        <div className="h-96 w-full">
+                            <ResponsiveLine
+                                data={[{
+                                    id: 'All Users',
+                                    data: results.user_monthly_activity.reduce((acc, user) => {
+                                        user.data.forEach(item => {
+                                            const existing = acc.find(a => a.x === item.x);
+                                            if (existing) {
+                                                existing.y += item.y;
+                                            } else {
+                                                acc.push({ ...item });
+                                            }
+                                        });
+                                        return acc;
+                                    }, [] as { x: string; y: number }[])
+                                }]}
+                                margin={{ top: 20, right: 110, bottom: 50, left: 110 }}
+                                xScale={{ type: 'point' }}
+                                yScale={{
+                                    type: 'linear',
+                                    min: 'auto',
+                                    max: 'auto',
+                                    stacked: false,
+                                    reverse: false
+                                }}
+                                axisTop={null}
+                                axisRight={null}
+                                axisBottom={{
+                                    format: (value) => {
+                                        const date = new Date(value);
+                                        return date.toLocaleDateString('en-US', {
+                                            month: 'short',
+                                            year: '2-digit'
+                                        });
+                                    },
+                                    tickSize: 5,
+                                    tickPadding: 5,
+                                    tickRotation: -45
+                                }}
+                                axisLeft={{
+                                    tickSize: 5,
+                                    tickPadding: 10, // Increased padding here
+                                    tickRotation: 0,
+                                    legend: 'Messages',
+                                    legendOffset: -90, // Adjust legend offset if needed
+                                    legendPosition: 'middle',
+                                    tickValues: undefined,
+                                    format: value => value.toLocaleString(),
+                                }}
+                                colors={{ scheme: 'pastel1' }}
+                                enablePoints={false}
+                                enableGridX={false}
+                                enableGridY={false}
+                                lineWidth={7}
+                                useMesh={true}
+                                curve="cardinal"
+                                legends={[]}
+                                theme={{
+                                    axis: {
+                                        ticks: {
+                                            text: {
+                                                fontSize: 14, // Increased font size
+                                                fill: '#333', // Changed font color for better visibility
+                                                fontWeight: '600'
+                                            }
+                                        },
+                                        legend: {
+                                            text: {
+                                                fontSize: 16,
+                                                fill: '#666',
+                                            }
+                                        }
+                                    }
+                                }}
+                            />
                         </div>
                     </section>
                 )}
