@@ -171,7 +171,18 @@ export default function HomePage() {
             </button>
           </form>
         </div>
+        <div className='flex justify-center mt-20'>
+          <Image
+            src="/icons/down_arrow.svg"
+            alt="Bloop Logo"
+            width={50}
+            height={100}
+            className='animate-bounce'
+            style={{ height: "auto" }}
+          />
+        </div>
       </div>
+
       {/* how to section */}
       <div className='mb-10 mt-10'>
         <div className='border-2 border-neutral-800'>
