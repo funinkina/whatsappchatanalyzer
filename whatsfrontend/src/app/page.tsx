@@ -111,7 +111,7 @@ export default function HomePage() {
         </div>
         <div className='w-lg'>
           <p className="text-blue-950/90 text-5xl font-normal text-center mb-16">
-            Over-analyze <Image src="/icons/smiley.svg" alt="Smiley" width={40} height={40} className="inline" /> and Nit-pick your <Image src="/icons/whatsapp.svg" alt="whatsapp icon" width={50} height={50} className="inline" /> Whatsapp <Image src="/icons/Quote.svg" alt="Quote" width={40} height={40} className="inline" /> Chats with <Image src="/bloop_logo.svg" alt="Your Company Logo" width={150} height={50} className='inline mb-2'></Image>
+            over-analyze <Image src="/icons/smiley.svg" alt="Smiley" width={40} height={40} className="inline" /> and nit-pick your <Image src="/icons/whatsapp.svg" alt="whatsapp icon" width={50} height={50} className="inline" /> Whatsapp <Image src="/icons/Quote.svg" alt="Quote" width={40} height={40} className="inline" /> chats with <Image src="/bloop_logo.svg" alt="Your Company Logo" width={150} height={50} className='inline mb-2'></Image>
           </p>
         </div>
         {/* File Upload Box */}
@@ -129,8 +129,8 @@ export default function HomePage() {
               className="mr-4"
             />
             <div>
-              <h2 className="text-2xl font-semibold">Upload the Chat</h2>
-              <p className='text-sm font-light'>We never store any file, everything is cleared after processing</p>
+              <h2 className="text-2xl font-semibold">upload the chat</h2>
+              <p className='text-sm font-light'>dw, we never store any file, so we don't look through your chats</p>
             </div>
           </div>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -163,11 +163,11 @@ export default function HomePage() {
                     className="mb-4"
                   />
                   <span className="text-sm font-medium">
-                    {file ? 'File Selected' : <span className="underline">Drag and drop or Upload File (.txt or .zip)</span>}
+                    {file ? 'File Selected' : <span className="underline">drag and drop or upload file (.txt or .zip)</span>}
                   </span>
                 </label>
               </div>
-              {file && <p className="mt-2 text-xs text-gray-600">Selected: {file.name}</p>}
+              {file && <p className="mt-2 text-xs text-gray-600">selected: {file.name}</p>}
             </div>
             {error && (
               <p className="text-sm text-red-600">{error}</p>
@@ -210,7 +210,7 @@ export default function HomePage() {
       {/* how to section */}
       <div className='mb-10 mt-10'>
         <div className='border-2 border-neutral-800'>
-          <h1 className='text-center text-6xl font-bold my-5 text-blue-950'>How to get the chat file?</h1>
+          <h1 className='text-center text-6xl font-bold my-5 text-blue-950'>dunno how to get the chat file?</h1>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
           {/* Step 1 */}
