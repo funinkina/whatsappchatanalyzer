@@ -20,7 +20,7 @@ async def analyze_chat(chat_file):
     """
     messages_data = preprocess_messages(chat_file)
 
-    # ai_analysis_task = asyncio.create_task(analyze_messages_with_llm(messages_data))
+    ai_analysis_task = asyncio.create_task(analyze_messages_with_llm(messages_data))
 
     user_message_count = defaultdict(int)
     user_starts_convo = defaultdict(int)
@@ -32,7 +32,7 @@ async def analyze_chat(chat_file):
     daily_message_count_by_date = Counter()  # Added for daily activity
     hourly_message_count = Counter()
     daily_message_count_by_weekday = Counter()  # Count messages per day of the week (0=Monday, 6=Sunday)
-    monthly_activity_by_user = defaultdict(lambda: Counter()) # For user monthly activity heatmap
+    monthly_activity_by_user = defaultdict(lambda: Counter())  # For user monthly activity heatmap
     total_response_time_seconds = 0
     response_count = 0
     interaction_matrix = defaultdict(lambda: defaultdict(int))
@@ -49,7 +49,7 @@ async def analyze_chat(chat_file):
     user_last_message = {}
     last_date_str = None  # Changed from last_date
     current_convo_start = True
-    all_months = set() # Keep track of all months present in the chat
+    all_months = set()  # Keep track of all months present in the chat
 
     # Track the first and latest message timestamps
     first_message_timestamp = messages_data[0][0] if messages_data else None
@@ -125,10 +125,10 @@ async def analyze_chat(chat_file):
         # Populate User Monthly Activity
         month_str = timestamp.strftime('%Y-%m')
         monthly_activity_by_user[sender][month_str] += 1
-        all_months.add(month_str) # Add month to the set
+        all_months.add(month_str)  # Add month to the set
 
         # Count messages per day of the week
-        day_of_week = timestamp.weekday() # Still needed for weekday/weekend avg
+        day_of_week = timestamp.weekday()  # Still needed for weekday/weekend avg
         daily_message_count_by_weekday[day_of_week] += 1
 
     # Final check for the last monologue streak after the loop
@@ -186,14 +186,14 @@ async def analyze_chat(chat_file):
 
     # Format user monthly activity for Nivo heatmap
     nivo_user_monthly_activity = []
-    sorted_months = sorted(list(all_months)) # Ensure months are chronological
-    all_users_list = sorted(list(user_message_count.keys())) # Get all users sorted
+    sorted_months = sorted(list(all_months))  # Ensure months are chronological
+    all_users_list = sorted(list(user_message_count.keys()))  # Get all users sorted
 
     for user in all_users_list:
         user_data = []
-        user_month_counts = monthly_activity_by_user.get(user, Counter()) # Get user's monthly counts or empty Counter
+        user_month_counts = monthly_activity_by_user.get(user, Counter())  # Get user's monthly counts or empty Counter
         for month_str in sorted_months:
-            count = user_month_counts.get(month_str, 0) # Get count for the month, default 0
+            count = user_month_counts.get(month_str, 0)  # Get count for the month, default 0
             user_data.append({"x": month_str, "y": count})
         nivo_user_monthly_activity.append({"id": user, "data": user_data})
 
@@ -205,9 +205,9 @@ async def analyze_chat(chat_file):
     average_weekday_messages = round(total_weekday_messages / 5, 2) if total_weekday_messages > 0 else 0
     average_weekend_messages = round(total_weekend_messages / 2, 2) if total_weekend_messages > 0 else 0
 
-    # ai_analysis = await ai_analysis_task
-    # if ai_analysis is None:
-    #     ai_analysis = "Unable to retrieve AI analysis."
+    ai_analysis = await ai_analysis_task
+    if ai_analysis is None:
+        ai_analysis = "Unable to retrieve AI analysis."
 
     # Prepare user interaction matrix for Nivo heatmap if more than 1 user
     nivo_interaction_matrix = None
@@ -243,7 +243,7 @@ async def analyze_chat(chat_file):
         "daily_activity": daily_activity,  # Changed from monthly_activity
         "average_response_time_minutes": average_response_time_minutes,
         "peak_hour": f"{peak_hour}:00 - {peak_hour + 1}:00" if isinstance(peak_hour, int) else peak_hour,
-        "user_monthly_activity": nivo_user_monthly_activity, # Added user monthly activity
+        "user_monthly_activity": nivo_user_monthly_activity,  # Added user monthly activity
         "weekday_vs_weekend_avg": {
             "average_weekday_messages": average_weekday_messages,
             "average_weekend_messages": average_weekend_messages,
@@ -251,7 +251,7 @@ async def analyze_chat(chat_file):
             # Optional: Calculate percentage difference relative to weekday average
             "percentage_difference": round(((average_weekday_messages - average_weekend_messages) / average_weekday_messages) * 100, 2) if average_weekday_messages > 0 else 0
         },
-        # "ai_analysis": ai_analysis,
+        "ai_analysis": ai_analysis,
         "user_interaction_matrix": nivo_interaction_matrix
     }
 
