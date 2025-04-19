@@ -20,6 +20,29 @@ system_message_patterns = [
 ]
 url_pattern = re.compile(r'https?://\S+|www\.\S+')
 
+def preprocess_messages(chat_file):
+    """Parse chat messages, extract timestamp, sender, and raw message content, filtering system messages."""
+    messages_data = []
+    with open(chat_file, "r", encoding="utf-8") as f:
+        for line in f:
+            full_match = timestamp_pattern.match(line)
+            if not full_match:
+                continue
+            date, time, sender, message = full_match.groups()
+
+            # Filter system messages based on raw message content
+            if any(pattern in message for pattern in system_message_patterns):
+                continue
+
+            try:
+                timestamp = datetime.strptime(f"{date} {time}", "%d/%m/%Y %H:%M")
+            except ValueError:
+                # Handle potential two-digit year format
+                timestamp = datetime.strptime(f"{date} {time}", "%d/%m/%y %H:%M")
+
+            messages_data.append((timestamp, date, sender, message))
+    return messages_data
+
 def remove_emojis_and_links(text):
     # Remove links
     text = url_pattern.sub('', text)
@@ -77,38 +100,10 @@ def clean_message(message):
 
     return ' '.join(filtered_words)
 
-def preprocess_messages(chat_file):
-    """Parse chat messages, extract timestamp, sender, and raw message content, filtering system messages."""
-    messages_data = []
-    with open(chat_file, "r", encoding="utf-8") as f:
-        for line in f:
-            full_match = timestamp_pattern.match(line)
-            if not full_match:
-                continue
-            date, time, sender, message = full_match.groups()
-
-            # Filter system messages based on raw message content
-            if any(pattern in message for pattern in system_message_patterns):
-                continue
-
-            try:
-                timestamp = datetime.strptime(f"{date} {time}", "%d/%m/%Y %H:%M")
-            except ValueError:
-                # Handle potential two-digit year format
-                timestamp = datetime.strptime(f"{date} {time}", "%d/%m/%y %H:%M")
-
-            messages_data.append((timestamp, date, sender, message))
-    return messages_data
-
 def group_messages_by_topic(data, gap_hours=6):
     """Group messages into topics based on a time gap, then clean and filter messages within each topic."""
     if not data:
         return []
-
-    # Load and normalize stopwords
-    stopwords = {word.lower() for word in load_stopwords()}
-    if not stopwords:
-        print("Warning: Stopwords set is empty. Ensure 'stopwords.txt' exists and is populated.")
 
     grouped_topics_raw = []
     current_topic_raw = [data[0]]
@@ -136,7 +131,6 @@ def group_messages_by_topic(data, gap_hours=6):
                 processed_topic.append((timestamp, date, sender, cleaned_message))
         if processed_topic:
             processed_topics.append(processed_topic)
-
 
     return processed_topics
 
