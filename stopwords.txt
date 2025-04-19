@@ -2136,6 +2136,8 @@ khud
 tum
 koi
 nahi
+hoga
+kyu
 jab
 toh
 milne
@@ -2218,3 +2220,4 @@ nhi
 the
 all
 bhi
+sure

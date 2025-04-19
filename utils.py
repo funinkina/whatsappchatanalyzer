@@ -1,6 +1,7 @@
 import re
 from datetime import datetime
 import random
+import string
 
 # Define patterns and constants
 timestamp_pattern = re.compile(r"(\d{2}/\d{2}/\d{2,4}), (\d{2}:\d{2}) - (.*?): (.*)")
@@ -49,10 +50,13 @@ def remove_emojis_and_links(text):
 def load_stopwords():
     try:
         with open("stopwords.txt", 'r', encoding='utf-8') as f:
-            return set(f.read().splitlines())
+            stopwords_set = set(f.read().splitlines())
+            print(f"Loaded {len(stopwords_set)} stopwords.")  # Add this line for debug
+            return stopwords_set
     except FileNotFoundError:
         print("Warning: Stopwords file 'stopwords.txt' not found. Using empty stopwords set.")
         return set()
+
 
 def clean_message(message):
     """Remove URLs, emojis, and strip whitespace."""
@@ -87,7 +91,11 @@ def group_messages_by_topic(data, gap_hours=6):
     if not data:
         return []
 
-    stopwords = load_stopwords()
+    # Load and normalize stopwords
+    stopwords = {word.lower() for word in load_stopwords()}
+    if not stopwords:
+        print("Warning: Stopwords set is empty. Ensure 'stopwords.txt' exists and is populated.")
+
     grouped_topics_raw = []
     current_topic_raw = [data[0]]
 
@@ -112,10 +120,13 @@ def group_messages_by_topic(data, gap_hours=6):
             if not cleaned_message:
                 continue
 
-            # Filter stopwords and short words
+            def normalize_word(word):
+                return word.strip(string.punctuation).lower()
+
+            # Normalize words and filter stopwords
             filtered_message = ' '.join(
-                [word for word in cleaned_message.split()
-                 if word.lower() not in stopwords and len(word) > 2]
+                [w for w in map(normalize_word, cleaned_message.split())
+                 if w not in stopwords and len(w) > 2]
             )
 
             if filtered_message:  # Only add if message still has content after filtering
