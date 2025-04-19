@@ -183,7 +183,7 @@ export default function HomePage() {
             >
               {isLoading ? 'Uploading...' : (
                 <>
-                  <span className="mr-2">{'Analyze'}</span>
+                  <span className="mr-2">{'discover yo secrets'}</span>
                   <Image
                     src="/icons/right_arrow.svg"
                     alt="Bloop Icon"
