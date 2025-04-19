@@ -60,8 +60,7 @@ def clean_message(message):
     return message.strip()
 
 def preprocess_messages(chat_file):
-    """Preprocess chat messages."""
-    stopwords = load_stopwords()
+    """Parse chat messages, extract timestamp, sender, and raw message content, filtering system messages."""
     messages_data = []
     with open(chat_file, "r", encoding="utf-8") as f:
         for line in f:
@@ -69,37 +68,63 @@ def preprocess_messages(chat_file):
             if not full_match:
                 continue
             date, time, sender, message = full_match.groups()
-            message = clean_message(message)
-            if not message or any(pattern in message for pattern in system_message_patterns):
+
+            # Filter system messages based on raw message content
+            if any(pattern in message for pattern in system_message_patterns):
                 continue
+
             try:
                 timestamp = datetime.strptime(f"{date} {time}", "%d/%m/%Y %H:%M")
             except ValueError:
+                # Handle potential two-digit year format
                 timestamp = datetime.strptime(f"{date} {time}", "%d/%m/%y %H:%M")
-            filtered_message = ' '.join(
-                [word for word in message.split()
-                 if word.lower() not in stopwords and len(word) > 2]
-            )
-            messages_data.append((timestamp, date, sender, filtered_message))
+
+            messages_data.append((timestamp, date, sender, message))
     return messages_data
 
 def group_messages_by_topic(data, gap_hours=6):
-    """Group messages into topics based on a time gap."""
-    topics = []
-    current_topic = [data[0]]
+    """Group messages into topics based on a time gap, then clean and filter messages within each topic."""
+    if not data:
+        return []
 
+    stopwords = load_stopwords()
+    grouped_topics_raw = []
+    current_topic_raw = [data[0]]
+
+    # First pass: Group raw messages by time gap
     for i in range(1, len(data)):
         prev_time = data[i - 1][0]
         curr_time = data[i][0]
         if (curr_time - prev_time).total_seconds() >= gap_hours * 3600:
-            topics.append(current_topic)
-            current_topic = []
-        current_topic.append(data[i])
+            grouped_topics_raw.append(current_topic_raw)
+            current_topic_raw = []
+        current_topic_raw.append(data[i])
 
-    if current_topic:
-        topics.append(current_topic)
+    if current_topic_raw:
+        grouped_topics_raw.append(current_topic_raw)
 
-    return topics
+    # Second pass: Clean and filter messages within each grouped topic
+    processed_topics = []
+    for raw_topic in grouped_topics_raw:
+        processed_topic = []
+        for timestamp, date, sender, raw_message in raw_topic:
+            cleaned_message = clean_message(raw_message)
+            if not cleaned_message:
+                continue
+
+            # Filter stopwords and short words
+            filtered_message = ' '.join(
+                [word for word in cleaned_message.split()
+                 if word.lower() not in stopwords and len(word) > 2]
+            )
+
+            if filtered_message:  # Only add if message still has content after filtering
+                processed_topic.append((timestamp, date, sender, filtered_message))
+
+        if processed_topic:  # Only add non-empty topics
+            processed_topics.append(processed_topic)
+
+    return processed_topics
 
 def estimate_tokens(text):
     """Estimate tokens in a message."""
@@ -107,7 +132,7 @@ def estimate_tokens(text):
 
 def stratify_messages(topics):
     """
-    For each sender, select up to 10 random messages total, with a combined token count under 1200.
+    For each sender, select up to 10 random messages total, with a combined token count under 1000.
     """
     consolidated_messages = {}
 
