@@ -3,6 +3,7 @@ import tempfile
 import shutil
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from main_analysis import analyze_chat
 from dotenv import load_dotenv
@@ -15,7 +16,14 @@ app = FastAPI(
     version="1.0.0",
 )
 
-STOPWORDS_FILE = os.path.join(os.path.dirname(__file__), "stopwords.txt")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "https://bloop.vercel.app"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.post("/analyze/",
           summary="Analyze WhatsApp Chat File",
@@ -79,5 +87,4 @@ async def analyze_whatsapp_chat(file: UploadFile = File(..., description="WhatsA
 
 
 if __name__ == "__main__":
-    print(f"Looking for stopwords file at: {STOPWORDS_FILE}")
     uvicorn.run(app, host="0.0.0.0", port=8000)
