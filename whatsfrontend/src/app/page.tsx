@@ -57,21 +57,21 @@ export default function HomePage() {
 
   return (
     <main className="relative">
-      {/* Floating Images */}
-      <div className="fixed top-50 left-70 animate-float hover:-translate-x-20 hover:-translate-y-20 transition-transform duration-300" style={{ animationDelay: '0.3s' }}>
-        <Image src="/floater_1.svg" alt="Floating Icon 1" width={250} height={250} priority />
-      </div>
-      <div className="fixed top-60 right-50 animate-float hover:translate-x-30 hover:-translate-y-30 transition-transform duration-300" style={{ animationDelay: '0.8s' }}>
-        <Image src="/floater_2.svg" alt="Floating Icon 2" width={200} height={200} priority />
-      </div>
-      <div className="fixed bottom-10 left-4 animate-float hover:translate-x-50 hover:-translate-y-20 transition-transform duration-300" style={{ animationDelay: '1.4s' }}>
-        <Image src="/floater_3.svg" alt="Floating Icon 3" width={400} height={400} priority />
-      </div>
-      <div className="fixed bottom-40 right-60 animate-float hover:translate-x-20 hover:translate-y-30 transition-transform duration-300" style={{ animationDelay: '1.9s' }}>
-        <Image src="/floater_4.svg" alt="Floating Icon 4" width={300} height={300} priority />
-      </div>
 
       <div className='flex flex-col items-center justify-center p-4 h-screen'>
+        {/* Floating Images */}
+        <div className="absolute top-50 left-70 animate-float hover:-translate-x-20 hover:-translate-y-20 transition-transform duration-300" style={{ animationDelay: '0.3s' }}>
+          <Image src="/floater_1.svg" alt="Floating Icon 1" width={250} height={250} priority />
+        </div>
+        <div className="absolute top-60 right-50 animate-float hover:translate-x-30 hover:-translate-y-30 transition-transform duration-300" style={{ animationDelay: '0.8s' }}>
+          <Image src="/floater_2.svg" alt="Floating Icon 2" width={200} height={200} priority />
+        </div>
+        <div className="absolute bottom-10 left-4 animate-float hover:translate-x-50 hover:-translate-y-20 transition-transform duration-300" style={{ animationDelay: '1.4s' }}>
+          <Image src="/floater_3.svg" alt="Floating Icon 3" width={400} height={400} priority />
+        </div>
+        <div className="absolute bottom-40 right-60 animate-float hover:translate-x-20 hover:translate-y-30 transition-transform duration-300" style={{ animationDelay: '1.9s' }}>
+          <Image src="/floater_4.svg" alt="Floating Icon 4" width={300} height={300} priority />
+        </div>
         {/* Logo */}
         <div className="mb-10">
           <Image
