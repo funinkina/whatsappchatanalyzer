@@ -18,27 +18,25 @@ async def analyze_messages_with_llm(data, gap_hours=3):
     Returns:
         Structured analysis from the Groq API
     """
+    # Group and stratify messages before sending them to the LLM
     topics = group_messages_by_topic(data, gap_hours)
     grouped_messages_json = json.dumps(stratify_messages(topics), indent=2)
 
+    # Fetch API key from environment
     groq_api_key = os.getenv("GROQ_API_KEY")
 
     if not groq_api_key:
         print("Error: GROQ_API_KEY not found in environment variables")
         return None
 
+    # Create client with Groq API key
     client = AsyncGroq(api_key=groq_api_key)
+
+    # Define system message prompt
     system_prompt = """
         You will be given messages exchanged between different people in a WhatsApp chat:
-
-        Please analyze these messages and provide insights on:
-        1. The overall sentiment of conversations
-        2. Prominent topics or themes discussed
-        3. Communication patterns between participants
-        4. Any interesting observations about the conversation dynamics
-
-        Format your response as a structured analysis.
-        Keep the response very short, within 2-3 lines.
+        give a short summary of the chat. describe character of the two people in the convo.
+        Keep the response very short, within 5-6 lines.
         """
 
     try:
@@ -51,12 +49,21 @@ async def analyze_messages_with_llm(data, gap_hours=3):
             temperature=0.9,
             max_tokens=1024
         )
-        return response.choices[0].message.content
+
+        if response and response.choices:
+            return response.choices[0].message.content
+        else:
+            print("No valid choices returned from Groq.")
+            return "No valid analysis from AI."
+
     except Exception as e:
         print(f"Error connecting to Groq API: {e}")
         return None
 
 if __name__ == "__main__":
-    data = preprocess_messages(chat_file="sample_files/WhatsApp Chat with Mahima.txt")
-    analysis_result = asyncio.run(analyze_messages_with_llm(data))
-    print(analysis_result)
+    data = preprocess_messages(chat_file="sample_files/chat.txt")
+    if data:
+        analysis_result = asyncio.run(analyze_messages_with_llm(data))
+        print(analysis_result)
+    else:
+        print("Failed to preprocess messages.")
