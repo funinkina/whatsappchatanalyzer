@@ -346,6 +346,8 @@ hamare
 hamarey
 hamari
 hamesha
+https
+http
 hamne
 han
 happens
@@ -2221,3 +2223,5 @@ the
 all
 bhi
 sure
+kya
+toh
