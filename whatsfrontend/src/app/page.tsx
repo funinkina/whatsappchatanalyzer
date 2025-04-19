@@ -105,7 +105,7 @@ export default function HomePage() {
               className="mr-4"
             />
             <div>
-              <h2 className="text-2xl font-medium">Upload the Chat</h2>
+              <h2 className="text-2xl font-semibold">Upload the Chat</h2>
               <p className='text-sm font-light'>We never store any file, everything is cleared after processing</p>
             </div>
           </div>
@@ -153,13 +153,13 @@ export default function HomePage() {
               disabled={isLoading || !file}
               className={`w-full px-4 py-2 text-blue-950 font-medium rounded-md outline-2 outline-neutral-800 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]
                 ${isLoading || !file
-                  ? 'bg-gray-400 cursor-not-allowed'
+                  ? 'bg-amber-50 cursor-not-allowed'
                   : 'bg-amber-50 hover:shadow-[7px_7px_0px_0px_rgba(0,0,0,0.85)] hover:cursor-pointer'
                 } transition duration-150 ease-in-out flex items-center justify-center`}
             >
               {isLoading ? 'Uploading...' : (
                 <>
-                  <span className="mr-2">{'Upload and Analyze'}</span>
+                  <span className="mr-2">{'Analyze'}</span>
                   <Image
                     src="/icons/right_arrow.svg"
                     alt="Bloop Icon"
@@ -192,7 +192,7 @@ export default function HomePage() {
           {/* Step 1 */}
           <div className="bg-green-100 pt-4 flex flex-col justify-between items-center border-r-2 border-r-neutral-800">
             <div className='flex items-center justify-center h-full'>
-              <Image src="/step_1.png" alt="Step 1" width={150} height={50} className="rounded-md" />
+              <Image src="/step_1.png" alt="Step 1" width={150} height={50} className="rounded-md shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]" />
             </div>
             <div className="text-lg text-gray-800 mt-10 text-left bg-amber-50 w-full h-24 flex items-center justify-center p-10 border-y-2 border-neutral-800">
               <h1 className='text-4xl font-extrabold mr-4'>1.</h1>
@@ -203,7 +203,7 @@ export default function HomePage() {
           {/* Step 2 */}
           <div className="bg-pink-100 pt-4 flex flex-col justify-between items-center border-r-2 border-r-neutral-800">
             <div className='flex items-center justify-center h-full'>
-              <Image src="/step_2.png" alt="Step 2" width={150} height={200} className="rounded-md" />
+              <Image src="/step_2.png" alt="Step 2" width={150} height={200} className="rounded-md shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]" />
             </div>
             <div className="text-lg text-gray-800 mt-10 text-center bg-amber-50 w-full h-24 flex items-center justify-center p-10 border-y-2 border-neutral-800">
               <h1 className='text-4xl font-extrabold mr-4'>2.</h1>
@@ -214,7 +214,7 @@ export default function HomePage() {
           {/* Step 3 */}
           <div className="bg-purple-100 pt-4 flex flex-col justify-between items-center border-r-2 border-r-neutral-800">
             <div className='flex items-center justify-center h-full'>
-              <Image src="/step_3.png" alt="Step 3" width={300} height={200} className="rounded-md" />
+              <Image src="/step_3.png" alt="Step 3" width={300} height={200} className="rounded-3xl shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]" />
             </div>
             <div className="text-lg text-gray-800 mt-10 text-center bg-amber-50 w-full h-24 flex items-center justify-center p-10 border-y-2 border-neutral-800">
               <h1 className='text-4xl font-extrabold mr-4'>3.</h1>
@@ -225,7 +225,7 @@ export default function HomePage() {
           {/* Step 4 */}
           <div className="bg-blue-100 pt-4 flex flex-col justify-between items-center">
             <div className='flex items-center justify-center h-full'>
-              <Image src="/step_4.png" alt="Step 4" width={400} height={200} className="rounded-md" />
+              <Image src="/step_4.png" alt="Step 4" width={400} height={200} className="rounded-md shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]" />
             </div>
             <div className="text-lg text-gray-800 mt-10 text-center bg-amber-50 w-full h-24 flex items-center justify-center p-10 border-y-2 border-neutral-800">
               <h1 className='text-4xl font-extrabold mr-4'>4.</h1>
