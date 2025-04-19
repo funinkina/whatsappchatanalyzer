@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ResponsiveHeatMap } from '@nivo/heatmap';
 import { ResponsiveLine } from '@nivo/line';
+import { ResponsiveChord } from '@nivo/chord'; // Import Chord
 
 // Define an interface for the expected data structure
 interface AnalysisResults {
@@ -19,7 +19,6 @@ interface AnalysisResults {
     daily_activity: Array<{ day: string; value: number }>;
     average_response_time_minutes: number;
     peak_hour: string;
-    // Updated structure for user_monthly_activity
     user_monthly_activity: Array<{
         id: string;
         data: Array<{
@@ -33,13 +32,7 @@ interface AnalysisResults {
         difference: number;
         percentage_difference: number;
     };
-    user_interaction_matrix: {
-        id: string;
-        data: {
-            x: string | number;
-            y: number | null;
-        }[];
-    }[] | null;
+    user_interaction_matrix: (string | number | null)[][] | null; // Updated type
 }
 
 export default function ResultsPage() {
@@ -97,9 +90,13 @@ export default function ResultsPage() {
         );
     }
 
-    // Prepare data for User Interaction Heatmap
-    const userInteractionKeys = results.user_interaction_matrix
-        ? results.user_interaction_matrix[0]?.data.map(d => String(d.x)) ?? []
+    // Prepare data for User Interaction Chord Diagram
+    const chordKeys = results.user_interaction_matrix && results.user_interaction_matrix.length > 1
+        ? results.user_interaction_matrix[0]?.slice(1).map(String) ?? []
+        : [];
+
+    const chordMatrix = results.user_interaction_matrix && results.user_interaction_matrix.length > 1
+        ? results.user_interaction_matrix.slice(1).map(row => row.slice(1).map(value => (typeof value === 'number' ? value : 0)))
         : [];
 
     return (
@@ -217,63 +214,48 @@ export default function ResultsPage() {
                     </ul>
                 </section>
 
-
-                {/* User Interaction Matrix (Heatmap) */}
-                {results.user_interaction_matrix && results.user_interaction_matrix.length > 0 && (
+                {/* User Interaction Matrix (Chord Diagram) */}
+                {results.user_interaction_matrix && chordKeys.length > 0 && chordMatrix.length > 0 && (
                     <section className="p-4 border rounded-lg bg-white shadow-sm">
-                        <h2 className="text-xl font-semibold mb-4 text-gray-700">User Interactions Heatmap</h2>
+                        <h2 className="text-xl font-semibold mb-4 text-gray-700">User Interactions Chord Diagram</h2>
                         <div className="h-96 w-full">
-                            <ResponsiveHeatMap
-                                data={results.user_interaction_matrix || []}
-                                keys={userInteractionKeys}
-                                indexBy="id"
-                                margin={{ top: 80, right: 110, bottom: 80, left: 110 }}
-                                valueFormat=">.0f"
-                                axisTop={{
-                                    tickSize: 5,
-                                    tickPadding: 5,
-                                    tickRotation: -45,
-                                    legend: 'Recipient User',
-                                    legendOffset: -50,
-                                    legendPosition: 'middle'
-                                }}
-                                axisLeft={{
-                                    tickSize: 5,
-                                    tickPadding: 5,
-                                    tickRotation: 0,
-                                    legend: 'Sending User',
-                                    legendPosition: 'middle',
-                                    legendOffset: -72
-                                }}
-                                colors={{
-                                    type: 'sequential',
-                                    scheme: 'blues',
-                                }}
-                                cellOpacity={1}
-                                cellBorderColor={{ from: 'color', modifiers: [['darker', 0.4]] }}
-                                labelTextColor={{ from: 'color', modifiers: [['darker', 1.8]] }}
-                                legends={[
-                                    {
-                                        anchor: 'bottom',
-                                        translateX: 0,
-                                        translateY: 30,
-                                        length: 400,
-                                        thickness: 8,
-                                        direction: 'row',
-                                        tickPosition: 'after',
-                                        tickSize: 3,
-                                        tickSpacing: 4,
-                                        tickOverlap: false,
-                                        tickFormat: '>-.2s',
-                                        title: 'Messages Sent →',
-                                        titleAlign: 'start',
-                                        titleOffset: 4
-                                    }
-                                ]}
+                            <ResponsiveChord
+                                data={chordMatrix}
+                                keys={chordKeys}
+                                margin={{ top: 60, right: 60, bottom: 90, left: 60 }}
+                                valueFormat=".0f"
+                                padAngle={0.05}
+                                innerRadiusRatio={0.96}
+                                innerRadiusOffset={0.02}
+                                arcOpacity={1}
+                                arcBorderWidth={1}
+                                arcBorderColor={{ from: 'color', modifiers: [['darker', 0.4]] }}
+                                ribbonOpacity={0.5}
+                                ribbonBorderWidth={1}
+                                ribbonBorderColor={{ from: 'color', modifiers: [['darker', 0.4]] }}
+                                enableLabel={true}
+                                label="id"
+                                labelOffset={20}
+                                labelRotation={0}
+                                labelTextColor={{ from: 'color', modifiers: [['darker', 1]] }}
+                                colors={{ scheme: 'dark2' }}
+                                isInteractive={true}
                                 animate={true}
                                 motionConfig="gentle"
-                                hoverTarget="cell"
-                                cellHoverOthersOpacity={0.25}
+                                legends={[
+                                    {
+                                        anchor: 'top-left',
+                                        direction: 'column',
+                                        justify: false,
+                                        translateX: 0,
+                                        translateY: 0,
+                                        itemWidth: 100,
+                                        itemHeight: 20,
+                                        itemsSpacing: 10,
+                                        symbolSize: 10,
+                                        itemDirection: 'left-to-right'
+                                    }
+                                ]}
                             />
                         </div>
                     </section>

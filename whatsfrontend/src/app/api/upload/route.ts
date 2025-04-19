@@ -48,13 +48,7 @@ interface BackendResponse {
     difference: number;
     percentage_difference: number;
   };
-  user_interaction_matrix?: {
-    id: string;
-    data: {
-        x: string | number;
-        y: number | null;
-    }[];
-  }[] | null; // Updated type
+  user_interaction_matrix?: (string | number | null)[][] | null; // Updated type
 }
 
 export async function POST(request: NextRequest) {
