@@ -52,7 +52,7 @@ interface BackendResponse {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('Request received:', request);
+    // console.log('Request received:', request);
 
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
