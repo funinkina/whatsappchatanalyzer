@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 interface BackendResponse {
+  total_messages: number; // Total number of messages in the chat
+  days_since_first_message: number; // Days elapsed since the first message
   most_active_users: {
     [username: string]: number; // Username as key and activity percentage as value
   };
@@ -14,6 +16,10 @@ interface BackendResponse {
     user: string; // Name of the user
     percentage: number; // Percentage of first texts sent
   };
+  longest_monologue: {
+    user: string; // Name of the user
+    count: number; // Count of consecutive messages
+  };
   common_words: {
     [word: string]: number; // Word as key and its frequency as value
   };
@@ -26,6 +32,22 @@ interface BackendResponse {
   }>;
   average_response_time_minutes: number; // Average response time in minutes
   peak_hour: string; // Peak activity hour range in "HH:mm - HH:mm" format
+  activity_heatmap: {
+    [month: string]: {
+      [day: string]: number; // Day as key and count as value
+    }
+  };
+  weekday_vs_weekend_avg: {
+    average_weekday_messages: number;
+    average_weekend_messages: number;
+    difference: number;
+    percentage_difference: number;
+  };
+  user_interaction_matrix?: {
+    [username: string]: {
+      [username: string]: number; // Username as key and interaction count as value
+    }
+  };
 }
 
 export async function POST(request: NextRequest) {

@@ -57,10 +57,10 @@ export default function RootLayout({
               alt="bloop logo footer"
               width={200}
               height={200}
-              style={{ height: "auto" }} // Maintain aspect ratio
+              className="mb-4 h-auto"
             />
-            <p>Aryan Kushwaha</p>
-            <p>Abhiruchi Patil Bhagat</p>
+            <p className="underline"><a href="https://funinkina.is-a.dev" target="_blank" rel="noopener noreferrer">Aryan Kushwaha</a></p>
+            <p className="underline"><a href="https://www.linkedin.com/in/abhiruchi-patil-bhagat-22b025235/" target="_blank" rel="noopener noreferrer">Abhiruchi Patil Bhagat</a></p>
           </div>
         </footer>
       </body>

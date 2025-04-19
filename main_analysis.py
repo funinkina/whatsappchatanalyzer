@@ -50,6 +50,10 @@ async def analyze_chat(chat_file):
     last_date = None
     current_convo_start = True
 
+    # Track the first and latest message timestamps
+    first_message_date = messages_data[0][0] if messages_data else None
+    latest_message_date = messages_data[-1][0] if messages_data else None
+
     for i, (timestamp, date, sender, filtered_message) in enumerate(messages_data):
         is_new_convo = False
         if last_timestamp:
@@ -144,6 +148,12 @@ async def analyze_chat(chat_file):
         average_response_time_minutes = round((total_response_time_seconds / response_count) / 60, 2)
 
     total_messages = sum(user_message_count.values())
+
+    # Calculate days since first message if data exists
+    days_since_first_message = None
+    if first_message_date and latest_message_date:
+        days_since_first_message = (latest_message_date - first_message_date).days
+
     most_active_users = {user: round((count / total_messages) * 100, 2) if total_messages > 0 else 0 for user, count in user_message_count.items()}
     conversation_starters = {user: round((count / sum(user_starts_convo.values())) * 100, 2) if sum(user_starts_convo.values()) > 0 else 0 for user, count in user_starts_convo.items()}
     total_ignored = sum(user_ignored_count.values())
@@ -211,6 +221,8 @@ async def analyze_chat(chat_file):
     #     ai_analysis = "Unable to retrieve AI analysis."
 
     results = {
+        "total_messages": total_messages,
+        "days_since_first_message": days_since_first_message,
         "most_active_users": dict(sorted(most_active_users.items(), key=lambda x: x[1], reverse=True)),
         "conversation_starters": dict(sorted(conversation_starters.items(), key=lambda x: x[1], reverse=True)),
         "most_ignored_users": dict(sorted(most_ignored_users.items(), key=lambda x: x[1], reverse=True)),
@@ -236,11 +248,7 @@ async def analyze_chat(chat_file):
             "percentage_difference": round(((average_weekday_messages - average_weekend_messages) / average_weekday_messages) * 100, 2) if average_weekday_messages > 0 else 0
         },
         # "ai_analysis": ai_analysis,
+        "user_interaction_matrix": {sender: dict(targets) for sender, targets in interaction_matrix.items()} if len(user_message_count) > 2 else None
     }
-
-    # Add interaction matrix only if more than 2 users
-    if len(user_message_count) > 2:
-        # Convert defaultdict to dict for cleaner output
-        results["user_interaction_matrix"] = {sender: dict(targets) for sender, targets in interaction_matrix.items()}
 
     return results
