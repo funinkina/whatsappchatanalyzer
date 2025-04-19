@@ -9,6 +9,11 @@ const dmSans = DM_Sans({
 export const metadata: Metadata = {
   title: "Bloop",
   description: "Over-analyze your Whatsapp chats",
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
