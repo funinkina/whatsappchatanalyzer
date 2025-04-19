@@ -1,13 +1,14 @@
-// src/app/layout.tsx
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css"; // Tailwind is usually imported here
+import { DM_Sans } from "next/font/google";
+import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+});
 
 export const metadata: Metadata = {
-  title: "File Analyzer App", // Change Title
-  description: "Upload a file for analysis",
+  title: "Bloop",
+  description: "Over-analyze your Whatsapp chats",
 };
 
 export default function RootLayout({
@@ -17,7 +18,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body className={dmSans.className}>{children}</body>
     </html>
   );
 }

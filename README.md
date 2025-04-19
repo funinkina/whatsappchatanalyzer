@@ -40,6 +40,22 @@ curl -X POST "http://127.0.0.1:8000/analyze/?convo_break_minutes=60" \
 python main_analysis.py --file </path/to/your/Whatsapp Chat with friend.txt>
 ```
 
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+
+## Getting Started
+
+First, run the development server:
+
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
+
 ## TODO
 - [ ] Add more analysis
 - [ ] Build a frontend

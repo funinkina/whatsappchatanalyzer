@@ -76,12 +76,12 @@ export default function HomePage() {
 
       <div className='w-1/4'>
         <p className="text-blue-950/90 text-4xl font-normal text-center mb-16">
-          Over-analyze <Image src="/icons/smiley.svg" alt="Smiley" width={40} height={40} className="inline" /> and Nit-pick your <Image src="/icons/whatsapp.svg" alt="whatsapp icon" width={50} height={50} className="inline" /> Whatsapp Chats with <Image src="/bloop_logo.svg" alt="Your Company Logo" width={100} height={10} className='inline mb-2'></Image>
+          Over-analyze <Image src="/icons/smiley.svg" alt="Smiley" width={40} height={40} className="inline" /> and Nit-pick your <Image src="/icons/whatsapp.svg" alt="whatsapp icon" width={50} height={50} className="inline" /> Whatsapp <br></br> <Image src="/icons/Quote.svg" alt="Quote" width={40} height={40} className="inline" /> Chats with <Image src="/bloop_logo.svg" alt="Your Company Logo" width={100} height={10} className='inline mb-2'></Image>
         </p>
       </div>
 
       {/* File Upload Box */}
-      <div className="w-96 relative bg-green-200 rounded-md outline-2 outline-neutral-800 p-4 shadow-[7px_7px_0px_0px_rgba(0,0,0,0.85)]">
+      <div className="w-md relative bg-green-200 rounded-md outline-2 outline-neutral-800 p-4 shadow-[7px_7px_0px_0px_rgba(0,0,0,0.85)]">
         <div className='flex flex-row items-center justify-start mb-4 text-emerald-800'>
           <Image
             src="/icons/upload_icon.svg"
@@ -91,8 +91,8 @@ export default function HomePage() {
             className="mr-4"
           />
           <div>
-            <h2 className="text-xl font-medium">Upload the Chat</h2>
-            <p className='text-xs font-light'>We never store any file, everything is cleared after processing</p>
+            <h2 className="text-2xl font-medium">Upload the Chat</h2>
+            <p className='text-sm font-light'>We never store any file, everything is cleared after processing</p>
           </div>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
