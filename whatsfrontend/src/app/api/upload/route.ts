@@ -45,9 +45,6 @@ export async function POST(request: NextRequest) {
     const backendFormData = new FormData();
     backendFormData.append('file', file);
 
-    for (const [key, value] of backendFormData.entries()) {
-      console.log(key, value);
-    }
 
     // Make a POST request to the backend service
     const response = await fetch('http://localhost:8000/analyze/', {
@@ -67,8 +64,14 @@ export async function POST(request: NextRequest) {
     // Return the backend response to the client
     return NextResponse.json(analysisResult, { status: 200 });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('API Upload Error:', error);
-    return NextResponse.json({ message: 'Failed to process file.', error: error.message }, { status: 500 });
+
+    // Narrow down the error type
+    if (error instanceof Error) {
+      return NextResponse.json({ message: 'Failed to process file.', error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ message: 'An unknown error occurred.' }, { status: 500 });
   }
 }

@@ -34,7 +34,7 @@ export default function HomePage() {
     formData.append('file', file); // Key 'file' must match backend expectation
 
     try {
-      const response = await fetch('/api/upload', { // Call our Next.js API route
+      const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
       });
@@ -47,9 +47,14 @@ export default function HomePage() {
       const resultData = await response.json();
       sessionStorage.setItem('analysisResults', JSON.stringify(resultData));
       router.push('/results');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Upload failed:', err);
-      setError(err.message || 'An unexpected error occurred.');
+
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unexpected error occurred.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -61,16 +66,16 @@ export default function HomePage() {
       <div className='flex flex-col items-center justify-center p-4 h-screen'>
         {/* Floating Images */}
         <div className="absolute top-50 left-70 animate-float hover:-translate-x-20 hover:-translate-y-20 transition-transform duration-300" style={{ animationDelay: '0.3s' }}>
-          <Image src="/floater_1.svg" alt="Floating Icon 1" width={250} height={250} priority />
+          <Image src="/floater_1.svg" alt="Floating Icon 1" width={250} height={250} style={{ height: "auto" }} />
         </div>
         <div className="absolute top-60 right-50 animate-float hover:translate-x-30 hover:-translate-y-30 transition-transform duration-300" style={{ animationDelay: '0.8s' }}>
-          <Image src="/floater_2.svg" alt="Floating Icon 2" width={200} height={200} priority />
+          <Image src="/floater_2.svg" alt="Floating Icon 2" width={200} height={200} style={{ height: "auto" }} />
         </div>
         <div className="absolute bottom-10 left-4 animate-float hover:translate-x-50 hover:-translate-y-20 transition-transform duration-300" style={{ animationDelay: '1.4s' }}>
-          <Image src="/floater_3.svg" alt="Floating Icon 3" width={400} height={400} priority />
+          <Image src="/floater_3.svg" alt="Floating Icon 3" width={400} height={400} style={{ height: "auto" }} />
         </div>
         <div className="absolute bottom-40 right-60 animate-float hover:translate-x-20 hover:translate-y-30 transition-transform duration-300" style={{ animationDelay: '1.9s' }}>
-          <Image src="/floater_4.svg" alt="Floating Icon 4" width={300} height={300} priority />
+          <Image src="/floater_4.svg" alt="Floating Icon 4" width={300} height={300} style={{ height: "auto" }} />
         </div>
         {/* Logo */}
         <div className="mb-10">
