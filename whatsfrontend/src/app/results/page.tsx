@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ResponsiveLine } from '@nivo/line';
 import { ResponsiveChord } from '@nivo/chord'; // Import Chord
+import { ResponsivePie } from '@nivo/pie';
 
 // Define an interface for the expected data structure
 interface AnalysisResults {
@@ -206,16 +207,71 @@ export default function ResultsPage() {
                 {/* Weekday vs Weekend Activity */}
                 <section className="p-4 border rounded-lg bg-white shadow-sm">
                     <h2 className="text-xl font-semibold mb-2 text-gray-700">Weekday vs Weekend Activity</h2>
-                    <ul>
-                        <li>Average Weekday Messages: {results.weekday_vs_weekend_avg.average_weekday_messages.toFixed(1)}</li>
-                        <li>Average Weekend Messages: {results.weekday_vs_weekend_avg.average_weekend_messages.toFixed(1)}</li>
-                        <li>Difference: {results.weekday_vs_weekend_avg.difference.toFixed(1)} messages</li>
-                        <li>Percentage Difference: {results.weekday_vs_weekend_avg.percentage_difference.toFixed(2)}%</li>
-                    </ul>
+                    <div className="h-64">
+                        <ResponsivePie
+                            data={[
+                                { id: 'Weekday', label: 'Weekday', value: results.weekday_vs_weekend_avg.average_weekday_messages },
+                                { id: 'Weekend', label: 'Weekend', value: results.weekday_vs_weekend_avg.average_weekend_messages },
+                            ]}
+                            margin={{ top: 40, right: 80, bottom: 80, left: 80 }}
+                            innerRadius={0.5}
+                            padAngle={0.7}
+                            cornerRadius={3}
+                            activeOuterRadiusOffset={8}
+                            borderWidth={1}
+                            borderColor={{ from: 'color', modifiers: [['darker', 0.2]] }}
+                            arcLinkLabelsSkipAngle={10}
+                            arcLinkLabelsTextColor="#333333"
+                            arcLinkLabelsThickness={2}
+                            arcLinkLabelsColor={{ from: 'color' }}
+                            arcLabelsSkipAngle={10}
+                            arcLabelsTextColor={{ from: 'color', modifiers: [['darker', 2]] }}
+                            defs={[
+                                {
+                                    id: 'dots',
+                                    type: 'patternLines',
+                                    background: 'inherit',
+                                    color: 'rgba(255, 255, 255, 0.3)',
+                                    size: 4,
+                                    spacing: 7,
+                                    rotation: -45
+                                }
+                            ]}
+                            fill={[
+                                { match: { id: 'Weekday' }, id: 'dots' },
+                                { match: { id: 'Weekend' }, id: 'dots' },
+                            ]}
+                            legends={[
+                                {
+                                    anchor: 'bottom',
+                                    direction: 'row',
+                                    justify: false,
+                                    translateX: 0,
+                                    translateY: 56,
+                                    itemsSpacing: 0,
+                                    itemWidth: 100,
+                                    itemHeight: 18,
+                                    itemTextColor: '#999',
+                                    itemDirection: 'left-to-right',
+                                    itemOpacity: 1,
+                                    symbolSize: 18,
+                                    symbolShape: 'circle',
+                                    effects: [
+                                        {
+                                            on: 'hover',
+                                            style: {
+                                                itemTextColor: '#000'
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]}
+                        />
+                    </div>
                 </section>
 
                 {/* User Interaction Matrix (Chord Diagram) */}
-                {results.user_interaction_matrix && chordKeys.length > 0 && chordMatrix.length > 0 && (
+                {results.user_interaction_matrix && chordKeys.length > 2 && chordMatrix.length > 2 && (
                     <section className="p-4 border rounded-lg bg-white shadow-sm">
                         <h2 className="text-xl font-semibold mb-4 text-gray-700">User Interactions Chord Diagram</h2>
                         <div className="h-96 w-full">
