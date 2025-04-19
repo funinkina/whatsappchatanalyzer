@@ -266,37 +266,37 @@ export default function HomePage() {
           {/* Feature 1 */}
           <div className="w-80 h-80 bg-rose-50 text-red-600 rounded-lg border-2 border-neutral-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] p-6 flex flex-col items-start hover:shadow-[15px_15px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
             <Image src="/icons/prize.svg" alt="Active Member" width={50} height={50} className="mb-4" />
-            <h2 className="text-3xl font-semibold text-start">Most active member and conversation starter</h2>
+            <h2 className="text-3xl font-semibold text-start">who yaps the most?</h2>
           </div>
 
           {/* Feature 2 */}
           <div className="w-80 h-80 bg-sky-50 text-sky-700 rounded-lg border-2 border-neutral-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] p-6 flex flex-col items-start hover:shadow-[15px_15px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
             <Image src="/icons/frown.svg" alt="Ignored" width={80} height={80} className="mb-4" />
-            <h2 className="text-3xl font-semibold text-start">Who is the most ignored one?</h2>
+            <h2 className="text-3xl font-semibold text-start">who is the most ignored one?</h2>
           </div>
 
           {/* Feature 3 */}
           <div className="w-80 h-80 bg-red-100 text-orange-700 rounded-lg border-2 border-neutral-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] p-6 flex flex-col items-start hover:shadow-[15px_15px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
             <Image src="/icons/time.svg" alt="Average Reply Time" width={50} height={50} className="mb-4" />
-            <h2 className="text-3xl font-semibold text-start">How long does it take on average to get a reply?</h2>
+            <h2 className="text-3xl font-semibold text-start">how long do they ghost you?</h2>
           </div>
 
           {/* Feature 4 */}
           <div className="w-80 h-80 bg-purple-100 text-violet-800 rounded-lg border-2 border-neutral-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] p-6 flex flex-col items-start hover:shadow-[15px_15px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
             <Image src="/icons/chat.svg" alt="Words and Emojis" width={80} height={80} className="mb-4" />
-            <h2 className="text-3xl font-semibold text-start">Most commonly used words and emojis.</h2>
+            <h2 className="text-3xl font-semibold text-start">most used words and emojis</h2>
           </div>
 
           {/* Feature 5 */}
           <div className="w-80 h-80 bg-rose-50 text-red-700 rounded-lg border-2 border-neutral-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] p-6 flex flex-col items-start hover:shadow-[15px_15px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
             <Image src="/icons/graph.svg" alt="Trends" width={80} height={80} className="mb-4" />
-            <h2 className="text-3xl font-semibold text-start">Trends and activity over the past year.</h2>
+            <h2 className="text-3xl font-semibold text-start">your yapping highs and lows over the years</h2>
           </div>
 
           {/* Feature 6 */}
           <div className="w-80 h-80 bg-emerald-100 text-emerald-700 rounded-lg border-2 border-neutral-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] p-6 flex flex-col items-start hover:shadow-[15px_15px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
             <Image src="/icons/sparkle.svg" alt="AI Analysis" width={60} height={60} className="mb-4" />
-            <h2 className="text-3xl font-semibold text-start">AI powered analysis and charcter assingning.</h2>
+            <h2 className="text-3xl font-semibold text-start">what do your chats tell about you?</h2>
           </div>
         </div>
       </div>
