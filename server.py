@@ -31,6 +31,7 @@ async def analyze_whatsapp_chat(file: UploadFile = File(..., description="WhatsA
     Returns a JSON object with chat statistics.
     Raises HTTPException on errors (e.g., file type, processing error).
     """
+    print(f"Received file: {file.filename}, Content-Type: {file.content_type}")
     if not file.filename.endswith(".txt"):
         raise HTTPException(status_code=400, detail="Invalid file type. Please upload a .txt file.")
     temp_file_path = None

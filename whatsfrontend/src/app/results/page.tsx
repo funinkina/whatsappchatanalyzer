@@ -1,24 +1,19 @@
-// src/app/results/page.tsx
-"use long"; // Required for using hooks like useState, useEffect
+"use client";
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 // Define an interface for the expected data structure
 interface AnalysisResults {
-    fileName: string;
-    fileSize: number;
-    analysisTimestamp: string;
-    wordCloud: { text: string; value: number }[];
-    graphData: {
-        nodes: { id: string }[];
-        links: { source: string; target: string }[];
-    };
-    sentiment: {
-        score: number;
-        label: string;
-    };
-    // Add other expected fields
+    most_active_users: { [username: string]: number };
+    conversation_starters: { [username: string]: number };
+    most_ignored_users: { [username: string]: number };
+    first_text_champion: { user: string; percentage: number };
+    common_words: { [word: string]: number };
+    common_emojis: { [emoji: string]: number };
+    monthly_activity: Array<{ month: string; count: number }>;
+    average_response_time_minutes: number;
+    peak_hour: string;
 }
 
 export default function ResultsPage() {
@@ -28,20 +23,13 @@ export default function ResultsPage() {
     const router = useRouter();
 
     useEffect(() => {
-        // This code runs only on the client after the component mounts
         try {
             const storedResults = sessionStorage.getItem('analysisResults');
             if (storedResults) {
                 const parsedResults: AnalysisResults = JSON.parse(storedResults);
                 setResults(parsedResults);
-                // Optional: Remove item after reading if it's only needed once
-                // sessionStorage.removeItem('analysisResults');
             } else {
-                // Handle cases where the user navigates directly to /results
-                // or if sessionStorage is empty/cleared
                 setError('No analysis results found. Please upload a file first.');
-                // Optional: Redirect back to home page after a delay
-                // setTimeout(() => router.push('/'), 3000);
             }
         } catch (err) {
             console.error("Failed to parse results from sessionStorage:", err);
@@ -49,14 +37,12 @@ export default function ResultsPage() {
         } finally {
             setIsLoading(false);
         }
-        // Empty dependency array ensures this effect runs only once on mount
-    }, [router]); // Include router if you use it inside useEffect for navigation
+    }, [router]);
 
     if (isLoading) {
         return (
             <div className="flex min-h-screen items-center justify-center">
                 <p className="text-lg text-gray-600">Loading results...</p>
-                {/* You could add a spinner here */}
             </div>
         );
     }
@@ -78,7 +64,6 @@ export default function ResultsPage() {
     }
 
     if (!results) {
-        // This case should ideally be covered by the error state, but good for safety
         return (
             <div className="flex min-h-screen items-center justify-center">
                 <p className="text-lg text-gray-600">No results data available.</p>
@@ -86,58 +71,90 @@ export default function ResultsPage() {
         );
     }
 
-    // --- Display the Results ---
-    // Replace the <pre> tags with your actual visualization components
     return (
         <main className="container mx-auto p-6">
             <h1 className="text-3xl font-bold mb-6 text-gray-800">Analysis Results</h1>
             <div className="space-y-8">
-                {/* File Info Section */}
+                {/* Most Active Users */}
                 <section className="p-4 border rounded-lg bg-white shadow-sm">
-                    <h2 className="text-xl font-semibold mb-2 text-gray-700">File Information</h2>
-                    <p><strong>Name:</strong> {results.fileName}</p>
-                    <p><strong>Size:</strong> {(results.fileSize / 1024).toFixed(2)} KB</p>
-                    <p><strong>Analyzed At:</strong> {new Date(results.analysisTimestamp).toLocaleString()}</p>
+                    <h2 className="text-xl font-semibold mb-2 text-gray-700">Most Active Users</h2>
+                    <ul>
+                        {Object.entries(results.most_active_users).map(([user, percentage]) => (
+                            <li key={user}>
+                                {user}: {percentage.toFixed(2)}%
+                            </li>
+                        ))}
+                    </ul>
                 </section>
 
-                {/* Word Cloud Section */}
+                {/* Conversation Starters */}
                 <section className="p-4 border rounded-lg bg-white shadow-sm">
-                    <h2 className="text-xl font-semibold mb-2 text-gray-700">Word Cloud Data</h2>
-                    {/* Placeholder: Replace with your actual Word Cloud component */}
-                    <div className="bg-gray-100 p-4 rounded h-64 overflow-auto">
-                        <p className="text-sm text-gray-500 mb-2">(Visualization component goes here)</p>
-                        <pre className="text-xs">{JSON.stringify(results.wordCloud, null, 2)}</pre>
-                    </div>
+                    <h2 className="text-xl font-semibold mb-2 text-gray-700">Conversation Starters</h2>
+                    <ul>
+                        {Object.entries(results.conversation_starters).map(([user, percentage]) => (
+                            <li key={user}>
+                                {user}: {percentage.toFixed(2)}%
+                            </li>
+                        ))}
+                    </ul>
                 </section>
 
-                {/* Graph Data Section */}
+                {/* Common Words */}
                 <section className="p-4 border rounded-lg bg-white shadow-sm">
-                    <h2 className="text-xl font-semibold mb-2 text-gray-700">Graph Data</h2>
-                    {/* Placeholder: Replace with your actual Graph component */}
-                    <div className="bg-gray-100 p-4 rounded h-64 overflow-auto">
-                        <p className="text-sm text-gray-500 mb-2">(Visualization component goes here)</p>
-                        <pre className="text-xs">{JSON.stringify(results.graphData, null, 2)}</pre>
-                    </div>
+                    <h2 className="text-xl font-semibold mb-2 text-gray-700">Common Words</h2>
+                    <ul>
+                        {Object.entries(results.common_words).map(([word, count]) => (
+                            <li key={word}>
+                                {word}: {count}
+                            </li>
+                        ))}
+                    </ul>
                 </section>
 
-                {/* Sentiment Section */}
+                {/* Common Emojis */}
                 <section className="p-4 border rounded-lg bg-white shadow-sm">
-                    <h2 className="text-xl font-semibold mb-2 text-gray-700">Sentiment Analysis</h2>
-                    <p><strong>Label:</strong> {results.sentiment.label}</p>
-                    <p><strong>Score:</strong> {results.sentiment.score.toFixed(2)}</p>
+                    <h2 className="text-xl font-semibold mb-2 text-gray-700">Common Emojis</h2>
+                    <ul>
+                        {Object.entries(results.common_emojis).map(([emoji, count]) => (
+                            <li key={emoji}>
+                                {emoji}: {count}
+                            </li>
+                        ))}
+                    </ul>
                 </section>
 
-                {/* Add more sections for other data as needed */}
+                {/* Monthly Activity */}
+                <section className="p-4 border rounded-lg bg-white shadow-sm">
+                    <h2 className="text-xl font-semibold mb-2 text-gray-700">Monthly Activity</h2>
+                    <ul>
+                        {results.monthly_activity.map(({ month, count }) => (
+                            <li key={month}>
+                                {month}: {count} messages
+                            </li>
+                        ))}
+                    </ul>
+                </section>
 
-                <div className="text-center mt-8">
-                    <button
-                        onClick={() => router.push('/')}
-                        className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                    >
-                        Analyze Another File
-                    </button>
-                </div>
+                {/* Average Response Time */}
+                <section className="p-4 border rounded-lg bg-white shadow-sm">
+                    <h2 className="text-xl font-semibold mb-2 text-gray-700">Average Response Time</h2>
+                    <p>{results.average_response_time_minutes.toFixed(2)} minutes</p>
+                </section>
+
+                {/* Peak Hour */}
+                <section className="p-4 border rounded-lg bg-white shadow-sm">
+                    <h2 className="text-xl font-semibold mb-2 text-gray-700">Peak Hour</h2>
+                    <p>{results.peak_hour}</p>
+                </section>
+
+                {/* First Text Champion */}
+                <section className="p-4 border rounded-lg bg-white shadow-sm">
+                    <h2 className="text-xl font-semibold mb-2 text-gray-700">First Text Champion</h2>
+                    <p>
+                        {results.first_text_champion.user}: {results.first_text_champion.percentage.toFixed(2)}%
+                    </p>
+                </section>
             </div>
-        </main>
+        </main >
     );
 }

@@ -1,8 +1,37 @@
-// src/app/api/upload/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+
+interface BackendResponse {
+  most_active_users: {
+    [username: string]: number; // Username as key and activity percentage as value
+  };
+  conversation_starters: {
+    [username: string]: number; // Username as key and conversation start percentage as value
+  };
+  most_ignored_users: {
+    [username: string]: number; // Username as key and ignored percentage as value
+  };
+  first_text_champion: {
+    user: string; // Name of the user
+    percentage: number; // Percentage of first texts sent
+  };
+  common_words: {
+    [word: string]: number; // Word as key and its frequency as value
+  };
+  common_emojis: {
+    [emoji: string]: number; // Emoji as key and its frequency as value
+  };
+  monthly_activity: Array<{
+    month: string; // Month in "YYYY-MM" format
+    count: number; // Number of activities/messages in that month
+  }>;
+  average_response_time_minutes: number; // Average response time in minutes
+  peak_hour: string; // Peak activity hour range in "HH:mm - HH:mm" format
+}
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('Request received:', request);
+
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
 
@@ -12,55 +41,34 @@ export async function POST(request: NextRequest) {
 
     console.log(`Received file: ${file.name}, Size: ${file.size}, Type: ${file.type}`);
 
-    // --- Backend Processing Placeholder ---
-    // In a real app, you would process the file here.
-    // Example: Read file content, analyze it, generate data.
-    // const fileContent = await file.text(); // or await file.arrayBuffer() for binary
-    // const analysisResult = await performAnalysis(fileContent);
+    // Prepare the file for sending to the backend
+    const backendFormData = new FormData();
+    backendFormData.append('file', file);
 
-    // For this example, we'll just simulate a delay and return mock data.
-    await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate processing time
+    for (const [key, value] of backendFormData.entries()) {
+      console.log(key, value);
+    }
 
-    const mockData = {
-      fileName: file.name,
-      fileSize: file.size,
-      analysisTimestamp: new Date().toISOString(),
-      wordCloud: [
-        { text: 'NextJS', value: 64 },
-        { text: 'React', value: 45 },
-        { text: 'Tailwind', value: 30 },
-        { text: 'Serverless', value: 25 },
-        { text: 'API', value: 18 },
-        { text: 'Upload', value: 55 },
-         // ... more words
-      ],
-      graphData: {
-        nodes: [ { id: 'A' }, { id: 'B' }, { id: 'C' } ],
-        links: [ { source: 'A', target: 'B'}, { source: 'B', target: 'C'} ]
-      },
-      sentiment: {
-        score: 0.75,
-        label: 'Positive'
-      }
-      // Add other data structures as needed
-    };
-    // --- End Placeholder ---
+    // Make a POST request to the backend service
+    const response = await fetch('http://localhost:8000/analyze/', {
+      method: 'POST',
+      body: backendFormData,
+    });
 
-    // Return the JSON data
-    return NextResponse.json(mockData, { status: 200 });
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Backend Error:', errorText);
+      return NextResponse.json({ message: 'Failed to process file on backend.', error: errorText }, { status: response.status });
+    }
+
+    // Parse the response from the backend
+    const analysisResult: BackendResponse = await response.json();
+
+    // Return the backend response to the client
+    return NextResponse.json(analysisResult, { status: 200 });
 
   } catch (error: any) {
     console.error('API Upload Error:', error);
     return NextResponse.json({ message: 'Failed to process file.', error: error.message }, { status: 500 });
   }
 }
-
-// Optional: Define config if you need to increase body size limit for larger files
-// export const config = {
-//   api: {
-//     bodyParser: false, // Required for consuming FormData
-//   },
-// };
-// Note: In App Router, body parsing is handled differently.
-// You might need middleware or edge functions for fine-grained control if defaults aren't enough.
-// By default, Next.js API routes (App Router) should handle reasonable file sizes.
