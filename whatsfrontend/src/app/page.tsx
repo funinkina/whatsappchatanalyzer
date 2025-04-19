@@ -220,7 +220,7 @@ export default function HomePage() {
             </div>
             <div className="text-lg text-gray-800 mt-10 text-left bg-amber-50 w-full h-24 flex items-center justify-center p-10 border-y-2 border-neutral-800">
               <h1 className='text-4xl font-extrabold mr-4'>1.</h1>
-              <p>Open a chat, click on the <strong>Three Dots</strong> and click on <strong>More</strong>.</p>
+              <p>open a chat, click on the <strong>three dots</strong> and click on <strong>More</strong>.</p>
             </div>
           </div>
 
