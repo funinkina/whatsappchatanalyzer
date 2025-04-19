@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import { ResponsiveLine } from '@nivo/line';
 import { ResponsiveChord } from '@nivo/chord';
 import { ResponsivePie } from '@nivo/pie';
+import { Wordcloud } from '@visx/wordcloud';
+import { scaleLog } from '@visx/scale';
+import { Text } from '@visx/text';
 
 // Define an interface for the expected data structure
 interface AnalysisResults {
@@ -34,6 +37,12 @@ interface AnalysisResults {
         percentage_difference: number;
     };
     user_interaction_matrix: (string | number | null)[][] | null; // Updated type
+}
+
+// Define interface for word data used by Wordcloud
+interface WordData {
+    text: string;
+    value: number;
 }
 
 export default function ResultsPage() {
@@ -99,6 +108,22 @@ export default function ResultsPage() {
     const chordMatrix = results.user_interaction_matrix && results.user_interaction_matrix.length > 1
         ? results.user_interaction_matrix.slice(1).map(row => row.slice(1).map(value => (typeof value === 'number' ? value : 0)))
         : [];
+
+    // Prepare data for Wordcloud
+    const commonWordsData: WordData[] = Object.entries(results.common_words).map(([text, value]) => ({
+        text,
+        value,
+    }));
+
+    // Define scales for Wordcloud
+    const fontScale = scaleLog({
+        domain: [Math.min(...commonWordsData.map(w => w.value)), Math.max(...commonWordsData.map(w => w.value))],
+        range: [10, 200], // Adjust min/max font size as needed
+    });
+    const fontSizeSetter = (datum: WordData) => fontScale(datum.value);
+
+    // Fixed colors for simplicity, could be dynamic
+    const fixedValueGenerator = () => 0.1; // Adjust rotation if needed
 
     return (
         <main className="container mx-auto p-6">
@@ -187,16 +212,37 @@ export default function ResultsPage() {
                     </p>
                 </section>
 
-                {/* Common Words */}
+                {/* Common Words - Replaced with Wordcloud */}
                 <section className="p-4 border rounded-lg bg-white shadow-sm">
                     <h2 className="text-xl font-semibold mb-2 text-gray-700">Common Words</h2>
-                    <ul>
-                        {Object.entries(results.common_words).map(([word, count]) => (
-                            <li key={word}>
-                                {word}: {count}
-                            </li>
-                        ))}
-                    </ul>
+                    <div style={{ height: '400px', width: '100%' }}> {/* Adjust height as needed */}
+                        <Wordcloud<WordData>
+                            words={commonWordsData}
+                            width={500} // Example width, make responsive if needed
+                            height={400} // Example height
+                            fontSize={fontSizeSetter}
+                            font={'Impact'}
+                            padding={2}
+                            spiral={'archimedean'}
+                            rotate={0}
+                            random={fixedValueGenerator}
+                        >
+                            {(cloudWords) =>
+                                cloudWords.map((w, i) => (
+                                    <Text
+                                        key={w.text}
+                                        fill={['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b'][i % 6]}
+                                        textAnchor={'middle'}
+                                        transform={`translate(${w.x}, ${w.y}) rotate(${w.rotate})`}
+                                        fontSize={w.size}
+                                        fontFamily={w.font}
+                                    >
+                                        {w.text}
+                                    </Text>
+                                ))
+                            }
+                        </Wordcloud>
+                    </div>
                 </section>
 
                 {/* Common Emojis */}
@@ -240,31 +286,6 @@ export default function ResultsPage() {
                             activeOuterRadiusOffset={0}
                             borderWidth={1}
                             colors={{ scheme: 'pastel1' }}
-                        // legends={[
-                        //     {
-                        //         anchor: 'bottom',
-                        //         direction: 'row',
-                        //         justify: false,
-                        //         translateX: 0,
-                        //         translateY: 56,
-                        //         itemsSpacing: 0,
-                        //         itemWidth: 100,
-                        //         itemHeight: 18,
-                        //         itemTextColor: '#999',
-                        //         itemDirection: 'left-to-right',
-                        //         itemOpacity: 1,
-                        //         symbolSize: 18,
-                        //         symbolShape: 'circle',
-                        //         effects: [
-                        //             {
-                        //                 on: 'hover',
-                        //                 style: {
-                        //                     itemTextColor: '#000'
-                        //                 }
-                        //             }
-                        //         ]
-                        //     }
-                        // ]}
                         />
                     </div>
                 </section>
