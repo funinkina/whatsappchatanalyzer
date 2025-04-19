@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ResponsiveLine } from '@nivo/line';
-import { ResponsiveChord } from '@nivo/chord'; // Import Chord
+import { ResponsiveChord } from '@nivo/chord';
 import { ResponsivePie } from '@nivo/pie';
 
 // Define an interface for the expected data structure
@@ -116,25 +116,44 @@ export default function ResultsPage() {
                 {/* Most Active Users */}
                 <section className="p-4 border rounded-lg bg-white shadow-sm">
                     <h2 className="text-xl font-semibold mb-2 text-gray-700">Most Active Users</h2>
-                    <ul>
-                        {Object.entries(results.most_active_users).map(([user, percentage]) => (
-                            <li key={user}>
-                                {user}: {percentage.toFixed(2)}%
-                            </li>
-                        ))}
-                    </ul>
+                    <div style={{ height: '300px' }}>
+                        <ResponsivePie
+                            data={Object.entries(results.most_active_users).map(([user, percentage]) => ({
+                                id: user,
+                                label: user,
+                                value: percentage,
+                            }))}
+                            margin={{ top: 10, bottom: 10 }}
+                            innerRadius={0}
+                            padAngle={0}
+                            cornerRadius={5}
+                            activeOuterRadiusOffset={10}
+                            borderWidth={1}
+                            colors={{ scheme: 'pastel1' }}
+                        />
+                    </div>
                 </section>
 
                 {/* Conversation Starters */}
                 <section className="p-4 border rounded-lg bg-white shadow-sm">
                     <h2 className="text-xl font-semibold mb-2 text-gray-700">Conversation Starters</h2>
-                    <ul>
-                        {Object.entries(results.conversation_starters).map(([user, percentage]) => (
-                            <li key={user}>
-                                {user}: {percentage.toFixed(2)}%
-                            </li>
-                        ))}
-                    </ul>
+                    <div style={{ height: '300px' }}>
+                        <ResponsivePie
+                            data={Object.entries(results.conversation_starters).map(([user, percentage]) => ({
+                                id: user,
+                                label: user,
+                                value: percentage,
+                            }))}
+                            margin={{ top: 10, bottom: 10 }}
+                            innerRadius={0}
+                            padAngle={0.7}
+                            cornerRadius={3}
+                            activeOuterRadiusOffset={8}
+                            borderWidth={1}
+                            borderColor={{ from: 'color', modifiers: [['darker', 0.2]] }}
+                            colors={{ scheme: 'pastel2' }}
+                        />
+                    </div>
                 </section>
 
                 {/* Most Ignored Users */}
@@ -214,58 +233,38 @@ export default function ResultsPage() {
                                 { id: 'Weekend', label: 'Weekend', value: results.weekday_vs_weekend_avg.average_weekend_messages },
                             ]}
                             margin={{ top: 40, right: 80, bottom: 80, left: 80 }}
-                            innerRadius={0.5}
+                            innerRadius={0}
                             padAngle={0.7}
-                            cornerRadius={3}
-                            activeOuterRadiusOffset={8}
+                            cornerRadius={0}
+                            enableArcLabels={false}
+                            activeOuterRadiusOffset={0}
                             borderWidth={1}
-                            borderColor={{ from: 'color', modifiers: [['darker', 0.2]] }}
-                            arcLinkLabelsSkipAngle={10}
-                            arcLinkLabelsTextColor="#333333"
-                            arcLinkLabelsThickness={2}
-                            arcLinkLabelsColor={{ from: 'color' }}
-                            arcLabelsSkipAngle={10}
-                            arcLabelsTextColor={{ from: 'color', modifiers: [['darker', 2]] }}
-                            defs={[
-                                {
-                                    id: 'dots',
-                                    type: 'patternLines',
-                                    background: 'inherit',
-                                    color: 'rgba(255, 255, 255, 0.3)',
-                                    size: 4,
-                                    spacing: 7,
-                                    rotation: -45
-                                }
-                            ]}
-                            fill={[
-                                { match: { id: 'Weekday' }, id: 'dots' },
-                                { match: { id: 'Weekend' }, id: 'dots' },
-                            ]}
-                            legends={[
-                                {
-                                    anchor: 'bottom',
-                                    direction: 'row',
-                                    justify: false,
-                                    translateX: 0,
-                                    translateY: 56,
-                                    itemsSpacing: 0,
-                                    itemWidth: 100,
-                                    itemHeight: 18,
-                                    itemTextColor: '#999',
-                                    itemDirection: 'left-to-right',
-                                    itemOpacity: 1,
-                                    symbolSize: 18,
-                                    symbolShape: 'circle',
-                                    effects: [
-                                        {
-                                            on: 'hover',
-                                            style: {
-                                                itemTextColor: '#000'
-                                            }
-                                        }
-                                    ]
-                                }
-                            ]}
+                            colors={{ scheme: 'pastel1' }}
+                        // legends={[
+                        //     {
+                        //         anchor: 'bottom',
+                        //         direction: 'row',
+                        //         justify: false,
+                        //         translateX: 0,
+                        //         translateY: 56,
+                        //         itemsSpacing: 0,
+                        //         itemWidth: 100,
+                        //         itemHeight: 18,
+                        //         itemTextColor: '#999',
+                        //         itemDirection: 'left-to-right',
+                        //         itemOpacity: 1,
+                        //         symbolSize: 18,
+                        //         symbolShape: 'circle',
+                        //         effects: [
+                        //             {
+                        //                 on: 'hover',
+                        //                 style: {
+                        //                     itemTextColor: '#000'
+                        //                 }
+                        //             }
+                        //         ]
+                        //     }
+                        // ]}
                         />
                     </div>
                 </section>
