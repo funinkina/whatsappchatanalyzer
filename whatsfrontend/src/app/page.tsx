@@ -19,6 +19,26 @@ export default function HomePage() {
     }
   };
 
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (event.dataTransfer.files && event.dataTransfer.files[0]) {
+      const droppedFile = event.dataTransfer.files[0];
+      if (droppedFile.type === "text/plain" || droppedFile.name.endsWith(".zip")) {
+        setFile(droppedFile);
+        setError(null); // Clear previous errors
+      } else {
+        setError("Only .txt or .zip files are allowed.");
+      }
+    }
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -95,7 +115,11 @@ export default function HomePage() {
           </p>
         </div>
         {/* File Upload Box */}
-        <div className="w-md relative bg-green-200 rounded-md outline-2 outline-neutral-800 p-4 shadow-[7px_7px_0px_0px_rgba(0,0,0,0.85)]">
+        <div
+          className="w-md relative bg-green-200 rounded-md outline-2 outline-neutral-800 p-4 shadow-[7px_7px_0px_0px_rgba(0,0,0,0.85)]"
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+        >
           <div className='flex flex-row items-center justify-start mb-4 text-emerald-800 pr-20'>
             <Image
               src="/icons/upload_icon.svg"
@@ -127,8 +151,8 @@ export default function HomePage() {
                   htmlFor="file-upload"
                   className={`flex flex-col items-center justify-center w-full p-3 rounded-md cursor-pointer
                 ${file
-                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                      : 'bg-emerald-700 hover:bg-emerald-600 text-gray-300 border-2 border-dashed border-amber-50'
+                      ? 'bg-emerald-600 hover:bg-emerald-700 text-amber-50'
+                      : 'bg-emerald-700 hover:bg-emerald-600 text-amber-50 border-2 border-dashed border-amber-50'
                     } transition duration-150 ease-in-out`}
                 >
                   <Image
@@ -136,10 +160,10 @@ export default function HomePage() {
                     alt="Upload Icon"
                     width={40}
                     height={40}
-                    className="mb-2"
+                    className="mb-4"
                   />
                   <span className="text-sm font-medium">
-                    {file ? 'File Selected' : 'Upload File (. txt or .zip)'}
+                    {file ? 'File Selected' : <span className="underline">Drag and drop or Upload File (.txt or .zip)</span>}
                   </span>
                 </label>
               </div>
