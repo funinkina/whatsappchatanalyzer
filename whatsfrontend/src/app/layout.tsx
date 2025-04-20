@@ -48,7 +48,7 @@ export default function RootLayout({
               Fully open source - visit the{" "}
               <a
                 className="underline hover:text-amber-200 transition-colors" // Added hover effect
-                href="https://github.com/funinkina/"
+                href="https://github.com/funinkina/whatsappchatanalyzer"
                 target="_blank"
                 rel="noopener noreferrer"
               >
