@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { DM_Sans } from "next/font/google";
 import Image from 'next/image';
+import { Analytics } from "@vercel/analytics/react"
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -25,6 +26,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={dmSans.className}>
+        <Analytics />
         {children}
         <footer className="h-50 bg-blue-950/90 text-amber-50 flex flex-row items-center justify-center px-60">
           <div className="flex items-center w-full flex-row justify-between">
