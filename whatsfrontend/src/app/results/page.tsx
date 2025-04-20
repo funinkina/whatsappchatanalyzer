@@ -435,26 +435,53 @@ export default function ResultsPage() {
             />
           </section>
 
-          {/* Weekday vs Weekend Activity */}
-          <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
-            <h2 className="text-xl font-semibold mb-4 text-gray-700">Weekday vs Weekend Activity</h2>
-            <div className="h-64">
-              <ResponsivePie
-                data={[
-                  { id: 'Weekday', label: 'Weekday', value: results.weekday_vs_weekend_avg.average_weekday_messages },
-                  { id: 'Weekend', label: 'Weekend', value: results.weekday_vs_weekend_avg.average_weekend_messages },
-                ]}
-                margin={{ top: 40, bottom: 40 }}
-                innerRadius={0}
-                padAngle={0.7}
-                cornerRadius={0}
-                enableArcLabels={false}
-                activeOuterRadiusOffset={0}
-                borderWidth={1}
-                colors={{ scheme: 'pastel1' }}
-              />
-            </div>
-          </section>
+          {/* weekend vs weekday pie chart */}
+          {Object.keys(results.most_active_users).length <= 2 && (
+            <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
+              <h2 className="text-xl font-semibold mb-4 text-gray-700">Weekday vs Weekend Activity</h2>
+              <div className="h-64">
+                <ResponsivePie
+                  data={[
+                    { id: 'Weekday', label: 'Weekday', value: results.weekday_vs_weekend_avg.average_weekday_messages },
+                    { id: 'Weekend', label: 'Weekend', value: results.weekday_vs_weekend_avg.average_weekend_messages },
+                  ]}
+                  margin={{ top: 40, bottom: 40 }}
+                  innerRadius={0}
+                  padAngle={0.7}
+                  cornerRadius={0}
+                  enableArcLabels={false}
+                  activeOuterRadiusOffset={0}
+                  borderWidth={1}
+                  colors={{ scheme: 'pastel1' }}
+                />
+              </div>
+            </section>
+          )}
+          {/* User Interaction Matrix (Chord Diagram) */}
+          {results.user_interaction_matrix && chordKeys.length > 2 && chordMatrix.length > 2 && (
+            <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
+              <h2 className="text-xl font-semibold mb-4 text-gray-700">User Interactions Chord Diagram</h2>
+              <div className="h-96 w-full">
+                <ResponsiveChord
+                  data={chordMatrix}
+                  keys={chordKeys}
+                  margin={{ top: 40, right: 10, bottom: 40, left: 10 }}
+                  valueFormat=".0f"
+                  padAngle={0.05}
+                  innerRadiusRatio={0.96}
+                  innerRadiusOffset={0}
+                  enableLabel={true}
+                  label="id"
+                  labelOffset={15}
+                  labelRotation={0}
+                  colors={{ scheme: 'dark2' }}
+                  isInteractive={true}
+                  animate={true}
+                  motionConfig="gentle"
+                />
+              </div>
+            </section>
+          )}
         </div>
 
         {/* AI Analysis - Personality Profiles (Full Width) */}
@@ -547,32 +574,6 @@ export default function ResultsPage() {
                     }
                   }
                 }}
-              />
-            </div>
-          </section>
-        )}
-
-        {/* User Interaction Matrix (Chord Diagram) */}
-        {results.user_interaction_matrix && chordKeys.length > 2 && chordMatrix.length > 2 && (
-          <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
-            <h2 className="text-xl font-semibold mb-4 text-gray-700">User Interactions Chord Diagram</h2>
-            <div className="h-96 w-full">
-              <ResponsiveChord
-                data={chordMatrix}
-                keys={chordKeys}
-                margin={{ top: 40, right: 10, bottom: 40, left: 10 }}
-                valueFormat=".0f"
-                padAngle={0.05}
-                innerRadiusRatio={0.96}
-                innerRadiusOffset={0}
-                enableLabel={true}
-                label="id"
-                labelOffset={15}
-                labelRotation={0}
-                colors={{ scheme: 'dark2' }}
-                isInteractive={true}
-                animate={true}
-                motionConfig="gentle"
               />
             </div>
           </section>
