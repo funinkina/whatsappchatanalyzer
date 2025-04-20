@@ -315,37 +315,37 @@ export default function HomePage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-10 w-full max-w-sm sm:max-w-none sm:px-8 lg:px-0 lg:max-w-6xl">
           {/* Feature 1 */}
           {/* Removed fixed w/h, added aspect-square for consistent shape, responsive padding/text */}
-          <div className="w-full aspect-square bg-rose-50 text-red-600 rounded-lg border-2 border-neutral-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] p-4 sm:p-6 flex flex-col items-start justify-between hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] md:hover:shadow-[15px_15px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
+          <div className="w-full h-64 bg-rose-50 text-red-600 rounded-lg border-2 border-neutral-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] p-4 sm:p-6 flex flex-col items-start justify-between hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] md:hover:shadow-[15px_15px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
             <Image src="/icons/prize.svg" alt="Most Active" width={40} height={40} className="mb-4 w-10 h-10 sm:w-12 sm:h-12" />
             <h2 className="text-2xl sm:text-3xl font-semibold text-start">who yaps the most?</h2>
           </div>
 
           {/* Feature 2 */}
-          <div className="w-full aspect-square bg-sky-50 text-sky-700 rounded-lg border-2 border-neutral-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] p-4 sm:p-6 flex flex-col items-start justify-between hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] md:hover:shadow-[15px_15px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
+          <div className="w-full h-64 bg-sky-50 text-sky-700 rounded-lg border-2 border-neutral-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] p-4 sm:p-6 flex flex-col items-start justify-between hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] md:hover:shadow-[15px_15px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
             <Image src="/icons/frown.svg" alt="Most Ignored" width={60} height={60} className="mb-4 w-12 h-12 sm:w-16 sm:h-16" />
             <h2 className="text-2xl sm:text-3xl font-semibold text-start">who gets ignored the most?</h2>
           </div>
 
           {/* Feature 3 */}
-          <div className="w-full aspect-square bg-red-100 text-orange-700 rounded-lg border-2 border-neutral-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] p-4 sm:p-6 flex flex-col items-start justify-between hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] md:hover:shadow-[15px_15px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
+          <div className="w-full h-64 bg-red-100 text-orange-700 rounded-lg border-2 border-neutral-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] p-4 sm:p-6 flex flex-col items-start justify-between hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] md:hover:shadow-[15px_15px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
             <Image src="/icons/time.svg" alt="Reply Time" width={40} height={40} className="mb-4 w-10 h-10 sm:w-12 sm:h-12" />
             <h2 className="text-2xl sm:text-3xl font-semibold text-start">how long do they ghost you?</h2>
           </div>
 
           {/* Feature 4 */}
-          <div className="w-full aspect-square bg-purple-100 text-violet-800 rounded-lg border-2 border-neutral-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] p-4 sm:p-6 flex flex-col items-start justify-between hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] md:hover:shadow-[15px_15px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
+          <div className="w-full h-64 bg-purple-100 text-violet-800 rounded-lg border-2 border-neutral-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] p-4 sm:p-6 flex flex-col items-start justify-between hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] md:hover:shadow-[15px_15px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
             <Image src="/icons/chat.svg" alt="Word Usage" width={60} height={60} className="mb-4 w-12 h-12 sm:w-16 sm:h-16" />
             <h2 className="text-2xl sm:text-3xl font-semibold text-start">which words & emojis do yall use most?</h2> {/* Added & */}
           </div>
 
           {/* Feature 5 */}
-          <div className="w-full aspect-square bg-rose-50 text-red-700 rounded-lg border-2 border-neutral-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] p-4 sm:p-6 flex flex-col items-start justify-between hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] md:hover:shadow-[15px_15px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
+          <div className="w-full h-64 bg-rose-50 text-red-700 rounded-lg border-2 border-neutral-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] p-4 sm:p-6 flex flex-col items-start justify-between hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] md:hover:shadow-[15px_15px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
             <Image src="/icons/graph.svg" alt="Chat Trends" width={60} height={60} className="mb-4 w-12 h-12 sm:w-16 sm:h-16" />
             <h2 className="text-2xl sm:text-3xl font-semibold text-start">your yapping highs and lows over time</h2> {/* Simplified */}
           </div>
 
           {/* Feature 6 */}
-          <div className="w-full aspect-square bg-emerald-100 text-emerald-700 rounded-lg border-2 border-neutral-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] p-4 sm:p-6 flex flex-col items-start justify-between hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] md:hover:shadow-[15px_15px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
+          <div className="w-full h-64 bg-emerald-100 text-emerald-700 rounded-lg border-2 border-neutral-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] p-4 sm:p-6 flex flex-col items-start justify-between hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] md:hover:shadow-[15px_15px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
             <Image src="/icons/sparkle.svg" alt="AI Insights" width={50} height={50} className="mb-4 w-10 h-10 sm:w-12 sm:h-12" />
             <h2 className="text-2xl sm:text-3xl font-semibold text-start">what do your chats tell about you?</h2>
           </div>
