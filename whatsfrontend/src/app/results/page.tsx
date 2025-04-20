@@ -53,7 +53,6 @@ export default function ResultsPage() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [topWords, setTopWords] = useState<{ text: string; value: number }[]>([]); // State for top words
-  const [maxWordCount, setMaxWordCount] = useState<number>(1); // State for max word count
   const [containerWidth, setContainerWidth] = useState<number>(0); // State for container width
   const wordContainerRef = useRef<HTMLDivElement>(null); // Ref for the word container div
   const router = useRouter();
@@ -99,11 +98,6 @@ export default function ResultsPage() {
             .slice(0, 6); // Get top 6
 
           setTopWords(sortedWords);
-          if (sortedWords.length > 0) {
-            setMaxWordCount(sortedWords[0].value || 1); // Ensure maxWordCount is at least 1
-          } else {
-            setMaxWordCount(1);
-          }
         }
 
       } else {
@@ -574,7 +568,7 @@ export default function ResultsPage() {
           )}
         </div>
 
-        {/* AI Analysis - Personality Profiles (Full Width) */}
+        {/* AI Analysis - Personality Profiles*/}
         <div className="bg-white p-6 rounded-lg shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] border-2 border-neutral-800">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold mb-4 text-gray-700">Personality Profiles</h2>

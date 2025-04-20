@@ -77,9 +77,9 @@ export async function POST(request: NextRequest) {
     const backendFormData = new FormData();
     backendFormData.append('file', file);
 
-
     // Make a POST request to the backend service
-    const response = await fetch('http://localhost:8000/analyze/', {
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000';
+    const response = await fetch(`${backendUrl}/analyze/`, {
       method: 'POST',
       body: backendFormData,
     });
