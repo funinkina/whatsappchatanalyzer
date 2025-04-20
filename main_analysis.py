@@ -1,5 +1,6 @@
 import asyncio
 import re
+import json  # Add explicit json import
 from collections import defaultdict, Counter
 from datetime import datetime, timedelta
 import emoji
@@ -208,6 +209,16 @@ async def analyze_chat(chat_file):
     ai_analysis = await ai_analysis_task
     if ai_analysis is None:
         ai_analysis = "Unable to retrieve AI analysis."
+    else:
+        # Parse the AI analysis string to a Python object
+        try:
+            ai_analysis = json.loads(ai_analysis)
+        except json.JSONDecodeError as e:
+            print(f"Error parsing AI analysis JSON: {e}")
+            ai_analysis = {
+                "summary": "Error parsing AI analysis.",
+                "people": []
+            }
 
     # Prepare user interaction matrix for Nivo Chord diagram if more than 1 user
     nivo_interaction_matrix = None

@@ -50,7 +50,7 @@ interface BackendResponse {
   };
   ai_analysis: {
     summary: string;
-    people: Array<{
+    people?: Array<{      // Make people optional since it won't be returned for groups with >10 users
       name: string;
       animal: string;
       description: string;

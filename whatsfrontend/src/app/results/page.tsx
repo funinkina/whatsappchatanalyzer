@@ -62,7 +62,33 @@ export default function ResultsPage() {
       const storedResults = sessionStorage.getItem('analysisResults');
       if (storedResults) {
         const parsedResults: AnalysisResults = JSON.parse(storedResults);
+
+        // Ensure AI analysis is properly initialized
+        if (!parsedResults.ai_analysis) {
+          parsedResults.ai_analysis = {
+            summary: "AI analysis not available.",
+            people: []
+          };
+        } else if (typeof parsedResults.ai_analysis === 'string') {
+          // If ai_analysis is a string, try to parse it
+          try {
+            parsedResults.ai_analysis = JSON.parse(parsedResults.ai_analysis as unknown as string);
+          } catch (e) {
+            console.error("Failed to parse AI analysis from string:", e);
+            parsedResults.ai_analysis = {
+              summary: parsedResults.ai_analysis as unknown as string,
+              people: []
+            };
+          }
+        }
+
+        // Ensure people array exists
+        if (!parsedResults.ai_analysis.people) {
+          parsedResults.ai_analysis.people = [];
+        }
+
         setResults(parsedResults);
+        console.log("AI Analysis data:", parsedResults.ai_analysis);
 
         // Process common words after results are set
         if (parsedResults.common_words) {
