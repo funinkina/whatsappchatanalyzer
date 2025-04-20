@@ -11,6 +11,10 @@ system_message_patterns = [
     "Media omitted",
     "You deleted this message",
     "deleted message",
+    "deleted",
+    "message",
+    "This message was deleted",
+    "You sent a voice message"
     "This message edited",
     ".vcf",
     "<",

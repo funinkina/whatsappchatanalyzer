@@ -20,7 +20,7 @@ async def analyze_chat(chat_file):
     """
     messages_data = preprocess_messages(chat_file)
 
-    # ai_analysis_task = asyncio.create_task(analyze_messages_with_llm(messages_data))
+    ai_analysis_task = asyncio.create_task(analyze_messages_with_llm(messages_data))
 
     user_message_count = defaultdict(int)
     user_starts_convo = defaultdict(int)
@@ -205,9 +205,9 @@ async def analyze_chat(chat_file):
     average_weekday_messages = round(total_weekday_messages / 5, 2) if total_weekday_messages > 0 else 0
     average_weekend_messages = round(total_weekend_messages / 2, 2) if total_weekend_messages > 0 else 0
 
-    # ai_analysis = await ai_analysis_task
-    # if ai_analysis is None:
-    #     ai_analysis = "Unable to retrieve AI analysis."
+    ai_analysis = await ai_analysis_task
+    if ai_analysis is None:
+        ai_analysis = "Unable to retrieve AI analysis."
 
     # Prepare user interaction matrix for Nivo Chord diagram if more than 1 user
     nivo_interaction_matrix = None
@@ -242,10 +242,10 @@ async def analyze_chat(chat_file):
         },
         "common_words": dict(word_counter.most_common(10)),
         "common_emojis": {emoji_char: count for emoji_char, count in emoji_counter.most_common(5)},
-        "daily_activity": daily_activity,  # Changed from monthly_activity
+        #"daily_activity": daily_activity,  # Changed from monthly_activity
         "average_response_time_minutes": average_response_time_minutes,
         "peak_hour": f"{peak_hour}:00 - {peak_hour + 1}:00" if isinstance(peak_hour, int) else peak_hour,
-        "user_monthly_activity": nivo_user_monthly_activity,  # Added user monthly activity
+        #"user_monthly_activity": nivo_user_monthly_activity,  # Added user monthly activity
         "weekday_vs_weekend_avg": {
             "average_weekday_messages": average_weekday_messages,
             "average_weekend_messages": average_weekend_messages,
@@ -253,7 +253,7 @@ async def analyze_chat(chat_file):
             # Optional: Calculate percentage difference relative to weekday average,
             "percentage_difference": round(((average_weekday_messages - average_weekend_messages) / average_weekday_messages) * 100, 2) if average_weekday_messages > 0 else 0
         },
-        # "ai_analysis": ai_analysis,
+        "ai_analysis": ai_analysis,
         "user_interaction_matrix": nivo_interaction_matrix
     }
 
