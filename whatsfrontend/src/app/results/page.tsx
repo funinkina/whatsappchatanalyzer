@@ -10,6 +10,7 @@ import AIAnalysis from '@/components/AIAnalysis';
 
 // Define an interface for the expected data structure
 interface AnalysisResults {
+  chat_name?: string; // Chat name extracted from the file
   total_messages: number;
   days_since_first_message: number;
   most_active_users: { [username: string]: number };
@@ -254,7 +255,9 @@ export default function ResultsPage() {
 
   return (
     <main className="container mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6 text-gray-800">Analysis Results</h1>
+      <h1 className="text-3xl font-bold mb-6 text-gray-800">
+        {results.chat_name ? `Analysis with ${results.chat_name}` : "Analysis Results"}
+      </h1>
       <div className="space-y-8">
         {/* Overall Chat Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

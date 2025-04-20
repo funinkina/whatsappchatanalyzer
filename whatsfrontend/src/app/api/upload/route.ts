@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 interface BackendResponse {
+  chat_name?: string; // Chat name extracted from the file
   total_messages: number; // Total number of messages in the chat
   days_since_first_message: number; // Days elapsed since the first message
   most_active_users: {

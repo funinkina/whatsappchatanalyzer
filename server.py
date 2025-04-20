@@ -1,7 +1,7 @@
 import os
 import tempfile
 import shutil
-import zipfile  # Added import
+import zipfile
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -46,7 +46,8 @@ async def analyze_whatsapp_chat(file: UploadFile = File(..., description="WhatsA
         raise HTTPException(status_code=400, detail="Invalid file type. Please upload a .txt or .zip file.")
 
     temp_file_path = None
-    temp_dir = None  # To store extracted files from zip
+    temp_dir = None
+    original_filename = file.filename
 
     try:
         if file.filename.endswith(".txt"):
@@ -75,6 +76,7 @@ async def analyze_whatsapp_chat(file: UploadFile = File(..., description="WhatsA
 
             if len(txt_files) == 1:
                 temp_file_path = os.path.join(temp_dir, txt_files[0])
+                original_filename = txt_files[0]  # Update original_filename to use the extracted filename
                 print(f"Found .txt file in zip: {temp_file_path}")
             elif len(txt_files) == 0:
                 raise HTTPException(status_code=400, detail="No .txt file found inside the zip archive.")
@@ -85,9 +87,10 @@ async def analyze_whatsapp_chat(file: UploadFile = File(..., description="WhatsA
         if not temp_file_path or not os.path.exists(temp_file_path):
             raise HTTPException(status_code=500, detail="Failed to prepare chat file for analysis.")
 
-        # Run the analysis using the function from main_analysis.py
+        # Run the analysis using the function from main_analysis.py, passing the original filename
         results = await analyze_chat(
             chat_file=temp_file_path,
+            original_filename=original_filename  # Pass the original filename
         )
 
         # Return the results as JSON
@@ -105,6 +108,7 @@ async def analyze_whatsapp_chat(file: UploadFile = File(..., description="WhatsA
                     raise HTTPException(status_code=500, detail="Chat file path lost before re-analysis attempt.")
                 results = await analyze_chat(  # Changed to await
                     chat_file=temp_file_path,
+                    original_filename=original_filename  # Pass the original filename here too
                 )
                 return JSONResponse(content=results)
             except Exception as inner_e:

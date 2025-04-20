@@ -1,39 +1,57 @@
 import asyncio
 import re
-import json  # Add explicit json import
+import json
+import os
 from collections import defaultdict, Counter
-from datetime import datetime, timedelta
+from datetime import timedelta
 import emoji
 from ai_analysis import analyze_messages_with_llm
 from utils import preprocess_messages
 
-async def analyze_chat(chat_file):
+async def analyze_chat(chat_file, original_filename=None):
     """
     Analyze WhatsApp chat and return statistics
 
     Args:
         chat_file (str): Path to the chat file
+        original_filename (str, optional): Original filename before upload/temp storage
         convo_break_minutes (int): Minutes of inactivity to consider a new conversation
         stopwords_file (str): Path to stopwords file
 
     Returns:
         dict: Chat analysis results
     """
+    # Extract chat name from the file path or the original filename if provided
+    chat_name = None
+    print(f"Analyzing chat file: {chat_file}")
+
+    # First try to use the original_filename if provided
+    if original_filename:
+        filename = original_filename
+        # print(f"Using original filename: {filename}")
+    else:
+        filename = os.path.basename(chat_file)
+        print(f"Using basename from chat_file: {filename}")
+
+    if filename.startswith("WhatsApp Chat with "):
+        chat_name = filename.replace("WhatsApp Chat with ", "").replace(".txt", "")
+    elif "with " in filename:
+        chat_name = filename.split("with ")[1].replace(".txt", "")
+
     messages_data = preprocess_messages(chat_file)
 
     ai_analysis_task = asyncio.create_task(analyze_messages_with_llm(messages_data))
 
     user_message_count = defaultdict(int)
     user_starts_convo = defaultdict(int)
-    # user_ignored_count = defaultdict(int) # This is calculated later
     user_first_texts = Counter()
     word_counter = Counter()
     emoji_counter = Counter()
     user_messages = defaultdict(list)
-    daily_message_count_by_date = Counter()  # Added for daily activity
+    daily_message_count_by_date = Counter()
     hourly_message_count = Counter()
-    daily_message_count_by_weekday = Counter()  # Count messages per day of the week (0=Monday, 6=Sunday)
-    monthly_activity_by_user = defaultdict(lambda: Counter())  # For user monthly activity heatmap
+    daily_message_count_by_weekday = Counter()
+    monthly_activity_by_user = defaultdict(lambda: Counter())
     total_response_time_seconds = 0
     response_count = 0
     interaction_matrix = defaultdict(lambda: defaultdict(int))
@@ -47,21 +65,17 @@ async def analyze_chat(chat_file):
     CONVO_BREAK_MINUTES = 60
     last_timestamp = None
     last_sender = None
-    user_last_message = {}
-    last_date_str = None  # Changed from last_date
+    last_date_str = None
     current_convo_start = True
-    all_months = set()  # Keep track of all months present in the chat
+    all_months = set()
 
-    # Track the first and latest message timestamps
     first_message_timestamp = messages_data[0][0] if messages_data else None
     latest_message_timestamp = messages_data[-1][0] if messages_data else None
 
     for i, (timestamp, date_obj, sender, filtered_message) in enumerate(messages_data):  # Renamed date to date_obj
-        is_new_convo = False
         if last_timestamp:
             time_diff = (timestamp - last_timestamp).total_seconds() / 60
             if time_diff > CONVO_BREAK_MINUTES:
-                is_new_convo = True
                 current_convo_start = True
 
             # Calculate response time if sender changed and within 12 hours
@@ -72,8 +86,6 @@ async def analyze_chat(chat_file):
                     response_count += 1
                 # Track interactions (User A's message followed by User B's)
                 interaction_matrix[last_sender][sender] += 1
-        else:
-            is_new_convo = True
 
         # Count conversation starts
         if current_convo_start:
@@ -238,6 +250,7 @@ async def analyze_chat(chat_file):
             nivo_interaction_matrix.append(row)
 
     results = {
+        "chat_name": chat_name,  # Include chat name in the results
         "total_messages": total_messages,
         "days_since_first_message": days_since_first_message,
         "most_active_users": dict(sorted(most_active_users.items(), key=lambda x: x[1], reverse=True)),

@@ -8,7 +8,7 @@ interface Person {
 
 interface AIAnalysisProps {
   summary: string;
-  people?: Person[]; // Make people optional since it might not be returned for large groups
+  people?: Person[];
   summaryOnly?: boolean;
   profilesOnly?: boolean;
 }
@@ -45,7 +45,7 @@ const AIAnalysis: React.FC<AIAnalysisProps> = ({ summary, people = [], summaryOn
   const showProfiles = summaryOnly !== true && people && people.length > 0;
 
   // For debugging
-  console.log('AI Analysis Props:', { summary, peopleLength: people?.length, summaryOnly, profilesOnly });
+  // console.log('AI Analysis Props:', { summary, peopleLength: people?.length, summaryOnly, profilesOnly });
 
   return (
     <div className={profilesOnly ? "mb-8" : "mb-16"}>
