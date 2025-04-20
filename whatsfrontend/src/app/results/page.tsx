@@ -115,6 +115,23 @@ export default function ResultsPage() {
         value,
     }));
 
+    // Prepare data for Common Emojis visualization
+    const sortedEmojis = Object.entries(results.common_emojis)
+        .map(([emoji, count]) => ({ emoji, count }))
+        .sort((a, b) => b.count - a.count);
+
+    const maxEmojiCount = sortedEmojis.length > 0 ? sortedEmojis[0].count : 1; // Avoid division by zero
+
+    // Define min/max font size for emojis (adjust as needed)
+    const minEmojiSize = 3; // e.g., 1rem
+    const maxEmojiSize = 12; // e.g., 5rem
+
+    const getEmojiSize = (count: number) => {
+        // Simple linear scaling, adjust formula as needed (e.g., logarithmic)
+        const size = minEmojiSize + (maxEmojiSize - minEmojiSize) * (count / maxEmojiCount);
+        return `${size.toFixed(2)}rem`; // Use rem for responsive sizing
+    };
+
     // Define scales for Wordcloud
     const fontScale = scaleLog({
         domain: [Math.min(...commonWordsData.map(w => w.value)), Math.max(...commonWordsData.map(w => w.value))],
@@ -226,13 +243,12 @@ export default function ResultsPage() {
                     </section>
                 </div>
 
-
                 {/* Common Words and Emojis in a Row */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Common Words - Replaced with Wordcloud */}
                     <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
                         <h2 className="text-xl font-semibold mb-2 text-gray-700">Common Words</h2>
-                        <div style={{ height: '400px', width: '100%' }}> {/* Adjust height as needed */}
+                        <div className='h-96 w-full flex items-center justify-center align-middle'>
                             <Wordcloud<WordData>
                                 words={commonWordsData}
                                 width={500} // Example width, make responsive if needed
@@ -264,14 +280,18 @@ export default function ResultsPage() {
 
                     {/* Common Emojis */}
                     <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
-                        <h2 className="text-xl font-semibold mb-2 text-gray-700">Common Emojis</h2>
-                        <ul>
-                            {Object.entries(results.common_emojis).map(([emoji, count]) => (
-                                <li key={emoji}>
-                                    {emoji}: {count}
-                                </li>
+                        <h2 className="text-xl font-semibold mb-4 text-gray-700">Common Emojis</h2>
+                        <div className="flex flex-wrap gap-x-4 gap-y-2 items-baseline justify-center"> {/* Use flex-wrap for layout */}
+                            {sortedEmojis.map(({ emoji, count }) => (
+                                <span
+                                    key={emoji}
+                                    style={{ fontSize: getEmojiSize(count), lineHeight: '1' }} // Apply dynamic font size
+                                    title={`${emoji}: ${count}`} // Tooltip for count
+                                >
+                                    {emoji}
+                                </span>
                             ))}
-                        </ul>
+                        </div>
                     </section>
                 </div>
 
@@ -369,14 +389,7 @@ export default function ResultsPage() {
                                         return acc;
                                     }, [] as { x: string; y: number }[])
                                 }]}
-                                margin={{ top: 20, right: 60, bottom: 50, left: 120 }}
-                                yScale={{
-                                    type: 'linear',
-                                    min: 'auto',
-                                    max: 'auto',
-                                    stacked: false,
-                                    reverse: false
-                                }}
+                                margin={{ top: 20, right: 60, bottom: 70, left: 120 }}
                                 axisTop={null}
                                 axisRight={null}
                                 axisBottom={{
@@ -389,11 +402,11 @@ export default function ResultsPage() {
                                     },
                                     tickSize: 5,
                                     tickPadding: 5,
-                                    tickRotation: -45
+                                    tickRotation: typeof window !== 'undefined' && window.innerWidth < 768 ? -90 : -45
                                 }}
                                 axisLeft={{
                                     tickSize: 5,
-                                    tickPadding: 10, // Increased padding here
+                                    tickPadding: 5, // Increased padding here
                                     tickRotation: 0,
                                     legend: 'Messages',
                                     legendOffset: -90, // Adjust legend offset if needed
@@ -404,7 +417,7 @@ export default function ResultsPage() {
                                 colors={{ scheme: 'pastel1' }}
                                 enablePoints={false}
                                 enableGridX={false}
-                                enableGridY={false}
+                                enableGridY={true}
                                 lineWidth={7}
                                 useMesh={true}
                                 curve="cardinal"
