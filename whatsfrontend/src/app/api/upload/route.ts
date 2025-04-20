@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     backendFormData.append('file', file);
 
     // Make a POST request to the backend service
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000';
+    const backendUrl = process.env.BACKEND_URL || 'https://46c602e8-3700-414a-b57f-9433573d7390.eu-central-1.cloud.genez.io';
     const response = await fetch(`${backendUrl}/analyze/`, {
       method: 'POST',
       body: backendFormData,
