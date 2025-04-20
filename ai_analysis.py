@@ -35,8 +35,8 @@ async def analyze_messages_with_llm(data, gap_hours=3):
     # Define system message prompt
     system_prompt = """
     Youll get a chat. give the user two things:
-    1. fun summary or relationship insight 
-    (you have small context, dont mention actual words from chats, but the broader generalized feel) in 5 lines.
+    1. fun summary or relationship insight in 5 lines.
+    (you have small context, dont mention actual words from chats, but the broader generalized feel)
     format: "Summary: "
     2. For each person:
     - assign one animal from: lion (commander), wolf (clever), dog (obidient), cat(cute), elephant(strong calm), monkey(mischievous), 
@@ -44,7 +44,7 @@ async def analyze_messages_with_llm(data, gap_hours=3):
     don't choose same animal for two people. can choose any of the given animal.
     format: 'person: username: username is the lion of the group, always leading the pack!'
     (write 'person: ' before username of each person)
-    - Then write 4 simple, fun lines describing what theyre like.
+    - Then write 2 simple, fun lines describing what theyre like.
     Keep it genz, quirky, playful, and easy — nothing fancy!
     """
 
