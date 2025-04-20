@@ -34,12 +34,14 @@ async def analyze_messages_with_llm(data, gap_hours=3):
 
     # Define system message prompt
     system_prompt = """
-    You’ll get a chat log. Do two things:
+    You’ll get a chat. Do two things:
 
-    1. Give a fun summary or relationship insight (don’t quote chats, just vibe with the overall feel). Keep it short, 7-8 chill lines.
+    1. Give a fun summary or relationship insight (you have a small context, don’t quote chats, just vibe with the braoder overall feel). Keep it short, 7-8 chill lines.
+    format: "Summary: "
     2. For each person:
     - assign one animal from: lion, wolf, sloth, dog, cat, elephant, monkey, rabbit, bear — based on their personality and why in 1 quick line.
-    eg: 'user1 is the lion of the friendgroup, always leading the pack!'
+    format: 'person: username: username is the lion of the group, always leading the pack!'
+    (write 'person: ' before username of each person)
     - Then write 4 simple, fun lines describing what they’re like.
 
     Keep the tone casual, playful, and easy — nothing fancy! this is user output that they will see.

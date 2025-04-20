@@ -205,9 +205,36 @@ async def analyze_chat(chat_file):
     average_weekday_messages = round(total_weekday_messages / 5, 2) if total_weekday_messages > 0 else 0
     average_weekend_messages = round(total_weekend_messages / 2, 2) if total_weekend_messages > 0 else 0
 
+    def extract_ai_summary_and_profiles(ai_text):
+        summary_match = re.search(r"Summary:\s*(.*?)\n\n", ai_text, re.DOTALL)
+        summary = summary_match.group(1).strip() if summary_match else ""
+
+        profiles = []
+        profile_blocks = re.findall(r"(person:\s*.*?)(?=\nperson:|\Z)", ai_text, re.DOTALL)
+
+        for block in profile_blocks:
+            name_match = re.search(r"person:\s*(.*?):", block)
+            animal_match = re.search(r"is the (\w+) of the group", block)
+            description_start = block.find(":") + 1
+            description = block[description_start:].strip()
+
+            if name_match and animal_match:
+                profiles.append({
+                    "name": name_match.group(1).strip(),
+                    "animal": animal_match.group(1).strip(),
+                    "description": description.replace("\n", " ").strip()
+                })
+
+        return {
+            "summary": summary,
+            "people": profiles
+        }
+
     ai_analysis = await ai_analysis_task
     if ai_analysis is None:
-        ai_analysis = "Unable to retrieve AI analysis."
+        parsed_ai_analysis = {"summary": "", "people": []}
+    else:
+        parsed_ai_analysis = extract_ai_summary_and_profiles(ai_analysis)
 
     # Prepare user interaction matrix for Nivo Chord diagram if more than 1 user
     nivo_interaction_matrix = None
@@ -227,25 +254,25 @@ async def analyze_chat(chat_file):
             nivo_interaction_matrix.append(row)
 
     results = {
-        "total_messages": total_messages,
-        "days_since_first_message": days_since_first_message,
-        "most_active_users": dict(sorted(most_active_users.items(), key=lambda x: x[1], reverse=True)),
-        "conversation_starters": dict(sorted(conversation_starters.items(), key=lambda x: x[1], reverse=True)),
-        "most_ignored_users": dict(sorted(most_ignored_users.items(), key=lambda x: x[1], reverse=True)),
-        "first_text_champion": {
-            "user": most_first_texter,
-            "percentage": first_text_percentage
-        },
-        "longest_monologue": {
-            "user": max_monologue_sender if max_monologue_sender else None,
-            "count": max_monologue_count
-        },
-        "common_words": dict(word_counter.most_common(10)),
-        "common_emojis": {emoji_char: count for emoji_char, count in emoji_counter.most_common(5)},
-        #"daily_activity": daily_activity,  # Changed from monthly_activity
-        "average_response_time_minutes": average_response_time_minutes,
-        "peak_hour": f"{peak_hour}:00 - {peak_hour + 1}:00" if isinstance(peak_hour, int) else peak_hour,
-        #"user_monthly_activity": nivo_user_monthly_activity,  # Added user monthly activity
+        # "total_messages": total_messages,
+        # "days_since_first_message": days_since_first_message,
+        # "most_active_users": dict(sorted(most_active_users.items(), key=lambda x: x[1], reverse=True)),
+        # "conversation_starters": dict(sorted(conversation_starters.items(), key=lambda x: x[1], reverse=True)),
+        # "most_ignored_users": dict(sorted(most_ignored_users.items(), key=lambda x: x[1], reverse=True)),
+        # "first_text_champion": {
+        #     "user": most_first_texter,
+        #     "percentage": first_text_percentage
+        # },
+        # "longest_monologue": {
+        #     "user": max_monologue_sender if max_monologue_sender else None,
+        #     "count": max_monologue_count
+        # },
+        # "common_words": dict(word_counter.most_common(10)),
+        # "common_emojis": {emoji_char: count for emoji_char, count in emoji_counter.most_common(5)},
+        # "daily_activity": daily_activity,  # Changed from monthly_activity
+        # "average_response_time_minutes": average_response_time_minutes,
+        # "peak_hour": f"{peak_hour}:00 - {peak_hour + 1}:00" if isinstance(peak_hour, int) else peak_hour,
+        # "user_monthly_activity": nivo_user_monthly_activity,  # Added user monthly activity
         "weekday_vs_weekend_avg": {
             "average_weekday_messages": average_weekday_messages,
             "average_weekend_messages": average_weekend_messages,
@@ -253,8 +280,8 @@ async def analyze_chat(chat_file):
             # Optional: Calculate percentage difference relative to weekday average,
             "percentage_difference": round(((average_weekday_messages - average_weekend_messages) / average_weekday_messages) * 100, 2) if average_weekday_messages > 0 else 0
         },
-        "ai_analysis": ai_analysis,
-        "user_interaction_matrix": nivo_interaction_matrix
+        "ai_analysis": parsed_ai_analysis,
+        # "user_interaction_matrix": nivo_interaction_matrix
     }
 
     return results
