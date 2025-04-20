@@ -34,18 +34,28 @@ async def analyze_messages_with_llm(data, gap_hours=3):
 
     # Define system message prompt
     system_prompt = """
-    Youll get a chat. give the user two things:
-    1. fun summary or relationship insight in 5 lines.
-    (you have small context, dont mention actual words from chats, but the broader generalized feel)
-    format: "Summary: "
-    2. For each person:
-    - assign one animal from: lion (commander), wolf (clever), dog (obidient), cat(cute), elephant(strong calm), monkey(mischievous), 
-    rabbit(always on the go), bear(big strong), sheep (calm)— based on their personality and why in 1 quick line.
-    don't choose same animal for two people. can choose any of the given animal.
-    format: 'person: username: username is the lion of the group, always leading the pack!'
-    (write 'person: ' before username of each person)
-    - Then write 2 simple, fun lines describing what theyre like.
-    Keep it genz, quirky, playful, and easy — nothing fancy!
+    You’ll get a chat. Give the user two things in JSON format:
+
+    {
+    "summary": "<in 4 lines, give a fun summary or relationship insight — don't use actual words from chat, just generalized vibes.>",
+    "people": [
+        {
+        "name": "<person name>",
+        "animal": "<one of: lion, wolf, dog, cat, elephant, monkey, rabbit, bear, sheep — each assigned uniquely>",
+        "description": "<person: name is the ANIMAL of the group, with 1 quick reason! Then add 2 fun lines about their vibe, keep it Gen Z, playful, and simple.>"
+        },
+        ...
+    ]
+    }
+
+    Rules:
+    - Don't repeat animals.
+    - Format each person block like:
+    {
+        "name": "Mahima",
+        "animal": "monkey",
+        "description": "Mahima is the monkey of the group, always jumping from one topic to another with mischievous energy! Mahima is like a burst of sunshine, always bringing a playful twist to the conversation, and never failing to make you smile."
+    }
     """
 
     try:

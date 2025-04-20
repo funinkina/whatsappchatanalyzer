@@ -205,36 +205,9 @@ async def analyze_chat(chat_file):
     average_weekday_messages = round(total_weekday_messages / 5, 2) if total_weekday_messages > 0 else 0
     average_weekend_messages = round(total_weekend_messages / 2, 2) if total_weekend_messages > 0 else 0
 
-    def extract_ai_summary_and_profiles(ai_text):
-        summary_match = re.search(r"Summary:\s*(.*?)\n\n", ai_text, re.DOTALL)
-        summary = summary_match.group(1).strip() if summary_match else ""
-
-        profiles = []
-        profile_blocks = re.findall(r"(person:\s*.*?)(?=\nperson:|\Z)", ai_text, re.DOTALL)
-
-        for block in profile_blocks:
-            name_match = re.search(r"person:\s*(.*?):", block)
-            animal_match = re.search(r"is the (\w+) of the group", block)
-            description_start = block.find(":") + 1
-            description = block[description_start:].strip()
-
-            if name_match and animal_match:
-                profiles.append({
-                    "name": name_match.group(1).strip(),
-                    "animal": animal_match.group(1).strip(),
-                    "description": description.replace("\n", " ").strip()
-                })
-
-        return {
-            "summary": summary,
-            "people": profiles
-        }
-
     ai_analysis = await ai_analysis_task
     if ai_analysis is None:
-        parsed_ai_analysis = {"summary": "", "people": []}
-    else:
-        parsed_ai_analysis = extract_ai_summary_and_profiles(ai_analysis)
+        ai_analysis = "Unable to retrieve AI analysis."
 
     # Prepare user interaction matrix for Nivo Chord diagram if more than 1 user
     nivo_interaction_matrix = None
@@ -280,7 +253,7 @@ async def analyze_chat(chat_file):
             # Optional: Calculate percentage difference relative to weekday average,
             "percentage_difference": round(((average_weekday_messages - average_weekend_messages) / average_weekday_messages) * 100, 2) if average_weekday_messages > 0 else 0
         },
-        "ai_analysis": parsed_ai_analysis,
+        "ai_analysis": ai_analysis,
         "user_interaction_matrix": nivo_interaction_matrix
     }
 
