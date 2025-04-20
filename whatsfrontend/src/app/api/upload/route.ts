@@ -77,10 +77,22 @@ export async function POST(request: NextRequest) {
     const backendFormData = new FormData();
     backendFormData.append('file', file);
 
+    // Get API key from environment variables
+    const apiKey = process.env.VAL_API_KEY;
+    
+    if (!apiKey) {
+      console.error('API_KEY not configured in environment variables');
+      return NextResponse.json({ message: 'API key configuration missing' }, { status: 500 });
+    }
+
     // Make a POST request to the backend service
     const backendUrl = process.env.BACKEND_URL || 'https://46c602e8-3700-414a-b57f-9433573d7390.eu-central-1.cloud.genez.io';
     const response = await fetch(`${backendUrl}/analyze/`, {
       method: 'POST',
+      headers: {
+        // Include the API key in the request headers
+        'X-API-Key': apiKey
+      },
       body: backendFormData,
     });
 

@@ -2,7 +2,7 @@ import os
 import tempfile
 import shutil
 import zipfile
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, Header, Depends
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
@@ -17,7 +17,6 @@ app = FastAPI(
     version="1.0.0",
 )
 
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "https://bloopit.vercel.app"],
@@ -26,15 +25,33 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# API key validation
+API_KEY = os.getenv("VAL_API_KEY")
+if not API_KEY:
+    print("WARNING: API_KEY not set in environment variables. API access will be restricted.")
+
+async def verify_api_key(x_api_key: str = Header(None)):
+    if not API_KEY:
+        raise HTTPException(status_code=500, detail="API_KEY not configured on server")
+
+    if x_api_key != API_KEY:
+        raise HTTPException(status_code=403, detail="Invalid or missing API key")
+
+    return x_api_key
+
 @app.post("/analyze/",
           summary="Analyze WhatsApp Chat File",
           description="Upload a .txt WhatsApp chat export file or a .zip file containing one .txt file. Returns JSON analysis.",
           tags=["Analysis"])
-async def analyze_whatsapp_chat(file: UploadFile = File(..., description="WhatsApp chat export file (.txt or .zip)")):
+async def analyze_whatsapp_chat(
+    file: UploadFile = File(..., description="WhatsApp chat export file (.txt or .zip)"),
+    api_key: str = Depends(verify_api_key)
+):
     """
     Endpoint to upload and analyze a WhatsApp chat file.
 
     - **file**: The WhatsApp chat export (.txt format or .zip containing one .txt file).
+    - **x-api-key**: API key required for authentication (provide in request header)
 
     Returns a JSON object with chat statistics.
     Raises HTTPException on errors (e.g., file type, processing error).
