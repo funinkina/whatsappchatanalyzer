@@ -6,22 +6,67 @@ import string
 # Define patterns and constants
 timestamp_pattern = re.compile(r"(\d{2}/\d{2}/\d{2,4}), (\d{2}:\d{2}) - (.*?): (.*)")
 system_message_patterns = [
+    # Encryption & System
     "Messages and calls are end-to-end encrypted",
     "Disappearing messages were turned",
-    "Media omitted",
+    "changed the subject to",
+    "changed this group’s icon",
+    "changed this group’s description",
+    "changed this group's icon",
+    "changed this group's description",
+    "You joined using a link",
+    "You left",
+    "You were added",
+    "You removed",
+    
+    # Deleted/Edited Messages
+    "This message was deleted",
     "You deleted this message",
     "deleted message",
-    "deleted",
-    "message",
-    "This message was deleted",
-    "You sent a voice message",
-    "You sent a photo",
     "This message edited",
+    "message deleted",
+    "Message deleted",
+    "message was deleted",
+    
+    # Media/File Omitted
+    "Media omitted",
+    "Image omitted",
+    "Video omitted",
+    "Sticker omitted",
+    "Document omitted",
+    "GIF omitted",
+    "Audio omitted",
+    "You sent a photo",
+    "You sent a voice message",
+    "You sent a video",
+    "You sent a document",
+    "You sent an audio",
+
+    # Calls
+    "Missed voice call",
+    "Missed video call",
+    "You missed a call",
+    "Call back",
+    "Incoming call",
+    "Outgoing call",
+
+    # Contact Cards & Metadata
     ".vcf",
+    "Contact card",
+    
+    # Formatting artifacts / junk lines
     "<",
     ">",
+    "{",
     "}",
-    "{"
+    "\u200e",  # Left-to-right mark
+    "\u200f",  # Right-to-left mark
+
+    # Extra vague terms to catch junk
+    "Group created",
+    "Group notification",
+    "icon",
+    "description"
 ]
 url_pattern = re.compile(r'https?://\S+|www\.\S+')
 
