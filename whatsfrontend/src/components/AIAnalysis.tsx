@@ -69,7 +69,7 @@ const AIAnalysis: React.FC<AIAnalysisProps> = ({ summary, people = [], summaryOn
             {people.map((person, index) => (
               <div
                 key={index}
-                className="bg-amber-50 rounded-xl p-6 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.25)] border-2 border-neutral-800 hover:shadow-[7px_7px_0px_0px_rgba(0,0,0,0.25)] transition-shadow"
+                className="bg-amber-50 rounded-xl p-6 border-2 border-neutral-800"
               >
                 <div className="flex items-center mb-4">
                   <span className="text-4xl mr-3">{getAnimalEmoji(person.animal)}</span>

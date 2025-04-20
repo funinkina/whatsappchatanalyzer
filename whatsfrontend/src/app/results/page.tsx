@@ -575,14 +575,14 @@ export default function ResultsPage() {
         </div>
 
         {/* AI Analysis - Personality Profiles (Full Width) */}
-        <div className="bg-white p-4 rounded-lg shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] border-2 border-neutral-800">
+        <div className="bg-white p-6 rounded-lg shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] border-2 border-neutral-800">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-3xl font-bold text-blue-950">Personality Profiles</h2>
+            <h2 className="text-xl font-semibold mb-4 text-gray-700">Personality Profiles</h2>
             <Image
               src="/icons/sparkle.svg"
               alt="AI Analysis"
-              width={40}
-              height={40}
+              width={30}
+              height={30}
               className="mr-3"
             />
           </div>
