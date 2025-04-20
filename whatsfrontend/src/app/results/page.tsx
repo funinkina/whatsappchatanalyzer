@@ -278,9 +278,11 @@ export default function ResultsPage() {
                 {/* Peak Hour and User Interaction Matrix in a Row */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Peak Hour */}
-                    <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
-                        <h2 className="text-xl font-semibold mb-2 text-gray-700">Peak Hour</h2>
-                        <p>{results.peak_hour}</p>
+                    <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] flex flex-col items-center justify-center text-center">
+                        <h2 className="text-xl font-semibold mb-2 text-gray-700">Peak Activity Hour</h2>
+                        <p className="text-4xl font-bold text-indigo-600">{results.peak_hour}</p>
+                        <p className="text-sm text-gray-500 mt-1">Highest message volume</p>
+                        {/* You could also add a clock icon here using an icon library */}
                     </section>
 
                     {/* User Interaction Matrix (Chord Diagram) */}
