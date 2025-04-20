@@ -227,7 +227,7 @@ export default function HomePage() {
           {/* Step 2 */}
           <div className="bg-pink-100 pt-4 flex flex-col justify-between items-center border-r-2 border-r-neutral-800">
             <div className='flex items-center justify-center h-full'>
-              <Image src="/step_2.png" alt="Step 2" width={150} height={200} className="rounded-md shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]" />
+              <Image src="/step_2.png" alt="Step 2" width={200} height={200} className="rounded-md shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]" />
             </div>
             <div className="text-lg text-gray-800 mt-10 text-center bg-amber-50 w-full h-24 flex items-center justify-center p-10 border-y-2 border-neutral-800">
               <h1 className='text-4xl font-extrabold mr-4'>2.</h1>
@@ -238,7 +238,7 @@ export default function HomePage() {
           {/* Step 3 */}
           <div className="bg-purple-100 pt-4 flex flex-col justify-between items-center border-r-2 border-r-neutral-800">
             <div className='flex items-center justify-center h-full'>
-              <Image src="/step_3.png" alt="Step 3" width={300} height={200} className="rounded-3xl shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]" />
+              <Image src="/step_3.png" alt="Step 3" width={400} height={200} className="rounded-3xl shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]" />
             </div>
             <div className="text-lg text-gray-800 mt-10 text-center bg-amber-50 w-full h-24 flex items-center justify-center p-10 border-y-2 border-neutral-800">
               <h1 className='text-4xl font-extrabold mr-4'>3.</h1>

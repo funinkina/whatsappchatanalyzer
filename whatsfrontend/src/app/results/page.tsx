@@ -130,216 +130,228 @@ export default function ResultsPage() {
             <h1 className="text-3xl font-bold mb-6 text-gray-800">Analysis Results</h1>
             <div className="space-y-8">
                 {/* Overall Chat Statistics */}
-                <section className="p-4 border rounded-lg bg-white shadow-sm">
-                    <h2 className="text-xl font-semibold mb-2 text-gray-700">Chat Overview</h2>
-                    <ul>
-                        <li><strong>Total Messages:</strong> {results.total_messages.toLocaleString()}</li>
-                        <li><strong>Days Since First Message:</strong> {results.days_since_first_message} {results.days_since_first_message === 1 ? 'day' : 'days'}</li>
-                    </ul>
-                </section>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
+                        <h2 className="text-xl font-semibold mb-2 text-gray-700">Total Messages</h2>
+                        <p>{results.total_messages.toLocaleString()}</p>
+                    </section>
 
-                {/* Most Active Users */}
-                <section className="p-4 border rounded-lg bg-white shadow-sm">
-                    <h2 className="text-xl font-semibold mb-2 text-gray-700">Most Active Users</h2>
-                    <div style={{ height: '300px' }}>
-                        <ResponsivePie
-                            data={Object.entries(results.most_active_users).map(([user, percentage]) => ({
-                                id: user,
-                                label: user,
-                                value: percentage,
-                            }))}
-                            margin={{ top: 10, bottom: 10 }}
-                            innerRadius={0}
-                            padAngle={0}
-                            cornerRadius={5}
-                            activeOuterRadiusOffset={10}
-                            borderWidth={1}
-                            colors={{ scheme: 'pastel1' }}
-                        />
-                    </div>
-                </section>
+                    {/* Days Since First Message */}
+                    <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
+                        <h2 className="text-xl font-semibold mb-2 text-gray-700">Days Since First Message</h2>
+                        <p>{results.days_since_first_message} {results.days_since_first_message === 1 ? 'day' : 'days'}</p>
+                    </section>
 
-                {/* Conversation Starters */}
-                <section className="p-4 border rounded-lg bg-white shadow-sm">
-                    <h2 className="text-xl font-semibold mb-2 text-gray-700">Conversation Starters</h2>
-                    <div style={{ height: '300px' }}>
-                        <ResponsivePie
-                            data={Object.entries(results.conversation_starters).map(([user, percentage]) => ({
-                                id: user,
-                                label: user,
-                                value: percentage,
-                            }))}
-                            margin={{ top: 10, bottom: 10 }}
-                            innerRadius={0}
-                            padAngle={0.7}
-                            cornerRadius={3}
-                            activeOuterRadiusOffset={8}
-                            borderWidth={1}
-                            borderColor={{ from: 'color', modifiers: [['darker', 0.2]] }}
-                            colors={{ scheme: 'pastel2' }}
-                        />
-                    </div>
-                </section>
+                    {/* Most Ignored Users */}
+                    <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
+                        <h2 className="text-xl font-semibold mb-2 text-gray-700">who gets ignored the most?</h2>
+                        <ul>
+                            {Object.entries(results.most_ignored_users)
+                                .sort(([, percentageA], [, percentageB]) => percentageB - percentageA)
+                                .slice(0, 1)
+                                .map(([user]) => (
+                                    <li key={user}>
+                                        {user}
+                                    </li>
+                                ))}
+                        </ul>
+                    </section>
 
-                {/* Most Ignored Users */}
-                <section className="p-4 border rounded-lg bg-white shadow-sm">
-                    <h2 className="text-xl font-semibold mb-2 text-gray-700">who gets ignored the most?</h2>
-                    <ul>
-                        {Object.entries(results.most_ignored_users)
-                            .sort(([, percentageA], [, percentageB]) => percentageB - percentageA)
-                            .slice(0, 1)
-                            .map(([user]) => (
-                                <li key={user}>
-                                    {user}
-                                </li>
-                            ))}
-                    </ul>
-                </section>
+                    {/* First Text Champion */}
+                    <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
+                        <h2 className="text-xl font-semibold mb-2 text-gray-700">who texts first usually?</h2>
+                        <p>
+                            {results.first_text_champion.user}: {results.first_text_champion.percentage.toFixed(2)}%
+                        </p>
+                    </section>
 
-                {/* First Text Champion */}
-                <section className="p-4 border rounded-lg bg-white shadow-sm">
-                    <h2 className="text-xl font-semibold mb-2 text-gray-700">who texts first usually?</h2>
-                    <p>
-                        {results.first_text_champion.user}: {results.first_text_champion.percentage.toFixed(2)}%
-                    </p>
-                </section>
+                    {/* Longest Monologue */}
+                    <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
+                        <h2 className="text-xl font-semibold mb-2 text-gray-700">Longest Monologue</h2>
+                        <p>
+                            {results.longest_monologue.user}: {results.longest_monologue.count} consecutive messages
+                        </p>
+                    </section>
 
-                {/* Longest Monologue */}
-                <section className="p-4 border rounded-lg bg-white shadow-sm">
-                    <h2 className="text-xl font-semibold mb-2 text-gray-700">Longest Monologue</h2>
-                    <p>
-                        {results.longest_monologue.user}: {results.longest_monologue.count} consecutive messages
-                    </p>
-                </section>
+                    {/* Average Response Time */}
+                    <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
+                        <h2 className="text-xl font-semibold mb-2 text-gray-700">Average Response Time</h2>
+                        <p>{results.average_response_time_minutes.toFixed(2)} minutes</p>
+                    </section>
+                </div>
 
-                {/* Common Words - Replaced with Wordcloud */}
-                <section className="p-4 border rounded-lg bg-white shadow-sm">
-                    <h2 className="text-xl font-semibold mb-2 text-gray-700">Common Words</h2>
-                    <div style={{ height: '400px', width: '100%' }}> {/* Adjust height as needed */}
-                        <Wordcloud<WordData>
-                            words={commonWordsData}
-                            width={500} // Example width, make responsive if needed
-                            height={400} // Example height
-                            fontSize={fontSizeSetter}
-                            font={'Impact'}
-                            padding={2}
-                            spiral={'archimedean'}
-                            rotate={0}
-                            random={fixedValueGenerator}
-                        >
-                            {(cloudWords) =>
-                                cloudWords.map((w, i) => (
-                                    <Text
-                                        key={w.text}
-                                        fill={['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b'][i % 6]}
-                                        textAnchor={'middle'}
-                                        transform={`translate(${w.x}, ${w.y}) rotate(${w.rotate})`}
-                                        fontSize={w.size}
-                                        fontFamily={w.font}
-                                    >
-                                        {w.text}
-                                    </Text>
-                                ))
-                            }
-                        </Wordcloud>
-                    </div>
-                </section>
-
-                {/* Common Emojis */}
-                <section className="p-4 border rounded-lg bg-white shadow-sm">
-                    <h2 className="text-xl font-semibold mb-2 text-gray-700">Common Emojis</h2>
-                    <ul>
-                        {Object.entries(results.common_emojis).map(([emoji, count]) => (
-                            <li key={emoji}>
-                                {emoji}: {count}
-                            </li>
-                        ))}
-                    </ul>
-                </section>
-
-                {/* Average Response Time */}
-                <section className="p-4 border rounded-lg bg-white shadow-sm">
-                    <h2 className="text-xl font-semibold mb-2 text-gray-700">Average Response Time</h2>
-                    <p>{results.average_response_time_minutes.toFixed(2)} minutes</p>
-                </section>
-
-                {/* Peak Hour */}
-                <section className="p-4 border rounded-lg bg-white shadow-sm">
-                    <h2 className="text-xl font-semibold mb-2 text-gray-700">Peak Hour</h2>
-                    <p>{results.peak_hour}</p>
-                </section>
-
-                {/* Weekday vs Weekend Activity */}
-                <section className="p-4 border rounded-lg bg-white shadow-sm">
-                    <h2 className="text-xl font-semibold mb-2 text-gray-700">Weekday vs Weekend Activity</h2>
-                    <div className="h-64">
-                        <ResponsivePie
-                            data={[
-                                { id: 'Weekday', label: 'Weekday', value: results.weekday_vs_weekend_avg.average_weekday_messages },
-                                { id: 'Weekend', label: 'Weekend', value: results.weekday_vs_weekend_avg.average_weekend_messages },
-                            ]}
-                            margin={{ top: 40, right: 80, bottom: 80, left: 80 }}
-                            innerRadius={0}
-                            padAngle={0.7}
-                            cornerRadius={0}
-                            enableArcLabels={false}
-                            activeOuterRadiusOffset={0}
-                            borderWidth={1}
-                            colors={{ scheme: 'pastel1' }}
-                        />
-                    </div>
-                </section>
-
-                {/* User Interaction Matrix (Chord Diagram) */}
-                {results.user_interaction_matrix && chordKeys.length > 2 && chordMatrix.length > 2 && (
-                    <section className="p-4 border rounded-lg bg-white shadow-sm">
-                        <h2 className="text-xl font-semibold mb-4 text-gray-700">User Interactions Chord Diagram</h2>
-                        <div className="h-96 w-full">
-                            <ResponsiveChord
-                                data={chordMatrix}
-                                keys={chordKeys}
-                                margin={{ top: 60, right: 60, bottom: 90, left: 60 }}
-                                valueFormat=".0f"
-                                padAngle={0.05}
-                                innerRadiusRatio={0.96}
-                                innerRadiusOffset={0.02}
-                                arcOpacity={1}
-                                arcBorderWidth={1}
-                                arcBorderColor={{ from: 'color', modifiers: [['darker', 0.4]] }}
-                                ribbonOpacity={0.5}
-                                ribbonBorderWidth={1}
-                                ribbonBorderColor={{ from: 'color', modifiers: [['darker', 0.4]] }}
-                                enableLabel={true}
-                                label="id"
-                                labelOffset={20}
-                                labelRotation={0}
-                                labelTextColor={{ from: 'color', modifiers: [['darker', 1]] }}
-                                colors={{ scheme: 'dark2' }}
-                                isInteractive={true}
-                                animate={true}
-                                motionConfig="gentle"
-                                legends={[
-                                    {
-                                        anchor: 'top-left',
-                                        direction: 'column',
-                                        justify: false,
-                                        translateX: 0,
-                                        translateY: 0,
-                                        itemWidth: 100,
-                                        itemHeight: 20,
-                                        itemsSpacing: 10,
-                                        symbolSize: 10,
-                                        itemDirection: 'left-to-right'
-                                    }
-                                ]}
+                {/* Most Active Users and Conversation Starters in a Row */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
+                        <h2 className="text-xl font-semibold mb-2 text-gray-700">Most Active Users</h2>
+                        <div style={{ height: '300px' }}>
+                            <ResponsivePie
+                                data={Object.entries(results.most_active_users).map(([user, percentage]) => ({
+                                    id: user,
+                                    label: user,
+                                    value: percentage,
+                                }))}
+                                margin={{ top: 40, bottom: 40 }}
+                                innerRadius={0}
+                                padAngle={0}
+                                cornerRadius={5}
+                                activeOuterRadiusOffset={10}
+                                borderWidth={1}
+                                colors={{ scheme: 'pastel1' }}
+                                enableArcLabels={false}
                             />
                         </div>
                     </section>
-                )}
+
+                    <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
+                        <h2 className="text-xl font-semibold mb-2 text-gray-700">Conversation Starters</h2>
+                        <div style={{ height: '300px' }}>
+                            <ResponsivePie
+                                data={Object.entries(results.conversation_starters).map(([user, percentage]) => ({
+                                    id: user,
+                                    label: user,
+                                    value: percentage,
+                                }))}
+                                margin={{ top: 40, bottom: 40 }}
+                                innerRadius={0}
+                                padAngle={0.7}
+                                cornerRadius={3}
+                                activeOuterRadiusOffset={8}
+                                borderWidth={1}
+                                borderColor={{ from: 'color', modifiers: [['darker', 0.2]] }}
+                                colors={{ scheme: 'pastel2' }}
+                                enableArcLabels={false}
+                            />
+                        </div>
+                    </section>
+                </div>
+
+
+                {/* Common Words and Emojis in a Row */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Common Words - Replaced with Wordcloud */}
+                    <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
+                        <h2 className="text-xl font-semibold mb-2 text-gray-700">Common Words</h2>
+                        <div style={{ height: '400px', width: '100%' }}> {/* Adjust height as needed */}
+                            <Wordcloud<WordData>
+                                words={commonWordsData}
+                                width={500} // Example width, make responsive if needed
+                                height={400} // Example height
+                                fontSize={fontSizeSetter}
+                                font={'Impact'}
+                                padding={2}
+                                spiral={'archimedean'}
+                                rotate={0}
+                                random={fixedValueGenerator}
+                            >
+                                {(cloudWords) =>
+                                    cloudWords.map((w, i) => (
+                                        <Text
+                                            key={w.text}
+                                            fill={['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b'][i % 6]}
+                                            textAnchor={'middle'}
+                                            transform={`translate(${w.x}, ${w.y}) rotate(${w.rotate})`}
+                                            fontSize={w.size}
+                                            fontFamily={w.font}
+                                        >
+                                            {w.text}
+                                        </Text>
+                                    ))
+                                }
+                            </Wordcloud>
+                        </div>
+                    </section>
+
+                    {/* Common Emojis */}
+                    <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
+                        <h2 className="text-xl font-semibold mb-2 text-gray-700">Common Emojis</h2>
+                        <ul>
+                            {Object.entries(results.common_emojis).map(([emoji, count]) => (
+                                <li key={emoji}>
+                                    {emoji}: {count}
+                                </li>
+                            ))}
+                        </ul>
+                    </section>
+                </div>
+
+                {/* Peak Hour and User Interaction Matrix in a Row */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Peak Hour */}
+                    <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] flex flex-col items-center justify-center text-center">
+                        <h2 className="text-xl font-semibold mb-2 text-gray-700">Peak Activity Hour</h2>
+                        <p className="text-4xl font-bold text-indigo-600">{results.peak_hour}</p>
+                        <p className="text-sm text-gray-500 mt-1">Highest message volume</p>
+                        {/* You could also add a clock icon here using an icon library */}
+                    </section>
+
+                    {/* User Interaction Matrix (Chord Diagram) */}
+                    {results.user_interaction_matrix && chordKeys.length > 2 && chordMatrix.length > 2 && (
+                        <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
+                            <h2 className="text-xl font-semibold mb-4 text-gray-700">User Interactions Chord Diagram</h2>
+                            <div className="h-96 w-full">
+                                <ResponsiveChord
+                                    data={chordMatrix}
+                                    keys={chordKeys}
+                                    margin={{ top: 40, right: 10, bottom: 40, left: 10 }}
+                                    valueFormat=".0f"
+                                    padAngle={0.05}
+                                    innerRadiusRatio={0.96}
+                                    innerRadiusOffset={0}
+                                    enableLabel={true}
+                                    label="id"
+                                    labelOffset={15}
+                                    labelRotation={0}
+                                    colors={{ scheme: 'dark2' }}
+                                    isInteractive={true}
+                                    animate={true}
+                                    motionConfig="gentle"
+                                // legends={[
+                                //     {
+                                //         anchor: 'top-left',
+                                //         direction: 'column',
+                                //         justify: false,
+                                //         translateX: 0,
+                                //         translateY: 0,
+                                //         itemWidth: 100,
+                                //         itemHeight: 20,
+                                //         itemsSpacing: 10,
+                                //         symbolSize: 10,
+                                //         itemDirection: 'left-to-right'
+                                //     }
+                                // ]}
+                                />
+                            </div>
+                        </section>
+                    )}
+
+                    {/* Weekday vs Weekend Activity */}
+                    {chordKeys.length <= 2 && (
+                        <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
+                            <h2 className="text-xl font-semibold mb-2 text-gray-700">Weekday vs Weekend Activity</h2>
+                            <div className="h-64">
+                                <ResponsivePie
+                                    data={[
+                                        { id: 'Weekday', label: 'Weekday', value: results.weekday_vs_weekend_avg.average_weekday_messages },
+                                        { id: 'Weekend', label: 'Weekend', value: results.weekday_vs_weekend_avg.average_weekend_messages },
+                                    ]}
+                                    margin={{ top: 40, bottom: 40 }}
+                                    innerRadius={0}
+                                    padAngle={0.7}
+                                    cornerRadius={0}
+                                    enableArcLabels={false}
+                                    activeOuterRadiusOffset={0}
+                                    borderWidth={1}
+                                    colors={{ scheme: 'pastel1' }}
+                                />
+                            </div>
+                        </section>
+                    )}
+                </div>
 
                 {/* User Monthly Activity using Nivo Line */}
                 {results.user_monthly_activity && results.user_monthly_activity.length > 0 && (
-                    <section className="p-4 border rounded-lg bg-white shadow-sm">
+                    <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
                         <h2 className="text-xl font-semibold mb-4 text-gray-700">User Monthly Activity</h2>
                         <div className="h-96 w-full">
                             <ResponsiveLine
@@ -357,8 +369,7 @@ export default function ResultsPage() {
                                         return acc;
                                     }, [] as { x: string; y: number }[])
                                 }]}
-                                margin={{ top: 20, right: 110, bottom: 50, left: 110 }}
-                                xScale={{ type: 'point' }}
+                                margin={{ top: 20, right: 60, bottom: 50, left: 120 }}
                                 yScale={{
                                     type: 'linear',
                                     min: 'auto',
