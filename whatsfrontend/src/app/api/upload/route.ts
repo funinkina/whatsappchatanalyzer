@@ -48,6 +48,14 @@ interface BackendResponse {
     difference: number;
     percentage_difference: number;
   };
+  ai_analysis: {
+    summary: string;
+    people: Array<{
+      name: string;
+      animal: string;
+      description: string;
+    }>;
+  };
   user_interaction_matrix?: (string | number | null)[][] | null; // Updated type
 }
 

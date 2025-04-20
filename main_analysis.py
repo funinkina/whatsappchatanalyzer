@@ -268,7 +268,7 @@ async def analyze_chat(chat_file):
             "count": max_monologue_count
         },
         "common_words": dict(word_counter.most_common(10)),
-        "common_emojis": {emoji_char: count for emoji_char, count in emoji_counter.most_common(5)},
+        "common_emojis": {emoji_char: count for emoji_char, count in emoji_counter.most_common(6)},
         "daily_activity": daily_activity,  # Changed from monthly_activity
         "average_response_time_minutes": average_response_time_minutes,
         "peak_hour": f"{peak_hour}:00 - {peak_hour + 1}:00" if isinstance(peak_hour, int) else peak_hour,
