@@ -18,7 +18,7 @@ system_message_patterns = [
     "You left",
     "You were added",
     "You removed",
-    
+
     # Deleted/Edited Messages
     "This message was deleted",
     "You deleted this message",
@@ -27,7 +27,7 @@ system_message_patterns = [
     "message deleted",
     "Message deleted",
     "message was deleted",
-    
+
     # Media/File Omitted
     "Media omitted",
     "Image omitted",
@@ -53,7 +53,7 @@ system_message_patterns = [
     # Contact Cards & Metadata
     ".vcf",
     "Contact card",
-    
+
     # Formatting artifacts / junk lines
     "<",
     ">",
