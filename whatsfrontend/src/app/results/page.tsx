@@ -10,7 +10,7 @@ import AIAnalysis from '@/components/AIAnalysis';
 
 // Define an interface for the expected data structure
 interface AnalysisResults {
-  chat_name?: string; // Chat name extracted from the file
+  chat_name?: string;
   total_messages: number;
   days_since_first_message: number;
   most_active_users: { [username: string]: number };
@@ -36,7 +36,7 @@ interface AnalysisResults {
     difference: number;
     percentage_difference: number;
   };
-  user_interaction_matrix: (string | number | null)[][] | null; // Updated type
+  user_interaction_matrix: (string | number | null)[][] | null;
   ai_analysis: {
     summary: string;
     people: Array<{
@@ -52,9 +52,9 @@ export default function ResultsPage() {
   const [results, setResults] = useState<AnalysisResults | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [topWords, setTopWords] = useState<{ text: string; value: number }[]>([]); // State for top words
-  const [containerWidth, setContainerWidth] = useState<number>(0); // State for container width
-  const wordContainerRef = useRef<HTMLDivElement>(null); // Ref for the word container div
+  const [topWords, setTopWords] = useState<{ text: string; value: number }[]>([]);
+  const [containerWidth, setContainerWidth] = useState<number>(0);
+  const wordContainerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -63,14 +63,12 @@ export default function ResultsPage() {
       if (storedResults) {
         const parsedResults: AnalysisResults = JSON.parse(storedResults);
 
-        // Ensure AI analysis is properly initialized
         if (!parsedResults.ai_analysis) {
           parsedResults.ai_analysis = {
             summary: "AI analysis not available.",
             people: []
           };
         } else if (typeof parsedResults.ai_analysis === 'string') {
-          // If ai_analysis is a string, try to parse it
           try {
             parsedResults.ai_analysis = JSON.parse(parsedResults.ai_analysis as unknown as string);
           } catch (e) {
@@ -82,7 +80,6 @@ export default function ResultsPage() {
           }
         }
 
-        // Ensure people array exists
         if (!parsedResults.ai_analysis.people) {
           parsedResults.ai_analysis.people = [];
         }
@@ -90,7 +87,6 @@ export default function ResultsPage() {
         setResults(parsedResults);
         console.log("AI Analysis data:", parsedResults.ai_analysis);
 
-        // Process common words after results are set
         if (parsedResults.common_words) {
           const sortedWords = Object.entries(parsedResults.common_words)
             .map(([text, value]) => ({ text: text.toUpperCase(), value }))
@@ -109,83 +105,60 @@ export default function ResultsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [router]); // Dependency array includes router, but processing depends on results being set
+  }, [router]);
 
-  // Effect to measure container width
   useEffect(() => {
     const measureContainer = () => {
       if (wordContainerRef.current) {
-        // Use clientWidth which excludes padding/border/scrollbar
         setContainerWidth(wordContainerRef.current.clientWidth);
       }
     };
 
-    // Measure initially and on window resize
     measureContainer();
     window.addEventListener('resize', measureContainer);
 
-    // Cleanup listener
     return () => window.removeEventListener('resize', measureContainer);
-  }, [topWords]); // Re-measure if topWords change (might affect layout slightly)
+  }, [topWords]);
 
   // Define min/max font size constraints
-  const minCharSize = 1.0; // Min size in rem
-  const absoluteMaxCharSize = 7.0; // Absolute max size in rem to prevent excessively large letters
+  const minCharSize = 1.0;
+  const absoluteMaxCharSize = 7.0;
 
   const getCharSize = (count: number, text: string) => {
-    const baseFontSize = 16; // Assuming 1rem = 16px for calculations
+    const baseFontSize = 16;
 
-    // Return minimum size if width isn't measured yet or no words
     if (!containerWidth || topWords.length === 0) {
       return `${minCharSize}rem`;
     }
 
     const topWord = topWords[0];
-    const N = topWord.text.length; // Number of characters in the top word
+    const N = topWord.text.length;
 
-    // --- Calculate Dynamic Max Size based on Top Word fitting Container Width ---
-    // Estimate width needed for the frequency count (e.g., "x 123") + margin
-    const frequencyCountWidthEstimate = 60; // Adjust this value as needed (in pixels)
-    const availableWidthForWord = Math.max(10, containerWidth - frequencyCountWidthEstimate); // Ensure positive width
+    const frequencyCountWidthEstimate = 60;
+    const availableWidthForWord = Math.max(10, containerWidth - frequencyCountWidthEstimate);
 
-    // Estimate the font size in REM needed for the top word's characters + spacing to roughly fill the available width.
-    // Formula approx: N * (fontSizePx + 0.5*16) + (N-1)*(0.25*16) = availableWidthForWord
-    // fontSizePx ≈ (availableWidthForWord - N*8 - (N-1)*4) / N
-    // fontSizeRem ≈ fontSizePx / 16
-    let idealFontSizeRem = absoluteMaxCharSize; // Default to absolute max
+    let idealFontSizeRem = absoluteMaxCharSize;
     if (N > 0) {
-      // Calculate estimated font size in pixels based on available width
       const estimatedFontSizePx = (availableWidthForWord - N * 8 - Math.max(0, N - 1) * 4) / N;
       idealFontSizeRem = estimatedFontSizePx / baseFontSize;
     }
 
-    // Clamp the ideal size to our defined limits [minCharSize, absoluteMaxCharSize]
     const dynamicMaxCharSize = Math.max(minCharSize, Math.min(absoluteMaxCharSize, idealFontSizeRem));
 
-    // --- Determine Size for the Current Word ---
-    // If it's the top word, use the calculated dynamic max size directly.
     if (text === topWord.text) {
-      // Ensure the calculated size isn't impractically small if the word is very long
       return `${Math.max(minCharSize, dynamicMaxCharSize).toFixed(2)}rem`;
     }
-
-    // For other words, scale linearly based on count between minCharSize and dynamicMaxCharSize.
     const minCountDisplayed = topWords.length > 0 ? topWords[topWords.length - 1].value : 1;
-    // Use the top word's count as the max for scaling range
     const effectiveMaxCount = Math.max(topWord.value, 1);
     const effectiveMinCount = Math.max(minCountDisplayed, 1);
 
-    // Avoid division by zero or scaling when max=min or count is at/below min
     if (effectiveMaxCount <= effectiveMinCount || count <= effectiveMinCount) {
       return `${minCharSize}rem`;
     }
 
-    // Linear scaling: (count - min) / (max - min)
     const scale = (count - effectiveMinCount) / (effectiveMaxCount - effectiveMinCount);
-    // Apply scale to the range [minCharSize, dynamicMaxCharSize]
     const size = minCharSize + (dynamicMaxCharSize - minCharSize) * scale;
 
-    // Clamp the final size just in case
     const clampedSize = Math.max(minCharSize, Math.min(dynamicMaxCharSize, size));
 
     return `${clampedSize.toFixed(2)}rem`;
@@ -350,13 +323,15 @@ export default function ResultsPage() {
                   value: percentage,
                 }))}
                 margin={{ top: 40, bottom: 40 }}
-                innerRadius={0}
+                innerRadius={0.1}
                 padAngle={0}
                 cornerRadius={5}
                 activeOuterRadiusOffset={10}
                 borderWidth={1}
                 colors={{ scheme: 'pastel1' }}
-                enableArcLabels={false}
+                enableArcLabels={true}
+                arcLabel={e => `${e.id}`}
+                enableArcLinkLabels={false}
               />
             </div>
           </section>
@@ -380,14 +355,16 @@ export default function ResultsPage() {
                   value: percentage,
                 }))}
                 margin={{ top: 40, bottom: 40 }}
-                innerRadius={0}
+                innerRadius={0.1}
                 padAngle={0.7}
                 cornerRadius={3}
                 activeOuterRadiusOffset={8}
                 borderWidth={1}
                 borderColor={{ from: 'color', modifiers: [['darker', 0.2]] }}
                 colors={{ scheme: 'pastel2' }}
-                enableArcLabels={false}
+                enableArcLabels={true}
+                arcLabel={e => `${e.id}`}
+                enableArcLinkLabels={false}
               />
             </div>
           </section>
@@ -407,7 +384,6 @@ export default function ResultsPage() {
                 className="mr-3"
               />
             </div>
-            {/* Attach the ref here and remove fixed height/overflow */}
             <div ref={wordContainerRef} className='w-full flex flex-col items-start space-y-3 py-4'>
               {topWords.length > 0 ? (
                 topWords.map(({ text, value }, wordIndex) => {
@@ -449,7 +425,7 @@ export default function ResultsPage() {
           </section>
 
           {/* Common Emojis */}
-          <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
+          <section className="p-4 lg:h-full md:h-fit  border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
             <div className='flex items-center justify-between'>
               <h2 className="text-xl font-semibold mb-4 text-gray-700">Common Emojis</h2>
               <Image
@@ -462,11 +438,11 @@ export default function ResultsPage() {
             </div>
             <div className="flex items-center justify-center h-9/10">
               {sortedEmojis.length > 0 ? (
-                <div className="grid grid-cols-3 grid-rows-2 gap-3 h-full w-full items-center justify-center">
+                <div className="grid grid-cols-3 grid-rows-2 gap-3 h-full w-full items-center justify-center my-16">
                   {sortedEmojis.slice(0, 6).map(({ emoji, count }) => (
                     <span
                       key={emoji}
-                      className="flex items-center justify-center text-6xl md:text-8xl" // Centered, responsive size
+                      className="flex items-center justify-center text-6xl md:text-8xl"
                       title={`${emoji}: ${count}`}
                     >
                       {emoji}
@@ -520,11 +496,13 @@ export default function ResultsPage() {
                     { id: 'Weekday', label: 'Weekday', value: results.weekday_vs_weekend_avg.average_weekday_messages },
                     { id: 'Weekend', label: 'Weekend', value: results.weekday_vs_weekend_avg.average_weekend_messages },
                   ]}
-                  margin={{ top: 40, bottom: 40 }}
-                  innerRadius={0}
+                  margin={{ top: 10, bottom: 10 }}
+                  innerRadius={0.1}
                   padAngle={0.7}
                   cornerRadius={0}
-                  enableArcLabels={false}
+                  enableArcLinkLabels={false}
+                  enableArcLabels={true}
+                  arcLabel={e => `${e.id}`}
                   activeOuterRadiusOffset={0}
                   borderWidth={1}
                   colors={{ scheme: 'pastel1' }}
@@ -549,7 +527,7 @@ export default function ResultsPage() {
                 <ResponsiveChord
                   data={chordMatrix}
                   keys={chordKeys}
-                  margin={{ top: 40, right: 10, bottom: 40, left: 10 }}
+                  margin={{ top: 40, right: 40, bottom: 40, left: 40 }}
                   valueFormat=".0f"
                   padAngle={0.05}
                   innerRadiusRatio={0.96}
@@ -617,7 +595,7 @@ export default function ResultsPage() {
                     return acc;
                   }, [] as { x: string; y: number }[])
                 }]}
-                margin={{ top: 20, right: 60, bottom: 70, left: 120 }}
+                margin={{ top: 20, right: 20, bottom: 70, left: 70 }}
                 axisTop={null}
                 axisRight={null}
                 axisBottom={{
