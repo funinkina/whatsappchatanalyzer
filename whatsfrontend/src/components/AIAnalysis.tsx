@@ -75,7 +75,7 @@ const AIAnalysis: React.FC<AIAnalysisProps> = ({ summary, people = [], summaryOn
                   <span className="text-4xl mr-3">{getAnimalEmoji(person.animal)}</span>
                   <div>
                     <h4 className="font-bold text-xl text-blue-950">{person.name}</h4>
-                    <p className="text-sm text-gray-600 italic">The {person.animal} {people.length > 2 ? 'of the group' : ''}</p>
+                    <p className="text-sm text-gray-600 italic">The {person.animal.charAt(0).toUpperCase() + person.animal.slice(1)} {people.length > 2 ? 'of the group' : ''}</p>
                   </div>
                 </div>
                 <p className="text-gray-700">{person.description}</p>
