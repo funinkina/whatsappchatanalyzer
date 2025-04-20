@@ -3,8 +3,12 @@ from datetime import datetime
 import random
 import string
 
-# Define patterns and constants
-timestamp_pattern = re.compile(r"(\d{2}/\d{2}/\d{2,4}), (\d{2}:\d{2}) - (.*?): (.*)")
+timestamp_pattern = re.compile(
+    r"(\d{1,2}/\d{1,2}/\d{2,4}), "  # Date (Group 1)
+    r"(\d{1,2}:\d{2}(?:[\s\u202f](?:AM|PM))?)"  # Time (Group 2) - Handles space or \u202f before AM/PM
+    r" - (.*?): (.*)",  # Sender (Group 3), Message (Group 4)
+    re.IGNORECASE
+)
 system_message_patterns = [
     # Encryption & System
     "Messages and calls are end-to-end encrypted",
@@ -73,32 +77,67 @@ url_pattern = re.compile(r'https?://\S+|www\.\S+')
 def preprocess_messages(chat_file):
     """Parse chat messages, remove links and stopwords."""
     messages_data = []
+    # Define the possible timestamp formats to try
+    # Order matters: try more specific (like AM/PM) before less specific
+    timestamp_formats = [
+        # US style with AM/PM (handles m/d/yy and mm/dd/yyyy)
+        "%m/%d/%y %I:%M %p",
+        "%m/%d/%Y %I:%M %p",
+        # European style 24-hour (handles d/m/yy and dd/mm/yyyy)
+        "%d/%m/%y %H:%M",
+        "%d/%m/%Y %H:%M",
+    ]
     with open(chat_file, "r", encoding="utf-8") as f:
         for line in f:
-            full_match = timestamp_pattern.match(line)
+            full_match = timestamp_pattern.search(line)
             if not full_match:
                 continue
-            date, time, sender, message = full_match.groups()
+            match_start = full_match.group(0).split(' - ')[0]
+            if not line.startswith(match_start):
+                continue
+
+            date_str, time_str, sender, message = full_match.groups()
 
             if any(pattern in message for pattern in system_message_patterns):
                 continue
 
-            try:
-                timestamp = datetime.strptime(f"{date} {time}", "%d/%m/%Y %H:%M")
-            except ValueError:
-                timestamp = datetime.strptime(f"{date} {time}", "%d/%m/%y %H:%M")
+            timestamp = None
+            time_cleaned = time_str.replace('\u202f', ' ').strip().upper()
+            date_cleaned = date_str.strip()
+            datetime_str = f"{date_cleaned} {time_cleaned}"
+
+            for fmt in timestamp_formats:
+                try:
+                    # Ensure AM/PM formats are only tried if AM/PM is present
+                    if "%p" in fmt and not (" AM" in datetime_str or " PM" in datetime_str):
+                        continue
+                    # Ensure 24hr formats are only tried if AM/PM is NOT present
+                    if "%p" not in fmt and (" AM" in datetime_str or " PM" in datetime_str):
+                        continue
+
+                    timestamp = datetime.strptime(datetime_str, fmt)
+                    # print(f"Success: Parsed '{datetime_str}' with format '{fmt}' -> {timestamp}") # Debug
+                    break
+                except ValueError:
+                    # print(f"Failed: Parsing '{datetime_str}' with format '{fmt}'") # Debug
+                    continue
+
+            if timestamp is None:
+                print(f"Warning: Could not parse timestamp from string: '{datetime_str}' in line: {line.strip()}")
+                continue
 
             # Clean early: remove links and stopwords
             cleaned_message = clean_text_remove_stopwords(message)
             if cleaned_message:
-                messages_data.append((timestamp, date, sender, cleaned_message))
+                # Store original date string along with parsed timestamp for potential reference
+                messages_data.append((timestamp, date_cleaned, sender, cleaned_message))
     return messages_data
 
 def load_stopwords():
     try:
         with open("stopwords.txt", 'r', encoding='utf-8') as f:
             stopwords_set = set(f.read().splitlines())
-            print(f"Loaded {len(stopwords_set)} stopwords.")  # Add this line for debug
+            # print(f"Loaded {len(stopwords_set)} stopwords.") # Debug
             return stopwords_set
     except FileNotFoundError:
         print("Warning: Stopwords file 'stopwords.txt' not found. Using empty stopwords set.")
@@ -144,7 +183,7 @@ def clean_text_remove_stopwords(text):
 
     filtered_words = [
         w for w in map(normalize_word, text.split())
-        if w not in STOPWORDS and len(w) > 2
+        if w not in STOPWORDS and len(w) > 2  # Keep slightly longer words
     ]
     return ' '.join(filtered_words)
 
@@ -153,27 +192,30 @@ def group_messages_by_topic(data, gap_hours=6):
     if not data:
         return []
 
+    data.sort(key=lambda x: x[0])
+
     grouped_topics_raw = []
-    current_topic_raw = [data[0]]
+    if data:
+        current_topic_raw = [data[0]]
+        for i in range(1, len(data)):
+            prev_time = data[i - 1][0]
+            curr_time = data[i][0]
+            if (curr_time - prev_time).total_seconds() >= gap_hours * 3600:
+                grouped_topics_raw.append(current_topic_raw)
+                current_topic_raw = []
+            current_topic_raw.append(data[i])
 
-    for i in range(1, len(data)):
-        prev_time = data[i - 1][0]
-        curr_time = data[i][0]
-        if (curr_time - prev_time).total_seconds() >= gap_hours * 3600:
+        if current_topic_raw:
             grouped_topics_raw.append(current_topic_raw)
-            current_topic_raw = []
-        current_topic_raw.append(data[i])
-
-    if current_topic_raw:
-        grouped_topics_raw.append(current_topic_raw)
 
     processed_topics = []
     for raw_topic in grouped_topics_raw:
         processed_topic = []
-        for timestamp, date, sender, cleaned_no_emoji_message in raw_topic:
-            emoji_free = remove_emojis(cleaned_no_emoji_message)
-            if emoji_free:
-                processed_topic.append((timestamp, date, sender, emoji_free))
+        # Use the already cleaned message from preprocess_messages
+        for timestamp, date_str, sender, cleaned_message in raw_topic:
+            emoji_free = remove_emojis(cleaned_message)
+            if emoji_free.strip():
+                processed_topic.append((timestamp, date_str, sender, emoji_free))
         if processed_topic:
             processed_topics.append(processed_topic)
 
@@ -181,7 +223,7 @@ def group_messages_by_topic(data, gap_hours=6):
 
 def estimate_tokens(text):
     """Estimate tokens in a message."""
-    return int(len(text.split()) * 1.3)  # crude approximation
+    return int(len(text.split()) * 1.3)
 
 def stratify_messages(topics):
     """
@@ -190,10 +232,12 @@ def stratify_messages(topics):
     consolidated_messages = {}
 
     for topic in topics:
+        # msg format: (timestamp, date_str, sender, emoji_free_message)
         for msg in topic:
             sender = msg[2]
             message_text = msg[3]
 
+            # Basic filtering for message quality
             if not message_text.strip():
                 continue
             if len(message_text.split()) < 2:
@@ -209,6 +253,8 @@ def stratify_messages(topics):
             consolidated_messages[sender].append(message_text)
 
     final_sampled = {}
+    max_tokens_per_sender = 1000
+    max_messages_per_sender = 10
 
     for sender, msgs in consolidated_messages.items():
         random.shuffle(msgs)
@@ -216,14 +262,16 @@ def stratify_messages(topics):
         total_tokens = 0
 
         for msg in msgs:
-            token_est = estimate_tokens(msg)
-            if total_tokens + token_est > 1000:
-                continue
-            selected_msgs.append(msg)
-            total_tokens += token_est
-            if len(selected_msgs) == 10:
+            if len(selected_msgs) >= max_messages_per_sender:
                 break
 
-        final_sampled[sender] = selected_msgs
+            token_est = estimate_tokens(msg)
+            if total_tokens + token_est <= max_tokens_per_sender:
+                selected_msgs.append(msg)
+                total_tokens += token_est
+            # Optional: else: consider adding shorter messages even if a longer one was skipped
+
+        if selected_msgs:
+            final_sampled[sender] = selected_msgs
 
     return final_sampled
