@@ -14,7 +14,8 @@ system_message_patterns = [
     "deleted",
     "message",
     "This message was deleted",
-    "You sent a voice message"
+    "You sent a voice message",
+    "You sent a photo",
     "This message edited",
     ".vcf",
     "<",
