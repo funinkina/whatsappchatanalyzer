@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react'; // Import useRef
+import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ResponsiveLine } from '@nivo/line';
 import { ResponsiveChord } from '@nivo/chord';
@@ -239,52 +240,70 @@ export default function ResultsPage() {
             <div className="space-y-8">
                 {/* Overall Chat Statistics */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
-                        <h2 className="text-xl font-semibold mb-2 text-gray-700">Total Messages</h2>
-                        <p>{results.total_messages.toLocaleString()}</p>
+                    <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] flex items-center">
+                        <Image src="/icons/chat_def.svg" alt="Total Messages" width={40} height={20} className="mr-4" />
+                        <div>
+                            <h2 className="text-xl font-semibold mb-2 text-gray-700">Total Messages</h2>
+                            <p>{results.total_messages.toLocaleString()}</p>
+                        </div>
                     </section>
 
                     {/* Days Since First Message */}
-                    <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
-                        <h2 className="text-xl font-semibold mb-2 text-gray-700">Days Since First Message</h2>
-                        <p>{results.days_since_first_message} {results.days_since_first_message === 1 ? 'day' : 'days'}</p>
+                    <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] flex items-center">
+                        <Image src="/icons/calendar.svg" alt="Days Since First Message" width={48} height={48} className="mr-4" />
+                        <div>
+                            <h2 className="text-xl font-semibold mb-2 text-gray-700">Days Since First Message</h2>
+                            <p>{results.days_since_first_message} {results.days_since_first_message === 1 ? 'day' : 'days'}</p>
+                        </div>
                     </section>
 
                     {/* Most Ignored Users */}
-                    <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
-                        <h2 className="text-xl font-semibold mb-2 text-gray-700">who gets ignored the most?</h2>
-                        <ul>
-                            {Object.entries(results.most_ignored_users)
-                                .sort(([, percentageA], [, percentageB]) => percentageB - percentageA)
-                                .slice(0, 1)
-                                .map(([user]) => (
-                                    <li key={user}>
-                                        {user}
-                                    </li>
-                                ))}
-                        </ul>
+                    <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] flex items-center">
+                        <Image src="/icons/frown_def.svg" alt="Most Ignored Users" width={48} height={48} className="mr-4" />
+                        <div>
+                            <h2 className="text-xl font-semibold mb-2 text-gray-700">who gets ignored the most?</h2>
+                            <ul>
+                                {Object.entries(results.most_ignored_users)
+                                    .sort(([, percentageA], [, percentageB]) => percentageB - percentageA)
+                                    .slice(0, 1)
+                                    .map(([user]) => (
+                                        <li key={user}>
+                                            {user}
+                                        </li>
+                                    ))}
+                            </ul>
+                        </div>
                     </section>
 
                     {/* First Text Champion */}
-                    <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
-                        <h2 className="text-xl font-semibold mb-2 text-gray-700">who texts first usually?</h2>
-                        <p>
-                            {results.first_text_champion.user}: {results.first_text_champion.percentage.toFixed(2)}%
-                        </p>
+                    <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] flex items-center">
+                        <Image src="/icons/trophy.svg" alt="First Text Champion" width={48} height={48} className="mr-4" />
+                        <div>
+                            <h2 className="text-xl font-semibold mb-2 text-gray-700">who texts first usually?</h2>
+                            <p>
+                                {results.first_text_champion.user}: {results.first_text_champion.percentage.toFixed(2)}%
+                            </p>
+                        </div>
                     </section>
 
                     {/* Longest Monologue */}
-                    <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
-                        <h2 className="text-xl font-semibold mb-2 text-gray-700">Longest Monologue</h2>
-                        <p>
-                            {results.longest_monologue.user}: {results.longest_monologue.count} consecutive messages
-                        </p>
+                    <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] flex items-center">
+                        <Image src="/icons/left_align.svg" alt="Longest Monologue" width={40} height={48} className="mr-4" />
+                        <div>
+                            <h2 className="text-xl font-semibold mb-2 text-gray-700">Longest Monologue</h2>
+                            <p>
+                                {results.longest_monologue.user}: {results.longest_monologue.count} consecutive messages
+                            </p>
+                        </div>
                     </section>
 
                     {/* Average Response Time */}
-                    <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
-                        <h2 className="text-xl font-semibold mb-2 text-gray-700">Average Response Time</h2>
-                        <p>{results.average_response_time_minutes.toFixed(2)} minutes</p>
+                    <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] flex items-center">
+                        <Image src="/icons/time_def.svg" alt="Average Response Time" width={40} height={48} className="mr-4" />
+                        <div>
+                            <h2 className="text-xl font-semibold mb-2 text-gray-700">Average Response Time</h2>
+                            <p>{results.average_response_time_minutes.toFixed(2)} minutes</p>
+                        </div>
                     </section>
                 </div>
 
