@@ -255,9 +255,18 @@ export default function ResultsPage() {
 
   return (
     <main className="container mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6 text-gray-800">
-        {results.chat_name ? `Analysis with ${results.chat_name}` : "Analysis Results"}
-      </h1>
+      <div className="flex flex-col items-center justify-between mb-2">
+        <Image
+          src="bloop_logo.svg"
+          alt="Bloop Logo"
+          width={300}
+          height={50}
+          className='mb-2'
+        />
+        <h1 className="text-3xl font-bold mb-6 text-gray-800">
+          {results.chat_name ? `Analysis with ${results.chat_name}` : "Analysis Results"}
+        </h1>
+      </div>
       <div className="space-y-8">
         {/* Overall Chat Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -329,7 +338,16 @@ export default function ResultsPage() {
         {/* Most Active Users and Conversation Starters in a Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
-            <h2 className="text-xl font-semibold mb-2 text-gray-700">Most Active Users</h2>
+            <div className='flex items-center justify-between'>
+              <h2 className="text-xl font-semibold mb-2 text-gray-700">Most Active Users</h2>
+              <Image
+                src="/icons/users.svg"
+                alt="Most Active Users"
+                width={50}
+                height={50}
+                className="mr-3"
+              />
+            </div>
             <div style={{ height: '300px' }}>
               <ResponsivePie
                 data={Object.entries(results.most_active_users).map(([user, percentage]) => ({
@@ -350,7 +368,16 @@ export default function ResultsPage() {
           </section>
 
           <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
-            <h2 className="text-xl font-semibold mb-2 text-gray-700">Conversation Starters</h2>
+            <div className='flex items-center justify-between'>
+              <h2 className="text-xl font-semibold mb-2 text-gray-700">Conversation Starters</h2>
+              <Image
+                src="/icons/user.svg"
+                alt="Conversation Starters"
+                width={30}
+                height={30}
+                className="mr-3"
+              />
+            </div>
             <div style={{ height: '300px' }}>
               <ResponsivePie
                 data={Object.entries(results.conversation_starters).map(([user, percentage]) => ({
@@ -376,9 +403,18 @@ export default function ResultsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Common Words */}
           <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
-            <h2 className="text-xl font-bold mb-4 text-gray-700">Top {topWords.length} Common Words</h2>
+            <div className='flex items-center justify-between'>
+              <h2 className="text-xl font-bold mb-4 text-gray-700">Top {topWords.length} Common Words</h2>
+              <Image
+                src="/icons/words.svg"
+                alt="Common Words"
+                width={30}
+                height={30}
+                className="mr-3"
+              />
+            </div>
             {/* Attach the ref here and remove fixed height/overflow */}
-            <div ref={wordContainerRef} className='w-full flex flex-col items-start space-y-3 py-4'> {/* Removed h-96, justify-center, overflow-hidden, added py-4 for padding */}
+            <div ref={wordContainerRef} className='w-full flex flex-col items-start space-y-3 py-4'>
               {topWords.length > 0 ? (
                 topWords.map(({ text, value }, wordIndex) => {
                   const bgColor = bgColors[wordIndex % bgColors.length];
@@ -387,8 +423,8 @@ export default function ResultsPage() {
 
                   return (
                     <div key={text} className="flex items-baseline space-x-1" title={`${text}: ${value} uses`}>
-                      {/* Word Characters */}
-                      <div className="flex space-x-1"> {/* Wrap characters */}
+
+                      <div className="flex space-x-1">
                         {text.split('').map((char, index) => {
                           return (
                             <span
@@ -396,7 +432,6 @@ export default function ResultsPage() {
                               className={`flex items-center justify-center rounded font-bold text-gray-800 ${bgColor}`}
                               style={{
                                 fontSize: charSizeStyle,
-                                // Box size still depends on the calculated font size
                                 width: `calc(${charSizeStyle} + 0.5rem)`,
                                 height: `calc(${charSizeStyle} + 0.5rem)`,
                                 lineHeight: '1'
@@ -407,7 +442,6 @@ export default function ResultsPage() {
                           );
                         })}
                       </div>
-                      {/* Frequency Count */}
                       <span className="ml-2 text-xs text-gray-500 font-medium">
                         x {value}
                       </span>
@@ -422,7 +456,16 @@ export default function ResultsPage() {
 
           {/* Common Emojis */}
           <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
-            <h2 className="text-xl font-semibold mb-4 text-gray-700">Common Emojis</h2>
+            <div className='flex items-center justify-between'>
+              <h2 className="text-xl font-semibold mb-4 text-gray-700">Common Emojis</h2>
+              <Image
+                src="/icons/lovely_face.svg"
+                alt="Common Emojis"
+                width={30}
+                height={30}
+                className="mr-3"
+              />
+            </div>
             <div className="flex items-center justify-center h-9/10">
               {sortedEmojis.length > 0 ? (
                 <div className="grid grid-cols-3 grid-rows-2 gap-3 h-full w-full items-center justify-center">
@@ -467,7 +510,16 @@ export default function ResultsPage() {
           {/* weekend vs weekday pie chart */}
           {Object.keys(results.most_active_users).length <= 2 && (
             <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
-              <h2 className="text-xl font-semibold mb-4 text-gray-700">Weekday vs Weekend Activity</h2>
+              <div className='flex items-center justify-between mb-4'>
+                <h2 className="text-xl font-semibold mb-4 text-gray-700">Weekday vs Weekend Activity</h2>
+                <Image
+                  src="/icons/tag.svg"
+                  alt="Weekday vs Weekend Activity"
+                  width={30}
+                  height={30}
+                  className="mr-3"
+                />
+              </div>
               <div className="h-64">
                 <ResponsivePie
                   data={[
@@ -489,7 +541,16 @@ export default function ResultsPage() {
           {/* User Interaction Matrix (Chord Diagram) */}
           {results.user_interaction_matrix && chordKeys.length > 2 && chordMatrix.length > 2 && (
             <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
-              <h2 className="text-xl font-semibold mb-4 text-gray-700">User Interactions Chord Diagram</h2>
+              <div className='flex items-center justify-between mb-4'>
+                <h2 className="text-xl font-semibold mb-4 text-gray-700">User Interactions Chord Diagram</h2>
+                <Image
+                  src="/icons/tag.svg"
+                  alt="Weekday vs Weekend Activity"
+                  width={30}
+                  height={30}
+                  className="mr-3"
+                />
+              </div>
               <div className="h-96 w-full">
                 <ResponsiveChord
                   data={chordMatrix}
@@ -535,8 +596,17 @@ export default function ResultsPage() {
 
         {/* User Monthly Activity using Nivo Line */}
         {results.user_monthly_activity && results.user_monthly_activity.length > 0 && (
-          <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
-            <h2 className="text-xl font-semibold mb-4 text-gray-700">User Monthly Activity</h2>
+          <section className="p-4 border-2 border-neutral-800 rounded-lg bg-sky-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
+            <div className='flex items-center justify-between'>
+              <h2 className="text-xl font-semibold mb-4 text-gray-700">User Monthly Activity</h2>
+              <Image
+                src="/icons/graph_def.svg"
+                alt="User Monthly Activity"
+                width={30}
+                height={30}
+                className="mr-3"
+              />
+            </div>
             <div className="h-96 w-full">
               <ResponsiveLine
                 data={[{
@@ -590,8 +660,8 @@ export default function ResultsPage() {
                   axis: {
                     ticks: {
                       text: {
-                        fontSize: 14, // Increased font size
-                        fill: '#333', // Changed font color for better visibility
+                        fontSize: 14,
+                        fill: '#333',
                         fontWeight: '600'
                       }
                     },
