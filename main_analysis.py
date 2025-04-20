@@ -254,25 +254,25 @@ async def analyze_chat(chat_file):
             nivo_interaction_matrix.append(row)
 
     results = {
-        # "total_messages": total_messages,
-        # "days_since_first_message": days_since_first_message,
-        # "most_active_users": dict(sorted(most_active_users.items(), key=lambda x: x[1], reverse=True)),
-        # "conversation_starters": dict(sorted(conversation_starters.items(), key=lambda x: x[1], reverse=True)),
-        # "most_ignored_users": dict(sorted(most_ignored_users.items(), key=lambda x: x[1], reverse=True)),
-        # "first_text_champion": {
-        #     "user": most_first_texter,
-        #     "percentage": first_text_percentage
-        # },
-        # "longest_monologue": {
-        #     "user": max_monologue_sender if max_monologue_sender else None,
-        #     "count": max_monologue_count
-        # },
-        # "common_words": dict(word_counter.most_common(10)),
-        # "common_emojis": {emoji_char: count for emoji_char, count in emoji_counter.most_common(5)},
-        # "daily_activity": daily_activity,  # Changed from monthly_activity
-        # "average_response_time_minutes": average_response_time_minutes,
-        # "peak_hour": f"{peak_hour}:00 - {peak_hour + 1}:00" if isinstance(peak_hour, int) else peak_hour,
-        # "user_monthly_activity": nivo_user_monthly_activity,  # Added user monthly activity
+        "total_messages": total_messages,
+        "days_since_first_message": days_since_first_message,
+        "most_active_users": dict(sorted(most_active_users.items(), key=lambda x: x[1], reverse=True)),
+        "conversation_starters": dict(sorted(conversation_starters.items(), key=lambda x: x[1], reverse=True)),
+        "most_ignored_users": dict(sorted(most_ignored_users.items(), key=lambda x: x[1], reverse=True)),
+        "first_text_champion": {
+            "user": most_first_texter,
+            "percentage": first_text_percentage
+        },
+        "longest_monologue": {
+            "user": max_monologue_sender if max_monologue_sender else None,
+            "count": max_monologue_count
+        },
+        "common_words": dict(word_counter.most_common(10)),
+        "common_emojis": {emoji_char: count for emoji_char, count in emoji_counter.most_common(5)},
+        "daily_activity": daily_activity,  # Changed from monthly_activity
+        "average_response_time_minutes": average_response_time_minutes,
+        "peak_hour": f"{peak_hour}:00 - {peak_hour + 1}:00" if isinstance(peak_hour, int) else peak_hour,
+        "user_monthly_activity": nivo_user_monthly_activity,  # Added user monthly activity
         "weekday_vs_weekend_avg": {
             "average_weekday_messages": average_weekday_messages,
             "average_weekend_messages": average_weekend_messages,
@@ -281,7 +281,7 @@ async def analyze_chat(chat_file):
             "percentage_difference": round(((average_weekday_messages - average_weekend_messages) / average_weekday_messages) * 100, 2) if average_weekday_messages > 0 else 0
         },
         "ai_analysis": parsed_ai_analysis,
-        # "user_interaction_matrix": nivo_interaction_matrix
+        "user_interaction_matrix": nivo_interaction_matrix
     }
 
     return results
