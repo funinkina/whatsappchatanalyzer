@@ -1,0 +1,15 @@
+backend:
+    functions:
+        - entry: server.py
+          handler: app
+          name: fastapi
+          path: .
+          type: httpServer
+    language:
+        name: python
+        packageManager: pip
+        runtime: python3.12.x
+    path: .
+name: whatsappchatanalyzer
+region: eu-central-1
+yamlVersion: 2
