@@ -1,13 +1,10 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react'; // Import useRef
 import { useRouter } from 'next/navigation';
 import { ResponsiveLine } from '@nivo/line';
 import { ResponsiveChord } from '@nivo/chord';
 import { ResponsivePie } from '@nivo/pie';
-import { Wordcloud } from '@visx/wordcloud';
-import { scaleLog } from '@visx/scale';
-import { Text } from '@visx/text';
 
 // Define an interface for the expected data structure
 interface AnalysisResults {
@@ -39,7 +36,7 @@ interface AnalysisResults {
     user_interaction_matrix: (string | number | null)[][] | null; // Updated type
 }
 
-// Define interface for word data used by Wordcloud
+// Define interface for word data
 interface WordData {
     text: string;
     value: number;
@@ -49,6 +46,10 @@ export default function ResultsPage() {
     const [results, setResults] = useState<AnalysisResults | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
+    const [topWords, setTopWords] = useState<WordData[]>([]); // State for top words
+    const [maxWordCount, setMaxWordCount] = useState<number>(1); // State for max word count
+    const [containerWidth, setContainerWidth] = useState<number>(0); // State for container width
+    const wordContainerRef = useRef<HTMLDivElement>(null); // Ref for the word container div
     const router = useRouter();
 
     useEffect(() => {
@@ -57,6 +58,22 @@ export default function ResultsPage() {
             if (storedResults) {
                 const parsedResults: AnalysisResults = JSON.parse(storedResults);
                 setResults(parsedResults);
+
+                // Process common words after results are set
+                if (parsedResults.common_words) {
+                    const sortedWords = Object.entries(parsedResults.common_words)
+                        .map(([text, value]) => ({ text: text.toUpperCase(), value }))
+                        .sort((a, b) => b.value - a.value)
+                        .slice(0, 6); // Get top 6
+
+                    setTopWords(sortedWords);
+                    if (sortedWords.length > 0) {
+                        setMaxWordCount(sortedWords[0].value || 1); // Ensure maxWordCount is at least 1
+                    } else {
+                        setMaxWordCount(1);
+                    }
+                }
+
             } else {
                 setError('No analysis results found. Please upload a file first.');
             }
@@ -66,7 +83,97 @@ export default function ResultsPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [router]);
+    }, [router]); // Dependency array includes router, but processing depends on results being set
+
+    // Effect to measure container width
+    useEffect(() => {
+        const measureContainer = () => {
+            if (wordContainerRef.current) {
+                // Use clientWidth which excludes padding/border/scrollbar
+                setContainerWidth(wordContainerRef.current.clientWidth);
+            }
+        };
+
+        // Measure initially and on window resize
+        measureContainer();
+        window.addEventListener('resize', measureContainer);
+
+        // Cleanup listener
+        return () => window.removeEventListener('resize', measureContainer);
+    }, [topWords]); // Re-measure if topWords change (might affect layout slightly)
+
+    // Define min/max font size constraints
+    const minCharSize = 1.0; // Min size in rem
+    const absoluteMaxCharSize = 7.0; // Absolute max size in rem to prevent excessively large letters
+
+    const getCharSize = (count: number, text: string) => {
+        const baseFontSize = 16; // Assuming 1rem = 16px for calculations
+
+        // Return minimum size if width isn't measured yet or no words
+        if (!containerWidth || topWords.length === 0) {
+            return `${minCharSize}rem`;
+        }
+
+        const topWord = topWords[0];
+        const N = topWord.text.length; // Number of characters in the top word
+
+        // --- Calculate Dynamic Max Size based on Top Word fitting Container Width ---
+        // Estimate width needed for the frequency count (e.g., "x 123") + margin
+        const frequencyCountWidthEstimate = 60; // Adjust this value as needed (in pixels)
+        const availableWidthForWord = Math.max(10, containerWidth - frequencyCountWidthEstimate); // Ensure positive width
+
+        // Estimate the font size in REM needed for the top word's characters + spacing to roughly fill the available width.
+        // Formula approx: N * (fontSizePx + 0.5*16) + (N-1)*(0.25*16) = availableWidthForWord
+        // fontSizePx ≈ (availableWidthForWord - N*8 - (N-1)*4) / N
+        // fontSizeRem ≈ fontSizePx / 16
+        let idealFontSizeRem = absoluteMaxCharSize; // Default to absolute max
+        if (N > 0) {
+            // Calculate estimated font size in pixels based on available width
+            const estimatedFontSizePx = (availableWidthForWord - N * 8 - Math.max(0, N - 1) * 4) / N;
+            idealFontSizeRem = estimatedFontSizePx / baseFontSize;
+        }
+
+        // Clamp the ideal size to our defined limits [minCharSize, absoluteMaxCharSize]
+        const dynamicMaxCharSize = Math.max(minCharSize, Math.min(absoluteMaxCharSize, idealFontSizeRem));
+
+        // --- Determine Size for the Current Word ---
+        // If it's the top word, use the calculated dynamic max size directly.
+        if (text === topWord.text) {
+            // Ensure the calculated size isn't impractically small if the word is very long
+            return `${Math.max(minCharSize, dynamicMaxCharSize).toFixed(2)}rem`;
+        }
+
+        // For other words, scale linearly based on count between minCharSize and dynamicMaxCharSize.
+        const minCountDisplayed = topWords.length > 0 ? topWords[topWords.length - 1].value : 1;
+        // Use the top word's count as the max for scaling range
+        const effectiveMaxCount = Math.max(topWord.value, 1);
+        const effectiveMinCount = Math.max(minCountDisplayed, 1);
+
+        // Avoid division by zero or scaling when max=min or count is at/below min
+        if (effectiveMaxCount <= effectiveMinCount || count <= effectiveMinCount) {
+            return `${minCharSize}rem`;
+        }
+
+        // Linear scaling: (count - min) / (max - min)
+        const scale = (count - effectiveMinCount) / (effectiveMaxCount - effectiveMinCount);
+        // Apply scale to the range [minCharSize, dynamicMaxCharSize]
+        const size = minCharSize + (dynamicMaxCharSize - minCharSize) * scale;
+
+        // Clamp the final size just in case
+        const clampedSize = Math.max(minCharSize, Math.min(dynamicMaxCharSize, size));
+
+        return `${clampedSize.toFixed(2)}rem`;
+    };
+
+    // Define the list of background colors
+    const bgColors = [
+        'bg-rose-100',
+        'bg-green-100',
+        'bg-pink-100',
+        'bg-purple-100',
+        'bg-sky-100',
+        'bg-violet-100',
+    ];
 
     if (isLoading) {
         return (
@@ -109,12 +216,6 @@ export default function ResultsPage() {
         ? results.user_interaction_matrix.slice(1).map(row => row.slice(1).map(value => (typeof value === 'number' ? value : 0)))
         : [];
 
-    // Prepare data for Wordcloud
-    const commonWordsData: WordData[] = Object.entries(results.common_words).map(([text, value]) => ({
-        text,
-        value,
-    }));
-
     // Prepare data for Common Emojis visualization
     const sortedEmojis = Object.entries(results.common_emojis)
         .map(([emoji, count]) => ({ emoji, count }))
@@ -131,16 +232,6 @@ export default function ResultsPage() {
         const size = minEmojiSize + (maxEmojiSize - minEmojiSize) * (count / maxEmojiCount);
         return `${size.toFixed(2)}rem`; // Use rem for responsive sizing
     };
-
-    // Define scales for Wordcloud
-    const fontScale = scaleLog({
-        domain: [Math.min(...commonWordsData.map(w => w.value)), Math.max(...commonWordsData.map(w => w.value))],
-        range: [10, 200], // Adjust min/max font size as needed
-    });
-    const fontSizeSetter = (datum: WordData) => fontScale(datum.value);
-
-    // Fixed colors for simplicity, could be dynamic
-    const fixedValueGenerator = () => 0.1; // Adjust rotation if needed
 
     return (
         <main className="container mx-auto p-6">
@@ -245,44 +336,57 @@ export default function ResultsPage() {
 
                 {/* Common Words and Emojis in a Row */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Common Words - Replaced with Wordcloud */}
+                    {/* Common Words */}
                     <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
-                        <h2 className="text-xl font-semibold mb-2 text-gray-700">Common Words</h2>
-                        <div className='h-96 w-full flex items-center justify-center align-middle'>
-                            <Wordcloud<WordData>
-                                words={commonWordsData}
-                                width={500} // Example width, make responsive if needed
-                                height={400} // Example height
-                                fontSize={fontSizeSetter}
-                                font={'Impact'}
-                                padding={2}
-                                spiral={'archimedean'}
-                                rotate={0}
-                                random={fixedValueGenerator}
-                            >
-                                {(cloudWords) =>
-                                    cloudWords.map((w, i) => (
-                                        <Text
-                                            key={w.text}
-                                            fill={['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b'][i % 6]}
-                                            textAnchor={'middle'}
-                                            transform={`translate(${w.x}, ${w.y}) rotate(${w.rotate})`}
-                                            fontSize={w.size}
-                                            fontFamily={w.font}
-                                        >
-                                            {w.text}
-                                        </Text>
-                                    ))
-                                }
-                            </Wordcloud>
+                        <h2 className="text-xl font-bold mb-4 text-gray-700">Top {topWords.length} Common Words</h2>
+                        {/* Attach the ref here and remove fixed height/overflow */}
+                        <div ref={wordContainerRef} className='w-full flex flex-col items-start space-y-3 py-4'> {/* Removed h-96, justify-center, overflow-hidden, added py-4 for padding */}
+                            {topWords.length > 0 ? (
+                                topWords.map(({ text, value }, wordIndex) => {
+                                    const bgColor = bgColors[wordIndex % bgColors.length];
+                                    // Call getCharSize with text and value
+                                    const charSizeStyle = getCharSize(value, text);
+
+                                    return (
+                                        <div key={text} className="flex items-baseline space-x-1" title={`${text}: ${value} uses`}>
+                                            {/* Word Characters */}
+                                            <div className="flex space-x-1"> {/* Wrap characters */}
+                                                {text.split('').map((char, index) => {
+                                                    return (
+                                                        <span
+                                                            key={`${text}-${index}`}
+                                                            className={`flex items-center justify-center rounded font-bold text-gray-800 ${bgColor}`}
+                                                            style={{
+                                                                fontSize: charSizeStyle,
+                                                                // Box size still depends on the calculated font size
+                                                                width: `calc(${charSizeStyle} + 0.5rem)`,
+                                                                height: `calc(${charSizeStyle} + 0.5rem)`,
+                                                                lineHeight: '1'
+                                                            }}
+                                                        >
+                                                            {char}
+                                                        </span>
+                                                    );
+                                                })}
+                                            </div>
+                                            {/* Frequency Count */}
+                                            <span className="ml-2 text-xs text-gray-500 font-medium">
+                                                x {value}
+                                            </span>
+                                        </div>
+                                    );
+                                })
+                            ) : (
+                                <p className="text-gray-500">No common words data available.</p>
+                            )}
                         </div>
                     </section>
 
                     {/* Common Emojis */}
                     <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
                         <h2 className="text-xl font-semibold mb-4 text-gray-700">Common Emojis</h2>
-                        <div className="flex flex-wrap gap-x-4 gap-y-2 items-baseline justify-center"> {/* Use flex-wrap for layout */}
-                            {sortedEmojis.map(({ emoji, count }) => (
+                        <div className="flex flex-wrap gap-x-4 gap-y-2 items-baseline justify-center min-h-[10rem]"> {/* Added min-height for consistency */}
+                            {sortedEmojis.length > 0 ? sortedEmojis.map(({ emoji, count }) => (
                                 <span
                                     key={emoji}
                                     style={{ fontSize: getEmojiSize(count), lineHeight: '1' }} // Apply dynamic font size
@@ -290,7 +394,9 @@ export default function ResultsPage() {
                                 >
                                     {emoji}
                                 </span>
-                            ))}
+                            )) : (
+                                <p className="text-gray-500 self-center">No common emojis data available.</p> /* Center placeholder */
+                            )}
                         </div>
                     </section>
                 </div>
@@ -326,20 +432,6 @@ export default function ResultsPage() {
                                     isInteractive={true}
                                     animate={true}
                                     motionConfig="gentle"
-                                // legends={[
-                                //     {
-                                //         anchor: 'top-left',
-                                //         direction: 'column',
-                                //         justify: false,
-                                //         translateX: 0,
-                                //         translateY: 0,
-                                //         itemWidth: 100,
-                                //         itemHeight: 20,
-                                //         itemsSpacing: 10,
-                                //         symbolSize: 10,
-                                //         itemDirection: 'left-to-right'
-                                //     }
-                                // ]}
                                 />
                             </div>
                         </section>
