@@ -40,11 +40,12 @@ async def analyze_messages_with_llm(data, gap_hours=3):
     format: "Summary: "
     2. For each person:
     - assign one animal from: lion, wolf, sloth, dog, cat, elephant, monkey, rabbit, bear — based on their personality and why in 1 quick line.
+    don't choose same animal for two people. can choose any of the given animal.
     format: 'person: username: username is the lion of the group, always leading the pack!'
     (write 'person: ' before username of each person)
     - Then write 4 simple, fun lines describing what they’re like.
 
-    Keep the tone casual, playful, and easy — nothing fancy! this is user output that they will see.
+    Keep it quirky, playful, and easy — nothing fancy! this is user output that they will see.
     """
 
     try:
