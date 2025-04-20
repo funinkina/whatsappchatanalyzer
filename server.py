@@ -1,7 +1,6 @@
 import os
 import tempfile
 import shutil
-import zipfile
 from fastapi import FastAPI, File, UploadFile, HTTPException, Header, Depends
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,7 +12,7 @@ load_dotenv()
 
 app = FastAPI(
     title="WhatsApp Chat Analyzer API",
-    description="Upload a WhatsApp chat export file (.txt or .zip containing a .txt) to get analysis results.",
+    description="Upload a WhatsApp chat export file (.txt) to get analysis results.",
     version="1.0.0",
 )
 
@@ -25,7 +24,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# API key validation
 API_KEY = os.getenv("VAL_API_KEY")
 if not API_KEY:
     print("WARNING: API_KEY not set in environment variables. API access will be restricted.")
@@ -41,16 +39,16 @@ async def verify_api_key(x_api_key: str = Header(None)):
 
 @app.post("/analyze/",
           summary="Analyze WhatsApp Chat File",
-          description="Upload a .txt WhatsApp chat export file or a .zip file containing one .txt file. Returns JSON analysis.",
+          description="Upload a .txt WhatsApp chat export file. Returns JSON analysis.",
           tags=["Analysis"])
 async def analyze_whatsapp_chat(
-    file: UploadFile = File(..., description="WhatsApp chat export file (.txt or .zip)"),
+    file: UploadFile = File(..., description="WhatsApp chat export file (.txt)"),
     api_key: str = Depends(verify_api_key)
 ):
     """
     Endpoint to upload and analyze a WhatsApp chat file.
 
-    - **file**: The WhatsApp chat export (.txt format or .zip containing one .txt file).
+    - **file**: The WhatsApp chat export (.txt format).
     - **x-api-key**: API key required for authentication (provide in request header)
 
     Returns a JSON object with chat statistics.
@@ -58,59 +56,25 @@ async def analyze_whatsapp_chat(
     """
     print(f"Received file: {file.filename}, Content-Type: {file.content_type}")
 
-    # Allow .txt and .zip files
-    if not (file.filename.endswith(".txt") or file.filename.endswith(".zip")):
-        raise HTTPException(status_code=400, detail="Invalid file type. Please upload a .txt or .zip file.")
+    if not file.filename.endswith(".txt") or file.content_type != "text/plain":
+        raise HTTPException(status_code=400, detail="Invalid file type. Please upload a .txt file.")
 
     temp_file_path = None
-    temp_dir = None
     original_filename = file.filename
 
     try:
-        if file.filename.endswith(".txt"):
-            # Handle .txt file directly
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".txt", mode="wb") as temp_file:
-                shutil.copyfileobj(file.file, temp_file)
-                temp_file_path = temp_file.name
-        elif file.filename.endswith(".zip"):
-            # Handle .zip file
-            temp_dir = tempfile.mkdtemp()
-            zip_file_path = os.path.join(temp_dir, file.filename)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".txt", mode="wb") as temp_file:
+            shutil.copyfileobj(file.file, temp_file)
+            temp_file_path = temp_file.name
 
-            # Save the uploaded zip file
-            with open(zip_file_path, "wb") as buffer:
-                shutil.copyfileobj(file.file, buffer)
-
-            # Extract the zip file
-            try:
-                with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
-                    zip_ref.extractall(temp_dir)
-            except zipfile.BadZipFile:
-                raise HTTPException(status_code=400, detail="Invalid or corrupted zip file.")
-
-            # Find the .txt file in the extracted contents
-            txt_files = [f for f in os.listdir(temp_dir) if f.endswith(".txt")]
-
-            if len(txt_files) == 1:
-                temp_file_path = os.path.join(temp_dir, txt_files[0])
-                original_filename = txt_files[0]  # Update original_filename to use the extracted filename
-                print(f"Found .txt file in zip: {temp_file_path}")
-            elif len(txt_files) == 0:
-                raise HTTPException(status_code=400, detail="No .txt file found inside the zip archive.")
-            else:
-                raise HTTPException(status_code=400, detail="Multiple .txt files found inside the zip archive. Please provide a zip with only one .txt file.")
-
-        # Ensure the temp file path was set (either from .txt or extracted from .zip)
         if not temp_file_path or not os.path.exists(temp_file_path):
             raise HTTPException(status_code=500, detail="Failed to prepare chat file for analysis.")
 
-        # Run the analysis using the function from main_analysis.py, passing the original filename
         results = await analyze_chat(
             chat_file=temp_file_path,
-            original_filename=original_filename  # Pass the original filename
+            original_filename=original_filename
         )
 
-        # Return the results as JSON
         return JSONResponse(content=results)
 
     except FileNotFoundError as e:
@@ -123,9 +87,9 @@ async def analyze_whatsapp_chat(
                 # Ensure temp_file_path is still valid before re-running
                 if not temp_file_path or not os.path.exists(temp_file_path):
                     raise HTTPException(status_code=500, detail="Chat file path lost before re-analysis attempt.")
-                results = await analyze_chat(  # Changed to await
+                results = await analyze_chat(
                     chat_file=temp_file_path,
-                    original_filename=original_filename  # Pass the original filename here too
+                    original_filename=original_filename
                 )
                 return JSONResponse(content=results)
             except Exception as inner_e:
@@ -140,17 +104,11 @@ async def analyze_whatsapp_chat(
         raise HTTPException(status_code=500, detail=f"Error processing chat file: {e}")
 
     finally:
-        # Clean up temporary file or directory
-        if temp_file_path and os.path.exists(temp_file_path) and not temp_dir:  # Only remove if it wasn't in a temp dir
+        if temp_file_path and os.path.exists(temp_file_path):
             try:
                 os.remove(temp_file_path)
             except OSError as e:
                 print(f"Error removing temporary file {temp_file_path}: {e}")
-        if temp_dir and os.path.exists(temp_dir):
-            try:
-                shutil.rmtree(temp_dir)  # Remove the whole temporary directory for zip files
-            except OSError as e:
-                print(f"Error removing temporary directory {temp_dir}: {e}")
         await file.close()
 
 
