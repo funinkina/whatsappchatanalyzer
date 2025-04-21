@@ -3,29 +3,32 @@
 import { useState, FormEvent } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import JSZip from 'jszip'; // Import JSZip
+import JSZip from 'jszip';
+import FeatureCard from '../components/FeatureCard';
 
 export default function HomePage() {
   const [file, setFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [isFileExtracted, setIsFileExtracted] = useState<boolean>(false);
   const router = useRouter();
 
   const processFile = async (selectedFile: File) => {
     setError(null);
     setFile(null);
+    setIsFileExtracted(false);
     setIsLoading(true);
 
     try {
       if (selectedFile.type === "text/plain") {
         setFile(selectedFile);
+        setIsFileExtracted(false);
       } else if (selectedFile.name.endsWith(".zip")) {
         const zip = new JSZip();
         const contents = await zip.loadAsync(selectedFile);
         let txtFileEntry: JSZip.JSZipObject | null = null;
         let txtFileName: string | null = null;
 
-        // Find the first .txt file in the zip
         for (const filename in contents.files) {
           if (filename.endsWith(".txt") && !contents.files[filename].dir) {
             if (!filename.startsWith('__MACOSX/') && !filename.startsWith('.')) {
@@ -42,6 +45,7 @@ export default function HomePage() {
           const fileContent = await txtFileEntry.async("blob");
           const extractedFile = new File([fileContent], txtFileName, { type: "text/plain" });
           setFile(extractedFile);
+          setIsFileExtracted(true);
           console.log(`Extracted ${txtFileName} from zip.`);
         } else {
           throw new Error("No .txt file found in the zip archive.");
@@ -54,6 +58,7 @@ export default function HomePage() {
       const message = err instanceof Error ? err.message : "An error occurred while processing the file.";
       setError(message);
       setFile(null);
+      setIsFileExtracted(false);
       const fileInput = document.getElementById('file-upload') as HTMLInputElement | null;
       if (fileInput) fileInput.value = '';
     } finally {
@@ -67,6 +72,7 @@ export default function HomePage() {
     } else {
       setFile(null);
       setError(null);
+      setIsFileExtracted(false);
     }
   };
 
@@ -96,6 +102,7 @@ export default function HomePage() {
       setError("An internal error occurred: file is not plain text.");
       console.error("Submit error: File state is not text/plain", file);
       setFile(null);
+      setIsFileExtracted(false);
       const fileInput = document.getElementById('file-upload') as HTMLInputElement | null;
       if (fileInput) fileInput.value = '';
       return;
@@ -238,7 +245,7 @@ export default function HomePage() {
                     className="mb-2 w-8 h-8 md:w-10 md:h-10"
                   />
                   <span className="text-xs sm:text-sm font-medium text-center"> {/* Centered text */}
-                    {isLoading ? 'Processing...' : file ? `Selected: ${file.name}` : <span className="underline">drag & drop or upload file (.txt or .zip)</span>}
+                    {isLoading ? 'Processing...' : file ? (isFileExtracted ? `Extracted file: ${file.name}` : `Selected: ${file.name}`) : <span className="underline">drag & drop or upload file (.txt or .zip)</span>}
                   </span>
                 </label>
               </div>
@@ -344,41 +351,60 @@ export default function HomePage() {
           what are you in for?
         </h1>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-10 w-full max-w-sm sm:max-w-none sm:px-8 lg:px-0 lg:max-w-6xl">
-          {/* Feature 1 */}
-          <div className="w-full h-64 bg-rose-50 text-red-600 rounded-lg border-2 border-neutral-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] p-4 sm:p-6 flex flex-col items-start justify-between hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] md:hover:shadow-[15px_15px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
-            <Image src="/icons/prize.svg" alt="Most Active" width={40} height={40} className="mb-4 w-10 h-10 sm:w-12 sm:h-12" />
-            <h2 className="text-2xl sm:text-3xl font-semibold text-start">who yaps the most?</h2>
-          </div>
-
-          {/* Feature 2 */}
-          <div className="w-full h-64 bg-sky-50 text-sky-700 rounded-lg border-2 border-neutral-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] p-4 sm:p-6 flex flex-col items-start justify-between hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] md:hover:shadow-[15px_15px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
-            <Image src="/icons/frown.svg" alt="Most Ignored" width={60} height={60} className="mb-4 w-12 h-12 sm:w-16 sm:h-16" />
-            <h2 className="text-2xl sm:text-3xl font-semibold text-start">who gets ignored the most?</h2>
-          </div>
-
-          {/* Feature 3 */}
-          <div className="w-full h-64 bg-red-100 text-orange-700 rounded-lg border-2 border-neutral-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] p-4 sm:p-6 flex flex-col items-start justify-between hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] md:hover:shadow-[15px_15px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
-            <Image src="/icons/time.svg" alt="Reply Time" width={40} height={40} className="mb-4 w-10 h-10 sm:w-12 sm:h-12" />
-            <h2 className="text-2xl sm:text-3xl font-semibold text-start">how long do they ghost you?</h2>
-          </div>
-
-          {/* Feature 4 */}
-          <div className="w-full h-64 bg-purple-100 text-violet-800 rounded-lg border-2 border-neutral-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] p-4 sm:p-6 flex flex-col items-start justify-between hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] md:hover:shadow-[15px_15px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
-            <Image src="/icons/chat.svg" alt="Word Usage" width={60} height={60} className="mb-4 w-12 h-12 sm:w-16 sm:h-16" />
-            <h2 className="text-2xl sm:text-3xl font-semibold text-start">which words & emojis do yall use most?</h2> {/* Added & */}
-          </div>
-
-          {/* Feature 5 */}
-          <div className="w-full h-64 bg-rose-50 text-red-700 rounded-lg border-2 border-neutral-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] p-4 sm:p-6 flex flex-col items-start justify-between hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] md:hover:shadow-[15px_15px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
-            <Image src="/icons/graph.svg" alt="Chat Trends" width={60} height={60} className="mb-4 w-12 h-12 sm:w-16 sm:h-16" />
-            <h2 className="text-2xl sm:text-3xl font-semibold text-start">your yapping highs and lows over time</h2> {/* Simplified */}
-          </div>
-
-          {/* Feature 6 */}
-          <div className="w-full h-64 bg-emerald-100 text-emerald-700 rounded-lg border-2 border-neutral-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] p-4 sm:p-6 flex flex-col items-start justify-between hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] md:hover:shadow-[15px_15px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
-            <Image src="/icons/sparkle.svg" alt="AI Insights" width={50} height={50} className="mb-4 w-10 h-10 sm:w-12 sm:h-12" />
-            <h2 className="text-2xl sm:text-3xl font-semibold text-start">what do your chats tell about you?</h2>
-          </div>
+          <FeatureCard
+            bgColor="bg-rose-50"
+            textColor="text-red-600"
+            iconSrc="/icons/prize.svg"
+            iconAlt="Most Active"
+            iconWidth={40}
+            iconHeight={40}
+            title="who yaps the most?"
+          />
+          <FeatureCard
+            bgColor="bg-sky-50"
+            textColor="text-sky-700"
+            iconSrc="/icons/frown.svg"
+            iconAlt="Most Ignored"
+            iconWidth={60}
+            iconHeight={60}
+            title="who gets ignored the most?"
+          />
+          <FeatureCard
+            bgColor="bg-red-100"
+            textColor="text-orange-700"
+            iconSrc="/icons/time.svg"
+            iconAlt="Reply Time"
+            iconWidth={40}
+            iconHeight={40}
+            title="how long do they ghost you?"
+          />
+          <FeatureCard
+            bgColor="bg-purple-100"
+            textColor="text-violet-800"
+            iconSrc="/icons/chat.svg"
+            iconAlt="Word Usage"
+            iconWidth={60}
+            iconHeight={60}
+            title="which words & emojis do yall use most?"
+          />
+          <FeatureCard
+            bgColor="bg-rose-50"
+            textColor="text-red-700"
+            iconSrc="/icons/graph.svg"
+            iconAlt="Chat Trends"
+            iconWidth={60}
+            iconHeight={60}
+            title="your yapping highs and lows over time"
+          />
+          <FeatureCard
+            bgColor="bg-emerald-100"
+            textColor="text-emerald-700"
+            iconSrc="/icons/sparkle.svg"
+            iconAlt="AI Insights"
+            iconWidth={50}
+            iconHeight={50}
+            title="what do your chats tell about you?"
+          />
         </div>
       </div>
     </main>

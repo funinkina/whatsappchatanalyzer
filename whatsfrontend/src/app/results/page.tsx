@@ -7,6 +7,7 @@ import { ResponsiveLine } from '@nivo/line';
 import { ResponsiveChord } from '@nivo/chord';
 import { ResponsivePie } from '@nivo/pie';
 import AIAnalysis from '@/components/AIAnalysis';
+import ChatStatistic from '@/components/ChatStatistics';
 
 // Define an interface for the expected data structure
 interface AnalysisResults {
@@ -237,69 +238,76 @@ export default function ResultsPage() {
       <div className="space-y-8">
         {/* Overall Chat Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <section className="p-4 border-2 border-neutral-800 rounded-lg bg-purple-100 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] flex items-center">
-            <Image src="/icons/chat.svg" alt="Total Messages" width={40} height={20} className="mr-4" />
-            <div>
-              <h2 className="text-xl font-semibold mb-1 text-gray-700">Total Messages</h2>
-              <p className="text-2xl font-bold text-violet-800">{results.total_messages.toLocaleString()}</p>
-            </div>
-          </section>
+          <ChatStatistic
+            title="Total Messages"
+            value={results.total_messages.toLocaleString()}
+            icon="chat.svg"
+            altText="Total Messages"
+            bgColor="bg-purple-100"
+            textColor="text-violet-800"
+            iconWidth={40}
+            iconHeight={20}
+          />
 
-          {/* Days Since First Message */}
-          <section className="p-4 border-2 border-neutral-800 rounded-lg bg-emerald-100 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] flex items-center">
-            <Image src="/icons/calendar.svg" alt="Days Since First Message" width={48} height={48} className="mr-4" />
-            <div>
-              <h2 className="text-xl font-semibold mb-1 text-gray-700">Days Since First Message</h2>
-              <p className="text-2xl font-bold text-emerald-700">{results.days_since_first_message} {results.days_since_first_message === 1 ? 'day' : 'days'}</p>
-            </div>
-          </section>
+          <ChatStatistic
+            title="Days Since First Message"
+            value={`${results.days_since_first_message} ${results.days_since_first_message === 1 ? 'day' : 'days'}`}
+            icon="calendar.svg"
+            altText="Days Since First Message"
+            bgColor="bg-emerald-100"
+            textColor="text-emerald-700"
+            iconWidth={48}
+            iconHeight={48}
+          />
 
-          {/* Most Ignored Users */}
-          <section className="p-4 border-2 border-neutral-800 rounded-lg bg-sky-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] flex items-center">
-            <Image src="/icons/frown.svg" alt="Most Ignored Users" width={48} height={48} className="mr-4" />
-            <div>
-              <h2 className="text-xl font-semibold mb-1 text-gray-700">who gets ignored the most?</h2>
-              <ul>
-                {Object.entries(results.most_ignored_users)
-                  .sort(([, percentageA], [, percentageB]) => percentageB - percentageA)
-                  .slice(0, 1)
-                  .map(([user]) => (
-                    <li key={user} className="text-2xl font-bold text-sky-700">
-                      {user}
-                    </li>
-                  ))}
-              </ul>
-            </div>
-          </section>
+          <ChatStatistic
+            title="who gets ignored the most?"
+            value={
+              Object.entries(results.most_ignored_users)
+                .sort(([, percentageA], [, percentageB]) => percentageB - percentageA)
+                .slice(0, 1)
+                .map(([user]) => user)[0]
+            }
+            icon="frown.svg"
+            altText="Most Ignored Users"
+            bgColor="bg-sky-50"
+            textColor="text-sky-700"
+            iconWidth={48}
+            iconHeight={48}
+          />
 
-          {/* Peak Hour */}
-          <section className="p-4 border-2 border-neutral-800 rounded-lg bg-sky-100 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] flex items-center">
-            <Image src="/icons/peak.svg" alt="Longest Monologue" width={25} height={48} className="mr-4" />
-            <div>
-              <h2 className="text-xl font-semibold mb-1 text-gray-700">Peak Hour</h2>
-              <p className="text-2xl font-bold">{results.peak_hour}</p>
-            </div>
-          </section>
+          <ChatStatistic
+            title="Peak Hour"
+            value={results.peak_hour}
+            icon="peak.svg"
+            altText="Peak Hour"
+            bgColor="bg-sky-100"
+            textColor="text-gray-800"
+            iconWidth={25}
+            iconHeight={48}
+          />
 
-          {/* First Text Champion */}
-          <section className="p-4 border-2 border-neutral-800 rounded-lg bg-violet-100 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] flex items-center">
-            <Image src="/icons/trophy.svg" alt="First Text Champion" width={48} height={48} className="mr-4" />
-            <div>
-              <h2 className="text-xl font-semibold mb-1 text-gray-700">who texts first usually?</h2>
-              <p className="text-2xl font-bold">
-                {results.first_text_champion.user}: {results.first_text_champion.percentage.toFixed(2)}%
-              </p>
-            </div>
-          </section>
+          <ChatStatistic
+            title="who texts first usually?"
+            value={`${results.first_text_champion.user}: ${results.first_text_champion.percentage.toFixed(2)}%`}
+            icon="trophy.svg"
+            altText="First Text Champion"
+            bgColor="bg-violet-100"
+            textColor="text-gray-800"
+            iconWidth={48}
+            iconHeight={48}
+          />
 
-          {/* Average Response Time */}
-          <section className="p-4 border-2 border-neutral-800 rounded-lg bg-red-100 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] flex items-center">
-            <Image src="/icons/time.svg" alt="Average Response Time" width={40} height={48} className="mr-4" />
-            <div>
-              <h2 className="text-xl font-semibold mb-1 text-gray-700">Average Response Time</h2>
-              <p className="text-2xl text-orange-700 font-bold">~ {results.average_response_time_minutes.toFixed(2)} minutes</p>
-            </div>
-          </section>
+          <ChatStatistic
+            title="Average Response Time"
+            value={`~ ${results.average_response_time_minutes.toFixed(2)} minutes`}
+            icon="time.svg"
+            altText="Average Response Time"
+            bgColor="bg-red-100"
+            textColor="text-orange-700"
+            iconWidth={40}
+            iconHeight={48}
+          />
         </div>
 
         {/* Most Active Users and Conversation Starters in a Row */}
