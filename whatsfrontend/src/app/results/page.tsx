@@ -322,7 +322,7 @@ export default function ResultsPage() {
                 className="mr-3"
               />
             </div>
-            <div style={{ height: '300px' }}>
+            <div className='h-96'>
               <ResponsivePie
                 data={Object.entries(results.most_active_users).map(([user, percentage]) => ({
                   id: user,
@@ -354,7 +354,7 @@ export default function ResultsPage() {
                 className="mr-3"
               />
             </div>
-            <div style={{ height: '300px' }}>
+            <div className='h-96'>
               <ResponsivePie
                 data={Object.entries(results.conversation_starters).map(([user, percentage]) => ({
                   id: user,
@@ -379,7 +379,7 @@ export default function ResultsPage() {
         {/* Common Words and Emojis in a Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Common Words */}
-          <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
+          <section className="p-4 border-2 border-neutral-800 rounded-lg bg-zinc-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
             <div className='flex items-center justify-between'>
               <h2 className="text-xl font-bold mb-4 text-gray-700">you guys use these {topWords.length} words a lot</h2>
               <Image
@@ -431,7 +431,7 @@ export default function ResultsPage() {
           </section>
 
           {/* Common Emojis */}
-          <section className="p-4 lg:h-full md:h-fit  border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
+          <section className="p-4 lg:h-full md:h-fit  border-2 border-neutral-800 rounded-lg bg-zinc-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
             <div className='flex items-center justify-between'>
               <h2 className="text-xl font-semibold mb-4 text-gray-700">can&apos;t get enough of these emojis</h2>
               <Image
@@ -496,7 +496,7 @@ export default function ResultsPage() {
                   className="mr-3"
                 />
               </div>
-              <div className="h-64">
+              <div className="h-80">
                 <ResponsivePie
                   data={[
                     { id: 'Weekday', label: 'Weekday', value: results.weekday_vs_weekend_avg.average_weekday_messages },
@@ -519,7 +519,7 @@ export default function ResultsPage() {
 
           {/* User Interaction Matrix (Chord Diagram) */}
           {results.user_interaction_matrix && chordKeys.length > 2 && chordMatrix.length > 2 && (
-            <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
+            <section className="p-4 border-2 border-neutral-800 rounded-lg bg-lime-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
               <div className='flex items-center justify-between mb-4'>
                 <h2 className="text-xl font-semibold mb-4 text-gray-700">you guys are really chaotic huh?</h2>
                 <Image
