@@ -8,6 +8,7 @@ import { ResponsiveChord } from '@nivo/chord';
 import { ResponsivePie } from '@nivo/pie';
 import AIAnalysis from '@/components/AIAnalysis';
 import ChatStatistic from '@/components/ChatStatistics';
+import domtoimage from 'dom-to-image';
 
 // Define an interface for the expected data structure
 interface AnalysisResults {
@@ -54,7 +55,10 @@ export default function ResultsPage() {
   const [error, setError] = useState<string | null>(null);
   const [topWords, setTopWords] = useState<{ text: string; value: number }[]>([]);
   const [containerWidth, setContainerWidth] = useState<number>(0);
+  const [isDownloading, setIsDownloading] = useState<boolean>(false);
   const wordContainerRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLDivElement>(null);
+
   const router = useRouter();
 
   useEffect(() => {
@@ -220,6 +224,73 @@ export default function ResultsPage() {
     .map(([emoji, count]) => ({ emoji, count }))
     .sort((a, b) => b.count - a.count);
 
+  const handleDownload = async () => {
+    if (sectionRef.current === null) return;
+
+    setIsDownloading(true);
+    const elementToCapture = sectionRef.current;
+    const elementsToHide = elementToCapture.querySelectorAll('[data-exclude-from-download="true"]');
+
+    const targetWidth = 1200;
+    const originalStyle = elementToCapture.style.cssText;
+
+    try {
+      elementsToHide.forEach(el => el.classList.add('hidden-for-download'));
+
+      const currentWidth = elementToCapture.offsetWidth;
+      const currentHeight = elementToCapture.offsetHeight;
+
+      if (currentWidth <= 0 || currentHeight <= 0) {
+        throw new Error("Cannot capture element with zero dimensions after hiding elements.");
+      }
+
+      const scale = targetWidth / currentWidth;
+      const targetHeight = currentHeight * scale;
+
+      elementToCapture.style.transform = `scale(${scale})`;
+      elementToCapture.style.transformOrigin = 'top left';
+
+      const options = {
+        quality: 0.98,
+        bgcolor: '#fffbeb',
+        width: targetWidth,
+        height: targetHeight,
+        style: {
+          transform: `scale(${scale})`,
+          transformOrigin: 'top left',
+          width: `${currentWidth}px`,
+          height: `${currentHeight}px`,
+        },
+        filter: (node: Node) => {
+          // Keep the SVG filter
+          if (node instanceof Element && node.tagName === 'svg') {
+            const hasForeignObject = node.querySelector('foreignObject');
+            return !hasForeignObject;
+          }
+          if (node instanceof Element && node.classList.contains('hidden-for-download')) {
+            return false;
+          }
+          return true;
+        },
+      };
+
+      const dataUrl = await domtoimage.toPng(elementToCapture, options);
+
+      const link = document.createElement('a');
+      link.download = `chat-analysis-${new Date().getTime()}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err: unknown) {
+      console.error('Error generating image:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      alert(`Failed to generate image: ${errorMessage}`);
+    } finally {
+      elementsToHide.forEach(el => el.classList.remove('hidden-for-download'));
+      elementToCapture.style.cssText = originalStyle;
+      setIsDownloading(false);
+    }
+  };
+
   return (
     <main className="container mx-auto p-6">
       <div className="flex flex-col items-center justify-between mb-2">
@@ -233,8 +304,31 @@ export default function ResultsPage() {
         <h1 className="text-3xl font-bold mb-6 text-gray-800">
           {results.chat_name ? `Analysis with ${results.chat_name}` : "Analysis Results"}
         </h1>
+        <button
+          onClick={handleDownload}
+          disabled={isDownloading}
+          className="mb-4 bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" // Add disabled styles
+        >
+          {isDownloading ? (
+            <>
+              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Downloading...
+            </>
+          ) : (
+            <>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z" />
+                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z" />
+              </svg>
+              Download as PNG
+            </>
+          )}
+        </button>
       </div>
-      <div className="space-y-8">
+      <div className="space-y-8 p-4" ref={sectionRef} >
         {/* Overall Chat Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <ChatStatistic
@@ -487,7 +581,10 @@ export default function ResultsPage() {
 
         {/* Most Active Users and Conversation Starters in a Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <section className="p-4 border-2 border-neutral-800 rounded-lg bg-teal-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
+          <section
+            className="p-4 border-2 border-neutral-800 rounded-lg bg-teal-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out"
+            data-exclude-from-download="true"
+          >
             <div className='flex items-center justify-between'>
               <h2 className="text-xl font-semibold mb-2 text-gray-700">top yappers</h2>
               <Image
@@ -519,7 +616,10 @@ export default function ResultsPage() {
             </div>
           </section>
 
-          <section className="p-4 border-2 border-neutral-800 rounded-lg bg-teal-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
+          <section
+            className="p-4 border-2 border-neutral-800 rounded-lg bg-teal-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out"
+            data-exclude-from-download="true"
+          >
             <div className='flex items-center justify-between'>
               <h2 className="text-xl font-semibold mb-2 text-gray-700">first texters</h2>
               <Image
@@ -575,7 +675,8 @@ export default function ResultsPage() {
 
         {/* User Monthly Activity using Nivo Line */}
         {results.user_monthly_activity && results.user_monthly_activity.length > 0 && (
-          <section className="p-4 mb-20 border-2 border-neutral-800 rounded-lg bg-pink-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
+          <section className="p-4 mb-20 border-2 border-neutral-800 rounded-lg bg-pink-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out"
+            data-exclude-from-download="true">
             <div className='flex items-center justify-between'>
               <h2 className="text-xl font-semibold mb-4 text-gray-700">how your chats have evolved over time?</h2>
               <Image
@@ -619,10 +720,10 @@ export default function ResultsPage() {
                 }}
                 axisLeft={{
                   tickSize: 5,
-                  tickPadding: 5, // Increased padding here
+                  tickPadding: 5,
                   tickRotation: 0,
                   legend: 'Messages',
-                  legendOffset: -90, // Adjust legend offset if needed
+                  legendOffset: -90,
                   legendPosition: 'middle',
                   tickValues: undefined,
                   format: value => value.toLocaleString(),
