@@ -23,7 +23,7 @@ const ChatStatistic = ({
     iconHeight = 40,
 }: ChatStatisticProps) => {
     return (
-        <section className={`p-4 border-2 border-neutral-800 rounded-lg ${bgColor} shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] flex items-center`}>
+        <section className={`p-4 border-2 border-neutral-800 rounded-lg ${bgColor} shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] flex items-center hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out`}>
             <Image
                 src={`/icons/${icon}`}
                 alt={altText}

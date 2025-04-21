@@ -121,3 +121,4 @@ yarn-error.log*
 next-env.d.ts
 
 chat.txt
+grouped_messages.json

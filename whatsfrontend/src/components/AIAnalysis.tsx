@@ -53,12 +53,10 @@ const AIAnalysis: React.FC<AIAnalysisProps> = ({ summary, people = [], summaryOn
       {showSummary && (
         summary ? (
           <div>
-            <p className="text-blue-950 text-2xl font-medium">{summary}</p>
+            <p className=" text-purple-900 text-2xl font-medium">{summary}</p>
           </div>
         ) : (
-          <div className="bg-gray-50 rounded-xl p-6 mb-8 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.25)] border-2 border-neutral-800">
-            <p className="text-gray-700 italic">No AI summary available</p>
-          </div>
+          <p className="text-gray-700 italic">No AI summary available</p>
         )
       )}
 
@@ -69,16 +67,16 @@ const AIAnalysis: React.FC<AIAnalysisProps> = ({ summary, people = [], summaryOn
             {people.map((person, index) => (
               <div
                 key={index}
-                className="bg-amber-50 rounded-xl p-6 border-2 border-neutral-800"
+                className="bg-amber-50 rounded-lg p-6 border-2 border-neutral-800"
               >
-                <div className="flex items-center mb-4">
+                <div className="flex items-center mb-2">
                   <span className="text-4xl mr-3">{getAnimalEmoji(person.animal)}</span>
                   <div>
                     <h4 className="font-bold text-xl text-blue-950">{person.name}</h4>
-                    <p className="text-sm text-gray-600 italic">The {person.animal.charAt(0).toUpperCase() + person.animal.slice(1)} {people.length > 2 ? 'of the group' : ''}</p>
+                    <p className="text-sm text-gray-800 italic">The {person.animal.charAt(0).toUpperCase() + person.animal.slice(1)} {people.length > 2 ? 'of the group' : ''}</p>
                   </div>
                 </div>
-                <p className="text-gray-700">{person.description}</p>
+                <p className="text-blue-950 text-lg font-medium">{person.description}</p>
               </div>
             ))}
           </div>

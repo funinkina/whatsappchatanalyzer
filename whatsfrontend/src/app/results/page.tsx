@@ -311,7 +311,7 @@ export default function ResultsPage() {
 
         {/* Most Active Users and Conversation Starters in a Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
+          <section className="p-4 border-2 border-neutral-800 rounded-lg bg-teal-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
             <div className='flex items-center justify-between'>
               <h2 className="text-xl font-semibold mb-2 text-gray-700">top yappers</h2>
               <Image
@@ -343,7 +343,7 @@ export default function ResultsPage() {
             </div>
           </section>
 
-          <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
+          <section className="p-4 border-2 border-neutral-800 rounded-lg bg-teal-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
             <div className='flex items-center justify-between'>
               <h2 className="text-xl font-semibold mb-2 text-gray-700">first texters</h2>
               <Image
@@ -465,7 +465,7 @@ export default function ResultsPage() {
         {/* AI Summary and Weekday vs Weekend Activity side by side */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           {/* AI Summary */}
-          <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
+          <section className="p-4 border-2 border-neutral-800 rounded-lg bg-purple-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-gray-700">wtf was all the yapping about?</h2>
               <Image
@@ -485,7 +485,7 @@ export default function ResultsPage() {
 
           {/* weekend vs weekday pie chart */}
           {Object.keys(results.most_active_users).length <= 2 && (
-            <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
+            <section className="p-4 border-2 border-neutral-800 rounded-lg bg-lime-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
               <div className='flex items-center justify-between mb-4'>
                 <h2 className="text-xl font-semibold mb-4 text-gray-700">banter on weekday or relaxing on weekend?</h2>
                 <Image
@@ -516,6 +516,7 @@ export default function ResultsPage() {
               </div>
             </section>
           )}
+
           {/* User Interaction Matrix (Chord Diagram) */}
           {results.user_interaction_matrix && chordKeys.length > 2 && chordMatrix.length > 2 && (
             <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
@@ -553,9 +554,9 @@ export default function ResultsPage() {
         </div>
 
         {/* AI Analysis - Personality Profiles*/}
-        <div className="bg-white p-6 rounded-lg shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] border-2 border-neutral-800  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold mb-4 text-gray-700">what kinda animal are you?</h2>
+        <div className="bg-emerald-50 px-6 rounded-lg shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] border-2 border-neutral-800  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
+          <div className="flex items-center justify-between my-6">
+            <h2 className="text-xl font-semibold text-gray-700">what kinda animal are you?</h2>
             <Image
               src="/icons/sparkle.svg"
               alt="AI Analysis"
@@ -574,7 +575,7 @@ export default function ResultsPage() {
 
         {/* User Monthly Activity using Nivo Line */}
         {results.user_monthly_activity && results.user_monthly_activity.length > 0 && (
-          <section className="p-4 mb-20 border-2 border-neutral-800 rounded-lg bg-sky-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
+          <section className="p-4 mb-20 border-2 border-neutral-800 rounded-lg bg-pink-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
             <div className='flex items-center justify-between'>
               <h2 className="text-xl font-semibold mb-4 text-gray-700">how your chats have evolved over time?</h2>
               <Image
@@ -626,7 +627,7 @@ export default function ResultsPage() {
                   tickValues: undefined,
                   format: value => value.toLocaleString(),
                 }}
-                colors={{ scheme: 'pastel1' }}
+                colors={{ scheme: 'set1' }}
                 enablePoints={false}
                 enableGridX={false}
                 enableGridY={true}
