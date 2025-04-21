@@ -287,8 +287,8 @@ export default function ResultsPage() {
           />
 
           <ChatStatistic
-            title="who yaps continuously?"
-            value={`${results.longest_monologue.user.split(' ')[0]} (${results.longest_monologue.count} messages)`}
+            title="who texts first usually?"
+            value={`${results.first_text_champion.user.split(' ')[0]}: ${results.first_text_champion.percentage.toFixed(2)}%`}
             icon="trophy.svg"
             altText="First Text Champion"
             bgColor="bg-violet-100"
@@ -307,73 +307,6 @@ export default function ResultsPage() {
             iconWidth={40}
             iconHeight={48}
           />
-        </div>
-
-        {/* Most Active Users and Conversation Starters in a Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <section className="p-4 border-2 border-neutral-800 rounded-lg bg-teal-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
-            <div className='flex items-center justify-between'>
-              <h2 className="text-xl font-semibold mb-2 text-gray-700">top yappers</h2>
-              <Image
-                src="/icons/users.svg"
-                alt="Most Active Users"
-                width={50}
-                height={50}
-                className="mr-3"
-              />
-            </div>
-            <div className='h-96'>
-              <ResponsivePie
-                data={Object.entries(results.most_active_users).map(([user, percentage]) => ({
-                  id: user,
-                  label: user,
-                  value: percentage,
-                }))}
-                margin={{ top: 40, bottom: 40 }}
-                innerRadius={0.1}
-                padAngle={0}
-                cornerRadius={1}
-                activeOuterRadiusOffset={10}
-                borderWidth={1}
-                colors={{ scheme: 'pastel1' }}
-                enableArcLabels={true}
-                arcLabel={e => `${e.id}`}
-                enableArcLinkLabels={false}
-              />
-            </div>
-          </section>
-
-          <section className="p-4 border-2 border-neutral-800 rounded-lg bg-teal-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
-            <div className='flex items-center justify-between'>
-              <h2 className="text-xl font-semibold mb-2 text-gray-700">first texters</h2>
-              <Image
-                src="/icons/user.svg"
-                alt="Conversation Starters"
-                width={30}
-                height={30}
-                className="mr-3"
-              />
-            </div>
-            <div className='h-96'>
-              <ResponsivePie
-                data={Object.entries(results.conversation_starters).map(([user, percentage]) => ({
-                  id: user,
-                  label: user,
-                  value: percentage,
-                }))}
-                margin={{ top: 40, bottom: 40 }}
-                innerRadius={0.1}
-                padAngle={0.7}
-                cornerRadius={1}
-                activeOuterRadiusOffset={8}
-                borderWidth={1}
-                colors={{ scheme: 'pastel2' }}
-                enableArcLabels={true}
-                arcLabel={e => `${e.id}`}
-                enableArcLinkLabels={false}
-              />
-            </div>
-          </section>
         </div>
 
         {/* Common Words and Emojis in a Row */}
@@ -461,7 +394,6 @@ export default function ResultsPage() {
             </div>
           </section>
         </div>
-
         {/* AI Summary and Weekday vs Weekend Activity side by side */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           {/* AI Summary */}
@@ -552,6 +484,74 @@ export default function ResultsPage() {
             </section>
           )}
         </div>
+
+        {/* Most Active Users and Conversation Starters in a Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <section className="p-4 border-2 border-neutral-800 rounded-lg bg-teal-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
+            <div className='flex items-center justify-between'>
+              <h2 className="text-xl font-semibold mb-2 text-gray-700">top yappers</h2>
+              <Image
+                src="/icons/users.svg"
+                alt="Most Active Users"
+                width={50}
+                height={50}
+                className="mr-3"
+              />
+            </div>
+            <div className='h-96'>
+              <ResponsivePie
+                data={Object.entries(results.most_active_users).map(([user, percentage]) => ({
+                  id: user,
+                  label: user,
+                  value: percentage,
+                }))}
+                margin={{ top: 40, bottom: 40 }}
+                innerRadius={0.1}
+                padAngle={0}
+                cornerRadius={1}
+                activeOuterRadiusOffset={10}
+                borderWidth={1}
+                colors={{ scheme: 'pastel1' }}
+                enableArcLabels={true}
+                arcLabel={e => `${e.id}`}
+                enableArcLinkLabels={false}
+              />
+            </div>
+          </section>
+
+          <section className="p-4 border-2 border-neutral-800 rounded-lg bg-teal-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
+            <div className='flex items-center justify-between'>
+              <h2 className="text-xl font-semibold mb-2 text-gray-700">first texters</h2>
+              <Image
+                src="/icons/user.svg"
+                alt="Conversation Starters"
+                width={30}
+                height={30}
+                className="mr-3"
+              />
+            </div>
+            <div className='h-96'>
+              <ResponsivePie
+                data={Object.entries(results.conversation_starters).map(([user, percentage]) => ({
+                  id: user,
+                  label: user,
+                  value: percentage,
+                }))}
+                margin={{ top: 40, bottom: 40 }}
+                innerRadius={0.1}
+                padAngle={0.7}
+                cornerRadius={1}
+                activeOuterRadiusOffset={8}
+                borderWidth={1}
+                colors={{ scheme: 'pastel2' }}
+                enableArcLabels={true}
+                arcLabel={e => `${e.id}`}
+                enableArcLinkLabels={false}
+              />
+            </div>
+          </section>
+        </div>
+
 
         {/* AI Analysis - Personality Profiles*/}
         <div className="bg-emerald-50 px-6 rounded-lg shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] border-2 border-neutral-800  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">

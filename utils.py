@@ -247,7 +247,7 @@ def stratify_messages(topics):
     num_senders = len(consolidated_messages)
     if num_senders == 2:
         max_messages_per_sender = 40
-    elif num_senders > 5:
+    elif num_senders > 6:
         max_messages_per_sender = 15
     else:
         max_messages_per_sender = 25
