@@ -1,45 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 interface BackendResponse {
-  chat_name?: string; // Chat name extracted from the file
-  total_messages: number; // Total number of messages in the chat
-  days_since_first_message: number; // Days elapsed since the first message
+  chat_name?: string;
+  total_messages: number; 
+  days_since_first_message: number; 
   most_active_users: {
-    [username: string]: number; // Username as key and activity percentage as value
+    [username: string]: number; 
   };
   conversation_starters: {
-    [username: string]: number; // Username as key and conversation start percentage as value
+    [username: string]: number; 
   };
   most_ignored_users: {
-    [username: string]: number; // Username as key and ignored percentage as value
+    [username: string]: number; 
   };
   first_text_champion: {
-    user: string; // Name of the user
-    percentage: number; // Percentage of first texts sent
+    user: string; 
+    percentage: number; 
   };
   longest_monologue: {
-    user: string; // Name of the user
-    count: number; // Count of consecutive messages
+    user: string; 
+    count: number; 
   };
   common_words: {
-    [word: string]: number; // Word as key and its frequency as value
+    [word: string]: number; 
   };
   common_emojis: {
-    [emoji: string]: number; // Emoji as key and its frequency as value
+    [emoji: string]: number; 
   };
-  // daily_activity: Array<{ // Changed from monthly_activity
-  //   day: string; // format must be YYYY-MM-DD
-  //   value: number;
-  // }>;
-  average_response_time_minutes: number; // Average response time in minutes
-  peak_hour: string; // Peak activity hour range in "HH:mm - HH:mm" format
+  average_response_time_minutes: number; 
+  peak_hour: string; 
   
-  // Updated structure for user_monthly_activity to match what backend returns
   user_monthly_activity: Array<{
     id: string;
     data: Array<{
-      x: string; // month in yyyy-mm format
-      y: number; // number of messages
+      x: string;
+      y: number;
     }>;
   }>;
   
@@ -51,13 +46,13 @@ interface BackendResponse {
   };
   ai_analysis: {
     summary: string;
-    people?: Array<{      // Make people optional since it won't be returned for groups with >10 users
+    people?: Array<{ 
       name: string;
       animal: string;
       description: string;
     }>;
   };
-  user_interaction_matrix?: (string | number | null)[][] | null; // Updated type
+  user_interaction_matrix?: (string | number | null)[][] | null;
 }
 
 export async function POST(request: NextRequest) {
@@ -73,11 +68,9 @@ export async function POST(request: NextRequest) {
 
     console.log(`Received file: ${file.name}, Size: ${file.size}, Type: ${file.type}`);
 
-    // Prepare the file for sending to the backend
     const backendFormData = new FormData();
     backendFormData.append('file', file);
 
-    // Get API key from environment variables
     const apiKey = process.env.VAL_API_KEY;
     
     if (!apiKey) {
@@ -85,12 +78,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'API key configuration missing' }, { status: 500 });
     }
 
-    // Make a POST request to the backend service
-    const backendUrl = process.env.BACKEND_URL || 'https://46c602e8-3700-414a-b57f-9433573d7390.eu-central-1.cloud.genez.io';
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000';
     const response = await fetch(`${backendUrl}/analyze/`, {
       method: 'POST',
       headers: {
-        // Include the API key in the request headers
         'X-API-Key': apiKey
       },
       body: backendFormData,
@@ -102,16 +93,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Failed to process file on backend.', error: errorText }, { status: response.status });
     }
 
-    // Parse the response from the backend
     const analysisResult: BackendResponse = await response.json();
 
-    // Return the backend response to the client
     return NextResponse.json(analysisResult, { status: 200 });
 
   } catch (error: unknown) {
     console.error('API Upload Error:', error);
 
-    // Narrow down the error type
     if (error instanceof Error) {
       return NextResponse.json({ message: 'Failed to process file.', error: error.message }, { status: 500 });
     }

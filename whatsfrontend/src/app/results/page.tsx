@@ -21,7 +21,6 @@ interface AnalysisResults {
   longest_monologue: { user: string; count: number };
   common_words: { [word: string]: number };
   common_emojis: { [emoji: string]: number };
-  // daily_activity: Array<{ day: string; value: number }>;
   average_response_time_minutes: number;
   peak_hour: string;
   user_monthly_activity: Array<{
@@ -239,8 +238,8 @@ export default function ResultsPage() {
         {/* Overall Chat Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <ChatStatistic
-            title="Total Messages"
-            value={results.total_messages.toLocaleString()}
+            title="you guys have sent"
+            value={results.total_messages.toLocaleString() + " messages"}
             icon="chat.svg"
             altText="Total Messages"
             bgColor="bg-purple-100"
@@ -250,7 +249,7 @@ export default function ResultsPage() {
           />
 
           <ChatStatistic
-            title="Days Since First Message"
+            title="you&apos;ve been chatting for"
             value={`${results.days_since_first_message} ${results.days_since_first_message === 1 ? 'day' : 'days'}`}
             icon="calendar.svg"
             altText="Days Since First Message"
@@ -261,12 +260,12 @@ export default function ResultsPage() {
           />
 
           <ChatStatistic
-            title="who gets ignored the most?"
+            title="who gets ghosted the most?"
             value={
               Object.entries(results.most_ignored_users)
                 .sort(([, percentageA], [, percentageB]) => percentageB - percentageA)
                 .slice(0, 1)
-                .map(([user]) => user)[0]
+                .map(([user]) => user.split(' ')[0])[0]
             }
             icon="frown.svg"
             altText="Most Ignored Users"
@@ -277,7 +276,7 @@ export default function ResultsPage() {
           />
 
           <ChatStatistic
-            title="Peak Hour"
+            title="when does your conversations peak?"
             value={results.peak_hour}
             icon="peak.svg"
             altText="Peak Hour"
@@ -288,8 +287,8 @@ export default function ResultsPage() {
           />
 
           <ChatStatistic
-            title="who texts first usually?"
-            value={`${results.first_text_champion.user}: ${results.first_text_champion.percentage.toFixed(2)}%`}
+            title="who yaps continuously?"
+            value={`${results.longest_monologue.user.split(' ')[0]} (${results.longest_monologue.count} messages)`}
             icon="trophy.svg"
             altText="First Text Champion"
             bgColor="bg-violet-100"
@@ -299,7 +298,7 @@ export default function ResultsPage() {
           />
 
           <ChatStatistic
-            title="Average Response Time"
+            title="you get the reply back in"
             value={`~ ${results.average_response_time_minutes.toFixed(2)} minutes`}
             icon="time.svg"
             altText="Average Response Time"
@@ -312,9 +311,9 @@ export default function ResultsPage() {
 
         {/* Most Active Users and Conversation Starters in a Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
+          <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
             <div className='flex items-center justify-between'>
-              <h2 className="text-xl font-semibold mb-2 text-gray-700">Most Active Users</h2>
+              <h2 className="text-xl font-semibold mb-2 text-gray-700">top yappers</h2>
               <Image
                 src="/icons/users.svg"
                 alt="Most Active Users"
@@ -333,7 +332,7 @@ export default function ResultsPage() {
                 margin={{ top: 40, bottom: 40 }}
                 innerRadius={0.1}
                 padAngle={0}
-                cornerRadius={5}
+                cornerRadius={1}
                 activeOuterRadiusOffset={10}
                 borderWidth={1}
                 colors={{ scheme: 'pastel1' }}
@@ -344,9 +343,9 @@ export default function ResultsPage() {
             </div>
           </section>
 
-          <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
+          <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
             <div className='flex items-center justify-between'>
-              <h2 className="text-xl font-semibold mb-2 text-gray-700">Conversation Starters</h2>
+              <h2 className="text-xl font-semibold mb-2 text-gray-700">first texters</h2>
               <Image
                 src="/icons/user.svg"
                 alt="Conversation Starters"
@@ -365,10 +364,9 @@ export default function ResultsPage() {
                 margin={{ top: 40, bottom: 40 }}
                 innerRadius={0.1}
                 padAngle={0.7}
-                cornerRadius={3}
+                cornerRadius={1}
                 activeOuterRadiusOffset={8}
                 borderWidth={1}
-                borderColor={{ from: 'color', modifiers: [['darker', 0.2]] }}
                 colors={{ scheme: 'pastel2' }}
                 enableArcLabels={true}
                 arcLabel={e => `${e.id}`}
@@ -381,9 +379,9 @@ export default function ResultsPage() {
         {/* Common Words and Emojis in a Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Common Words */}
-          <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
+          <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
             <div className='flex items-center justify-between'>
-              <h2 className="text-xl font-bold mb-4 text-gray-700">Top {topWords.length} Common Words</h2>
+              <h2 className="text-xl font-bold mb-4 text-gray-700">you guys use these {topWords.length} words a lot</h2>
               <Image
                 src="/icons/words.svg"
                 alt="Common Words"
@@ -433,9 +431,9 @@ export default function ResultsPage() {
           </section>
 
           {/* Common Emojis */}
-          <section className="p-4 lg:h-full md:h-fit  border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
+          <section className="p-4 lg:h-full md:h-fit  border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
             <div className='flex items-center justify-between'>
-              <h2 className="text-xl font-semibold mb-4 text-gray-700">Common Emojis</h2>
+              <h2 className="text-xl font-semibold mb-4 text-gray-700">can&apos;t get enough of these emojis</h2>
               <Image
                 src="/icons/lovely_face.svg"
                 alt="Common Emojis"
@@ -467,9 +465,9 @@ export default function ResultsPage() {
         {/* AI Summary and Weekday vs Weekend Activity side by side */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           {/* AI Summary */}
-          <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
+          <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-700">Chat Summary</h2>
+              <h2 className="text-xl font-semibold text-gray-700">wtf was all the yapping about?</h2>
               <Image
                 src="/icons/sparkle.svg"
                 alt="AI Analysis"
@@ -487,9 +485,9 @@ export default function ResultsPage() {
 
           {/* weekend vs weekday pie chart */}
           {Object.keys(results.most_active_users).length <= 2 && (
-            <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
+            <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
               <div className='flex items-center justify-between mb-4'>
-                <h2 className="text-xl font-semibold mb-4 text-gray-700">Weekday vs Weekend Activity</h2>
+                <h2 className="text-xl font-semibold mb-4 text-gray-700">banter on weekday or relaxing on weekend?</h2>
                 <Image
                   src="/icons/tag.svg"
                   alt="Weekday vs Weekend Activity"
@@ -507,7 +505,7 @@ export default function ResultsPage() {
                   margin={{ top: 10, bottom: 10 }}
                   innerRadius={0.1}
                   padAngle={0.7}
-                  cornerRadius={0}
+                  cornerRadius={1}
                   enableArcLinkLabels={false}
                   enableArcLabels={true}
                   arcLabel={e => `${e.id}`}
@@ -520,9 +518,9 @@ export default function ResultsPage() {
           )}
           {/* User Interaction Matrix (Chord Diagram) */}
           {results.user_interaction_matrix && chordKeys.length > 2 && chordMatrix.length > 2 && (
-            <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
+            <section className="p-4 border-2 border-neutral-800 rounded-lg bg-white shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
               <div className='flex items-center justify-between mb-4'>
-                <h2 className="text-xl font-semibold mb-4 text-gray-700">User Interactions Chord Diagram</h2>
+                <h2 className="text-xl font-semibold mb-4 text-gray-700">you guys are really chaotic huh?</h2>
                 <Image
                   src="/icons/tag.svg"
                   alt="Weekday vs Weekend Activity"
@@ -555,9 +553,9 @@ export default function ResultsPage() {
         </div>
 
         {/* AI Analysis - Personality Profiles*/}
-        <div className="bg-white p-6 rounded-lg shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] border-2 border-neutral-800">
+        <div className="bg-white p-6 rounded-lg shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] border-2 border-neutral-800  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold mb-4 text-gray-700">Personality Profiles</h2>
+            <h2 className="text-xl font-semibold mb-4 text-gray-700">what kinda animal are you?</h2>
             <Image
               src="/icons/sparkle.svg"
               alt="AI Analysis"
@@ -576,9 +574,9 @@ export default function ResultsPage() {
 
         {/* User Monthly Activity using Nivo Line */}
         {results.user_monthly_activity && results.user_monthly_activity.length > 0 && (
-          <section className="p-4 border-2 border-neutral-800 rounded-lg bg-sky-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]">
+          <section className="p-4 mb-20 border-2 border-neutral-800 rounded-lg bg-sky-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
             <div className='flex items-center justify-between'>
-              <h2 className="text-xl font-semibold mb-4 text-gray-700">User Monthly Activity</h2>
+              <h2 className="text-xl font-semibold mb-4 text-gray-700">how your chats have evolved over time?</h2>
               <Image
                 src="/icons/graph_def.svg"
                 alt="User Monthly Activity"

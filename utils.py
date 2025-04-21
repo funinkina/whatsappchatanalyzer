@@ -182,7 +182,7 @@ def clean_text_remove_stopwords(text):
     ]
     return ' '.join(filtered_words)
 
-def group_messages_by_topic(data, gap_hours=6):
+def group_messages_by_topic(data, gap_hours):
     """Group messages into topics based on time gap, remove emojis."""
     if not data:
         return []
@@ -220,9 +220,6 @@ def estimate_tokens(text):
     return int(len(text.split()) * 1.3)
 
 def stratify_messages(topics):
-    """
-    For each sender, select up to 10 random messages total, with a combined token count under 1000.
-    """
     consolidated_messages = {}
 
     for topic in topics:
@@ -245,11 +242,19 @@ def stratify_messages(topics):
             consolidated_messages[sender].append(message_text)
 
     final_sampled = {}
-    max_tokens_per_sender = 1000
-    max_messages_per_sender = 10
+    max_tokens_per_sender = 500
+
+    num_senders = len(consolidated_messages)
+    if num_senders == 2:
+        max_messages_per_sender = 40
+    elif num_senders > 5:
+        max_messages_per_sender = 15
+    else:
+        max_messages_per_sender = 25
 
     for sender, msgs in consolidated_messages.items():
-        random.shuffle(msgs)
+        # Sort messages by length in descending order
+        msgs.sort(key=len, reverse=True)
         selected_msgs = []
         total_tokens = 0
 
