@@ -20,7 +20,7 @@ interface AnalysisResults {
   longest_monologue: { user: string; count: number };
   common_words: { [word: string]: number };
   common_emojis: { [emoji: string]: number };
-  daily_activity: Array<{ day: string; value: number }>;
+  // daily_activity: Array<{ day: string; value: number }>;
   average_response_time_minutes: number;
   peak_hour: string;
   user_monthly_activity: Array<{

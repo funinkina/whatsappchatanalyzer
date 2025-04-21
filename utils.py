@@ -77,8 +77,6 @@ url_pattern = re.compile(r'https?://\S+|www\.\S+')
 def preprocess_messages(chat_file):
     """Parse chat messages, remove links and stopwords."""
     messages_data = []
-    # Define the possible timestamp formats to try
-    # Order matters: try more specific (like AM/PM) before less specific
     timestamp_formats = [
         # US style with AM/PM (handles m/d/yy and mm/dd/yyyy)
         "%m/%d/%y %I:%M %p",
@@ -123,13 +121,11 @@ def preprocess_messages(chat_file):
                     continue
 
             if timestamp is None:
-                print(f"Warning: Could not parse timestamp from string: '{datetime_str}' in line: {line.strip()}")
+                # print(f"Warning: Could not parse timestamp from string: '{datetime_str}' in line: {line.strip()}")
                 continue
 
-            # Clean early: remove links and stopwords
             cleaned_message = clean_text_remove_stopwords(message)
             if cleaned_message:
-                # Store original date string along with parsed timestamp for potential reference
                 messages_data.append((timestamp, date_cleaned, sender, cleaned_message))
     return messages_data
 
@@ -137,13 +133,12 @@ def load_stopwords():
     try:
         with open("stopwords.txt", 'r', encoding='utf-8') as f:
             stopwords_set = set(f.read().splitlines())
-            # print(f"Loaded {len(stopwords_set)} stopwords.") # Debug
+            # print(f"Loaded {len(stopwords_set)} stopwords.")
             return stopwords_set
     except FileNotFoundError:
         print("Warning: Stopwords file 'stopwords.txt' not found. Using empty stopwords set.")
         return set()
 
-# Load stopwords globally
 STOPWORDS = {word.lower() for word in load_stopwords()}
 if not STOPWORDS:
     print("Warning: Stopwords set is empty. Ensure 'stopwords.txt' exists and is populated.")
@@ -183,7 +178,7 @@ def clean_text_remove_stopwords(text):
 
     filtered_words = [
         w for w in map(normalize_word, text.split())
-        if w not in STOPWORDS and len(w) > 2  # Keep slightly longer words
+        if w not in STOPWORDS and len(w) > 2
     ]
     return ' '.join(filtered_words)
 
@@ -211,7 +206,6 @@ def group_messages_by_topic(data, gap_hours=6):
     processed_topics = []
     for raw_topic in grouped_topics_raw:
         processed_topic = []
-        # Use the already cleaned message from preprocess_messages
         for timestamp, date_str, sender, cleaned_message in raw_topic:
             emoji_free = remove_emojis(cleaned_message)
             if emoji_free.strip():
@@ -232,12 +226,10 @@ def stratify_messages(topics):
     consolidated_messages = {}
 
     for topic in topics:
-        # msg format: (timestamp, date_str, sender, emoji_free_message)
         for msg in topic:
             sender = msg[2]
             message_text = msg[3]
 
-            # Basic filtering for message quality
             if not message_text.strip():
                 continue
             if len(message_text.split()) < 2:
@@ -269,7 +261,6 @@ def stratify_messages(topics):
             if total_tokens + token_est <= max_tokens_per_sender:
                 selected_msgs.append(msg)
                 total_tokens += token_est
-            # Optional: else: consider adding shorter messages even if a longer one was skipped
 
         if selected_msgs:
             final_sampled[sender] = selected_msgs

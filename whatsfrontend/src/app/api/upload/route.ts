@@ -27,10 +27,10 @@ interface BackendResponse {
   common_emojis: {
     [emoji: string]: number; // Emoji as key and its frequency as value
   };
-  daily_activity: Array<{ // Changed from monthly_activity
-    day: string; // format must be YYYY-MM-DD
-    value: number;
-  }>;
+  // daily_activity: Array<{ // Changed from monthly_activity
+  //   day: string; // format must be YYYY-MM-DD
+  //   value: number;
+  // }>;
   average_response_time_minutes: number; // Average response time in minutes
   peak_hour: string; // Peak activity hour range in "HH:mm - HH:mm" format
   

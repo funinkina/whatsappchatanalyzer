@@ -78,13 +78,9 @@ async def analyze_whatsapp_chat(
         return JSONResponse(content=results)
 
     except FileNotFoundError as e:
-        # Handle case where stopwords file might be missing specifically
         if "stopwords.txt" in str(e):
             print(f"Warning from analyze_chat: {e}")
-            # If analyze_chat handles this gracefully (as it seems to), we can proceed
-            # Re-run analysis allowing the warning from analyze_chat
             try:
-                # Ensure temp_file_path is still valid before re-running
                 if not temp_file_path or not os.path.exists(temp_file_path):
                     raise HTTPException(status_code=500, detail="Chat file path lost before re-analysis attempt.")
                 results = await analyze_chat(
@@ -97,10 +93,10 @@ async def analyze_whatsapp_chat(
         else:
             raise HTTPException(status_code=500, detail=f"An internal error occurred: {e}")
 
-    except HTTPException as e:  # Re-raise HTTPExceptions directly
+    except HTTPException as e:
         raise e
     except Exception as e:
-        print(f"Error processing chat file: {e}")  # Log the actual error
+        print(f"Error processing chat file: {e}")
         raise HTTPException(status_code=500, detail=f"Error processing chat file: {e}")
 
     finally:
