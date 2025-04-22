@@ -1,4 +1,4 @@
-# Whatsapp Chat Analyzer
+![Logo](/whatsfrontend/public/bloop_white.svg)
 
 This project provides insightful analysis of your WhatsApp chat history. Gain a deeper understanding of your conversations with features like:
 
