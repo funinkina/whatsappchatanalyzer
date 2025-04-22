@@ -197,7 +197,7 @@ export default function HomePage() {
 
         {/* File Upload Box */}
         <div
-          className="w-full max-w-md lg:max-w-lg relative bg-green-200 rounded-md outline-2 outline-neutral-800 p-4 shadow-[7px_7px_0px_0px_rgba(0,0,0,0.85)]"
+          className="w-full max-w-md lg:max-w-lg relative bg-green-200 rounded-md outline-2 outline-neutral-800 p-4 shadow-[7px_7px_0px_0px_rgba(0,0,0,0.85)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out"
           onDragOver={handleDragOver}
           onDrop={handleDrop}
         >
