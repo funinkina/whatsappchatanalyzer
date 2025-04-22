@@ -234,6 +234,41 @@ export default function ResultsPage() {
     const targetWidth = 1200;
     const originalStyle = elementToCapture.style.cssText;
 
+    // Create a container for the watermark and branding
+    const brandingDiv = document.createElement('div');
+    brandingDiv.style.cssText = `
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px 0;
+      margin-bottom: 10px;
+      gap: 15px;
+    `;
+
+    // Add logo
+    const logoImg = document.createElement('img');
+    logoImg.src = '/bloop_logo.svg';
+    logoImg.alt = 'Bloop Logo';
+    logoImg.style.height = '50px';
+
+    // Add text
+    const siteText = document.createElement('p');
+    siteText.textContent = 'generate your own at bloopit.vercel.app';
+    siteText.style.cssText = `
+      font-size: 22px;
+      font-weight: 600;
+      color: #232F61;
+      margin: 5;
+    `;
+
+    // Assemble the branding element
+    brandingDiv.appendChild(logoImg);
+    brandingDiv.appendChild(siteText);
+
+    // Insert at the top of the content
+    elementToCapture.insertBefore(brandingDiv, elementToCapture.firstChild);
+
     try {
       elementsToHide.forEach(el => el.classList.add('hidden-for-download'));
 
@@ -285,6 +320,11 @@ export default function ResultsPage() {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       alert(`Failed to generate image: ${errorMessage}`);
     } finally {
+      // Remove the branding div when we're done
+      if (brandingDiv.parentNode === elementToCapture) {
+        elementToCapture.removeChild(brandingDiv);
+      }
+
       elementsToHide.forEach(el => el.classList.remove('hidden-for-download'));
       elementToCapture.style.cssText = originalStyle;
       setIsDownloading(false);
@@ -293,44 +333,44 @@ export default function ResultsPage() {
 
   return (
     <main className="container mx-auto p-6">
-      <div className="flex flex-col items-center justify-between mb-2">
-        <Image
-          src="bloop_logo.svg"
-          alt="Bloop Logo"
-          width={300}
-          height={50}
-          className='mb-2'
-        />
-        <h1 className="text-3xl font-bold mb-6 text-gray-800">
-          {results.chat_name ? `Analysis with ${results.chat_name}` : "Analysis Results"}
-        </h1>
+      <div className="flex flex-col p-4 md:flex-row md:items-center md:justify-between mb-4">
+        <div className="flex flex-col items-center md:items-start">
+          <Image
+            src="bloop_logo.svg"
+            alt="Bloop Logo"
+            width={300}
+            height={50}
+            className='mb-2'
+          />
+          <h1 className="text-3xl font-bold mb-4 md:mb-0 text-gray-800 text-center md:text-left">
+            {results.chat_name ? `Analysis with ${results.chat_name}` : "Analysis Results"}
+          </h1>
+        </div>
         <button
           onClick={handleDownload}
           disabled={isDownloading}
-          className="mb-4 bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" // Add disabled styles
+          className="mt-4 md:mt-0 bg-orange-300 border-2 border-neutral-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] text-blue-950 px-6 py-4 rounded-xl flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed self-center md:self-end transition duration-150 ease-in-out"
         >
           {isDownloading ? (
             <>
-              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              <svg width="28" height="35" viewBox="0 0 28 35" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20.5092 5.26808C20.5092 4.62482 20.2093 4.03734 20.2093 3.34669C20.2093 2.71773 20.5034 2.27321 20.959 2.0014M20.959 2.0014C22.5214 1.06931 25.9833 2.16823 25.9999 4.82512C26.0167 7.501 21.9655 9.61571 19.9039 7.72491C19.5537 7.40377 19.2779 7.03072 19.0775 6.6314M20.959 2.0014C18.7847 2.56063 18.1861 4.85569 19.0775 6.6314M20.959 2.0014C21.0174 1.98639 21.0769 1.97263 21.1375 1.96016C21.7375 1.83682 24.2301 2.61315 23.1042 3.50938C21.8061 4.54275 20.4308 5.57896 19.0775 6.6314M19.0775 6.6314C18.4947 7.08463 17.916 7.54087 17.3493 8.00119C12.9845 11.5466 7.06471 14.6898 3.87823 19.4062C3.40003 20.114 2.59492 20.5665 2.0571 21.2243C1.80287 21.5353 2.46221 21.3585 2.76675 21.3585C4.28703 21.3585 5.44751 21.988 6.7914 22.6651C10.9832 24.7769 15.1693 27.7405 19.5745 29.3375M19.5745 29.3375C19.6098 29.3503 19.6452 29.3631 19.6805 29.3757C21.3582 29.975 21.1591 30.5433 20.9209 28.8488C20.7998 27.9873 21.1262 27.2264 21.6599 26.7117M19.5745 29.3375C19.5891 31.1039 20.1403 33.4421 22.2145 32.8748C24.6076 32.2203 26.6771 29.509 25.0932 27.0713C24.1778 25.6625 22.5983 25.8065 21.6599 26.7117M19.5745 29.3375C19.5721 29.0459 19.5843 28.7699 19.6068 28.5252C19.6784 27.7424 20.6128 27.0377 21.6599 26.7117M21.6599 26.7117C23.0644 26.2744 24.6719 26.5186 24.6719 28.1707" stroke="#232F61" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-              Downloading...
+              <p className='font-bold'>Downloading...</p>
             </>
           ) : (
             <>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z" />
-                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z" />
+              <svg width="20" height="25" viewBox="0 0 28 35" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20.5092 5.26808C20.5092 4.62482 20.2093 4.03734 20.2093 3.34669C20.2093 2.71773 20.5034 2.27321 20.959 2.0014M20.959 2.0014C22.5214 1.06931 25.9833 2.16823 25.9999 4.82512C26.0167 7.501 21.9655 9.61571 19.9039 7.72491C19.5537 7.40377 19.2779 7.03072 19.0775 6.6314M20.959 2.0014C18.7847 2.56063 18.1861 4.85569 19.0775 6.6314M20.959 2.0014C21.0174 1.98639 21.0769 1.97263 21.1375 1.96016C21.7375 1.83682 24.2301 2.61315 23.1042 3.50938C21.8061 4.54275 20.4308 5.57896 19.0775 6.6314M19.0775 6.6314C18.4947 7.08463 17.916 7.54087 17.3493 8.00119C12.9845 11.5466 7.06471 14.6898 3.87823 19.4062C3.40003 20.114 2.59492 20.5665 2.0571 21.2243C1.80287 21.5353 2.46221 21.3585 2.76675 21.3585C4.28703 21.3585 5.44751 21.988 6.7914 22.6651C10.9832 24.7769 15.1693 27.7405 19.5745 29.3375M19.5745 29.3375C19.6098 29.3503 19.6452 29.3631 19.6805 29.3757C21.3582 29.975 21.1591 30.5433 20.9209 28.8488C20.7998 27.9873 21.1262 27.2264 21.6599 26.7117M19.5745 29.3375C19.5891 31.1039 20.1403 33.4421 22.2145 32.8748C24.6076 32.2203 26.6771 29.509 25.0932 27.0713C24.1778 25.6625 22.5983 25.8065 21.6599 26.7117M19.5745 29.3375C19.5721 29.0459 19.5843 28.7699 19.6068 28.5252C19.6784 27.7424 20.6128 27.0377 21.6599 26.7117M21.6599 26.7117C23.0644 26.2744 24.6719 26.5186 24.6719 28.1707" stroke="#232F61" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-              Download as PNG
+              <p className='font-semibold'>Share these results</p>
             </>
           )}
         </button>
       </div>
-      <div className="space-y-8 p-4" ref={sectionRef} >
+      <div className="p-4" ref={sectionRef} >
         {/* Overall Chat Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
           <ChatStatistic
             title="you guys have sent"
             value={results.total_messages.toLocaleString() + " messages"}
@@ -404,7 +444,7 @@ export default function ResultsPage() {
         </div>
 
         {/* Common Words and Emojis in a Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           {/* Common Words */}
           <section className="p-4 border-2 border-neutral-800 rounded-lg bg-zinc-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
             <div className='flex items-center justify-between'>
@@ -579,8 +619,27 @@ export default function ResultsPage() {
           )}
         </div>
 
+        {/* AI Analysis - Personality Profiles*/}
+        <div className="bg-emerald-50 px-6 rounded-lg shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] border-2 border-neutral-800  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out mb-8">
+          <div className="flex items-center justify-between my-6">
+            <h2 className="text-xl font-semibold text-gray-700">what kinda animal are you?</h2>
+            <Image
+              src="/icons/sparkle.svg"
+              alt="AI Analysis"
+              width={30}
+              height={30}
+              className="mr-3"
+            />
+          </div>
+          <AIAnalysis
+            summary={results.ai_analysis?.summary || ''}
+            people={results.ai_analysis?.people || []}
+            profilesOnly={true}
+          />
+        </div>
+
         {/* Most Active Users and Conversation Starters in a Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           <section
             className="p-4 border-2 border-neutral-800 rounded-lg bg-teal-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out"
             data-exclude-from-download="true"
@@ -650,26 +709,6 @@ export default function ResultsPage() {
               />
             </div>
           </section>
-        </div>
-
-
-        {/* AI Analysis - Personality Profiles*/}
-        <div className="bg-emerald-50 px-6 rounded-lg shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] border-2 border-neutral-800  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
-          <div className="flex items-center justify-between my-6">
-            <h2 className="text-xl font-semibold text-gray-700">what kinda animal are you?</h2>
-            <Image
-              src="/icons/sparkle.svg"
-              alt="AI Analysis"
-              width={30}
-              height={30}
-              className="mr-3"
-            />
-          </div>
-          <AIAnalysis
-            summary={results.ai_analysis?.summary || ''}
-            people={results.ai_analysis?.people || []}
-            profilesOnly={true}
-          />
         </div>
 
 
