@@ -10,6 +10,40 @@ import AIAnalysis from '@/components/AIAnalysis';
 import ChatStatistic from '@/components/ChatStatistics';
 import domtoimage from 'dom-to-image';
 
+const isPhoneNumber = (str: string): boolean => {
+  return /^\+\d+\s?\d[\d\s-]{5,}$/.test(str);
+};
+
+const filterPhoneNumbers = (data: Record<string, number>): Record<string, number> => {
+  return Object.fromEntries(
+    Object.entries(data).filter(([user]) => !isPhoneNumber(user))
+  );
+};
+
+// Filter phone numbers from the user interaction matrix
+const filterChordData = (matrix: (string | number | null)[][], keys: string[]) => {
+  if (!matrix || matrix.length <= 1 || !keys.length) return { filteredMatrix: [] as number[][], filteredKeys: [] };
+
+  // Find indices of non-phone number users
+  const validIndices = keys.map((key, index) => ({ key, index }))
+    .filter(item => !isPhoneNumber(item.key))
+    .map(item => item.index);
+
+  // Extract filtered keys
+  const filteredKeys = validIndices.map(index => keys[index]);
+
+  // Extract rows and columns for non-phone number users
+  const filteredMatrix = matrix.slice(1)
+    .filter((_, rowIdx) => validIndices.includes(rowIdx))
+    .map(row =>
+      row.slice(1)
+        .filter((_, colIdx) => validIndices.includes(colIdx))
+        .map(value => (typeof value === 'number' ? value : 0))
+    );
+
+  return { filteredMatrix: filteredMatrix as number[][], filteredKeys };
+};
+
 // Define an interface for the expected data structure
 interface AnalysisResults {
   chat_name?: string;
@@ -211,13 +245,15 @@ export default function ResultsPage() {
   }
 
   // Prepare data for User Interaction Chord Diagram
-  const chordKeys = results.user_interaction_matrix && results.user_interaction_matrix.length > 1
-    ? results.user_interaction_matrix[0]?.slice(1).map(String) ?? []
+  const rawChordKeys = results.user_interaction_matrix
+    ? results.user_interaction_matrix[0].slice(1).map(key => key as string)
     : [];
 
-  const chordMatrix = results.user_interaction_matrix && results.user_interaction_matrix.length > 1
-    ? results.user_interaction_matrix.slice(1).map(row => row.slice(1).map(value => (typeof value === 'number' ? value : 0)))
-    : [];
+  // Apply phone number filtering to chord data
+  const { filteredMatrix: chordMatrix, filteredKeys: chordKeys } =
+    filterChordData(results.user_interaction_matrix || [], rawChordKeys);
+
+  // Ensure the matrix is always number[][] as required by ResponsiveChord
 
   // Prepare data for Common Emojis visualization
   const sortedEmojis = Object.entries(results.common_emojis)
@@ -585,7 +621,7 @@ export default function ResultsPage() {
 
           {/* User Interaction Matrix (Chord Diagram) */}
           {results.user_interaction_matrix && chordKeys.length > 2 && chordMatrix.length > 2 && (
-            <section className="p-4 border-2 border-neutral-800 rounded-lg bg-lime-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
+            <section className="p-4 border-2 border-neutral-800 rounded-lg bg-lime-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
               <div className='flex items-center justify-between mb-4'>
                 <h2 className="text-xl font-semibold mb-4 text-gray-700">you guys are really chaotic huh?</h2>
                 <Image
@@ -656,7 +692,7 @@ export default function ResultsPage() {
             </div>
             <div className='h-96'>
               <ResponsivePie
-                data={Object.entries(results.most_active_users).map(([user, percentage]) => ({
+                data={Object.entries(filterPhoneNumbers(results.most_active_users)).map(([user, percentage]) => ({
                   id: user,
                   label: user,
                   value: percentage,
@@ -691,7 +727,7 @@ export default function ResultsPage() {
             </div>
             <div className='h-96'>
               <ResponsivePie
-                data={Object.entries(results.conversation_starters).map(([user, percentage]) => ({
+                data={Object.entries(filterPhoneNumbers(results.conversation_starters)).map(([user, percentage]) => ({
                   id: user,
                   label: user,
                   value: percentage,

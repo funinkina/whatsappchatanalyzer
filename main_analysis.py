@@ -186,7 +186,10 @@ async def analyze_chat(chat_file, original_filename=None):
 
     ai_analysis = await ai_analysis_task
     if ai_analysis is None:
-        ai_analysis = "Unable to retrieve AI analysis."
+        ai_analysis = {
+            "summary": "No AI analysis available for this chat.",
+            "people": []
+        }
     else:
         try:
             ai_analysis = json.loads(ai_analysis)
