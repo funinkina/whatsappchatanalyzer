@@ -215,7 +215,7 @@ export default function ResultsPage() {
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-lg text-gray-600">Loading results...</p>
+        <p className="text-4xl font-bold text-blue-950">Loading results...</p>
       </div>
     );
   }
@@ -224,10 +224,10 @@ export default function ResultsPage() {
     return (
       <div className="flex min-h-screen items-center justify-center p-6 text-center">
         <div>
-          <p className="text-lg text-red-600">{error}</p>
+          <p className="text-lg text-orange-800">{error}</p>
           <button
             onClick={() => router.push('/')}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="mt-4 bg-orange-300 border-2 border-neutral-800 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] text-blue-950 px-6 py-4 rounded-xl gap-3 transition duration-150 ease-in-out"
           >
             Go to Upload
           </button>
