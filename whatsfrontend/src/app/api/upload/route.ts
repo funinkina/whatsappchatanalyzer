@@ -2,34 +2,28 @@ import { NextRequest, NextResponse } from 'next/server';
 
 interface BackendResponse {
   chat_name?: string;
-  total_messages: number; 
-  days_since_first_message: number; 
-  most_active_users: {
-    [username: string]: number; 
-  };
-  conversation_starters: {
-    [username: string]: number; 
-  };
-  most_ignored_users: {
-    [username: string]: number; 
-  };
+  total_messages: number;
+  days_active: number | null;
+  user_message_count: { [username: string]: number }; 
+  most_active_users_pct: { [username: string]: number }; 
+  conversation_starters_pct: { [username: string]: number }; 
+  most_ignored_users_pct: { [username: string]: number };
   first_text_champion: {
-    user: string; 
-    percentage: number; 
-  };
-  longest_monologue: {
-    user: string; 
+    user: string | null; 
     count: number; 
   };
+  longest_monologue: {
+    user: string | null;
+    count: number;
+  };
   common_words: {
-    [word: string]: number; 
+    [word: string]: number;
   };
   common_emojis: {
-    [emoji: string]: number; 
+    [emoji: string]: number;
   };
-  average_response_time_minutes: number; 
-  peak_hour: string; 
-  
+  average_response_time_minutes: number;
+  peak_hour: number | null;
   user_monthly_activity: Array<{
     id: string;
     data: Array<{
@@ -37,7 +31,6 @@ interface BackendResponse {
       y: number;
     }>;
   }>;
-  
   weekday_vs_weekend_avg: {
     average_weekday_messages: number;
     average_weekend_messages: number;
@@ -46,13 +39,15 @@ interface BackendResponse {
   };
   ai_analysis: {
     summary: string;
-    people?: Array<{ 
+    people?: Array<{
       name: string;
       animal: string;
       description: string;
     }>;
-  };
+    error?: string;
+  } | null;
   user_interaction_matrix?: (string | number | null)[][] | null;
+  error?: string;
 }
 
 export async function POST(request: NextRequest) {

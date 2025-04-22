@@ -48,16 +48,23 @@ const filterChordData = (matrix: (string | number | null)[][], keys: string[]) =
 interface AnalysisResults {
   chat_name?: string;
   total_messages: number;
-  days_since_first_message: number;
-  most_active_users: { [username: string]: number };
-  conversation_starters: { [username: string]: number };
-  most_ignored_users: { [username: string]: number };
-  first_text_champion: { user: string; percentage: number };
-  longest_monologue: { user: string; count: number };
+  days_active: number | null;
+  user_message_count: { [username: string]: number };
+  most_active_users_pct: { [username: string]: number };
+  conversation_starters_pct: { [username: string]: number };
+  most_ignored_users_pct: { [username: string]: number };
+  first_text_champion: {
+    user: string | null;
+    count: number;
+  };
+  longest_monologue: {
+    user: string | null;
+    count: number;
+  };
   common_words: { [word: string]: number };
   common_emojis: { [emoji: string]: number };
   average_response_time_minutes: number;
-  peak_hour: string;
+  peak_hour: number | null;
   user_monthly_activity: Array<{
     id: string;
     data: Array<{
@@ -74,15 +81,16 @@ interface AnalysisResults {
   user_interaction_matrix: (string | number | null)[][] | null;
   ai_analysis: {
     summary: string;
-    people: Array<{
+    people?: Array<{
       name: string;
       animal: string;
       description: string;
     }>;
-  };
+    error?: string;
+  } | null;
+  error?: string;
 }
 
-// Define interface for word data
 export default function ResultsPage() {
   const [results, setResults] = useState<AnalysisResults | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -103,12 +111,17 @@ export default function ResultsPage() {
 
         if (!parsedResults.ai_analysis) {
           parsedResults.ai_analysis = {
-            summary: "AI analysis not available.",
+            summary: "AI analysis not available or skipped.",
             people: []
           };
         } else if (typeof parsedResults.ai_analysis === 'string') {
           try {
-            parsedResults.ai_analysis = JSON.parse(parsedResults.ai_analysis as unknown as string);
+            const aiParsed = JSON.parse(parsedResults.ai_analysis as unknown as string);
+            if (typeof aiParsed === 'object' && aiParsed !== null && 'summary' in aiParsed) {
+              parsedResults.ai_analysis = aiParsed;
+            } else {
+              throw new Error("Parsed AI data is not in the expected format.");
+            }
           } catch (e) {
             console.error("Failed to parse AI analysis from string:", e);
             parsedResults.ai_analysis = {
@@ -118,7 +131,7 @@ export default function ResultsPage() {
           }
         }
 
-        if (!parsedResults.ai_analysis.people) {
+        if (parsedResults.ai_analysis && !parsedResults.ai_analysis.people) {
           parsedResults.ai_analysis.people = [];
         }
 
@@ -129,7 +142,7 @@ export default function ResultsPage() {
           const sortedWords = Object.entries(parsedResults.common_words)
             .map(([text, value]) => ({ text: text.toUpperCase(), value }))
             .sort((a, b) => b.value - a.value)
-            .slice(0, 6); // Get top 6
+            .slice(0, 6);
 
           setTopWords(sortedWords);
         }
@@ -158,7 +171,6 @@ export default function ResultsPage() {
     return () => window.removeEventListener('resize', measureContainer);
   }, [topWords]);
 
-  // Define min/max font size constraints
   const minCharSize = 1.0;
   const absoluteMaxCharSize = 7.0;
 
@@ -202,7 +214,6 @@ export default function ResultsPage() {
     return `${clampedSize.toFixed(2)}rem`;
   };
 
-  // Define the list of background colors
   const bgColors = [
     'bg-rose-100',
     'bg-green-100',
@@ -212,6 +223,37 @@ export default function ResultsPage() {
     'bg-violet-100',
   ];
 
+  const formatPeakHour = (hour: number | null): string => {
+    if (hour === null || hour < 0 || hour > 23) {
+      return 'N/A';
+    }
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+    return `${displayHour} ${ampm}`;
+  };
+
+  const formatFirstTextChampion = (champion: AnalysisResults['first_text_champion']): string => {
+    if (!champion || !champion.user) {
+      return 'N/A';
+    }
+    const displayName = isPhoneNumber(champion.user) ? champion.user : champion.user.split(' ')[0];
+    return `${displayName} (${champion.count} times)`;
+  };
+
+  const formatMostIgnored = (ignoredData: AnalysisResults['most_ignored_users_pct']): string => {
+    if (!ignoredData || Object.keys(ignoredData).length === 0) {
+      return 'N/A';
+    }
+    const sortedIgnored = Object.entries(ignoredData)
+      .sort(([, percentageA], [, percentageB]) => percentageB - percentageA);
+
+    if (sortedIgnored.length === 0) {
+      return 'N/A';
+    }
+    const [user, percentage] = sortedIgnored[0];
+    const displayName = isPhoneNumber(user) ? user : user.split(' ')[0];
+    return `${displayName} (${percentage.toFixed(1)}%)`;
+  };
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -244,18 +286,13 @@ export default function ResultsPage() {
     );
   }
 
-  // Prepare data for User Interaction Chord Diagram
   const rawChordKeys = results.user_interaction_matrix
     ? results.user_interaction_matrix[0].slice(1).map(key => key as string)
     : [];
 
-  // Apply phone number filtering to chord data
   const { filteredMatrix: chordMatrix, filteredKeys: chordKeys } =
     filterChordData(results.user_interaction_matrix || [], rawChordKeys);
 
-  // Ensure the matrix is always number[][] as required by ResponsiveChord
-
-  // Prepare data for Common Emojis visualization
   const sortedEmojis = Object.entries(results.common_emojis)
     .map(([emoji, count]) => ({ emoji, count }))
     .sort((a, b) => b.count - a.count);
@@ -270,7 +307,6 @@ export default function ResultsPage() {
     const targetWidth = 1200;
     const originalStyle = elementToCapture.style.cssText;
 
-    // Create a container for the watermark and branding
     const brandingDiv = document.createElement('div');
     brandingDiv.style.cssText = `
       width: 100%;
@@ -282,13 +318,11 @@ export default function ResultsPage() {
       gap: 15px;
     `;
 
-    // Add logo
     const logoImg = document.createElement('img');
     logoImg.src = '/bloop_logo.svg';
     logoImg.alt = 'Bloop Logo';
     logoImg.style.height = '50px';
 
-    // Add text
     const siteText = document.createElement('p');
     siteText.textContent = 'generate your own at bloopit.vercel.app';
     siteText.style.cssText = `
@@ -298,11 +332,9 @@ export default function ResultsPage() {
       margin: 5;
     `;
 
-    // Assemble the branding element
     brandingDiv.appendChild(logoImg);
     brandingDiv.appendChild(siteText);
 
-    // Insert at the top of the content
     elementToCapture.insertBefore(brandingDiv, elementToCapture.firstChild);
 
     try {
@@ -333,7 +365,6 @@ export default function ResultsPage() {
           height: `${currentHeight}px`,
         },
         filter: (node: Node) => {
-          // Keep the SVG filter
           if (node instanceof Element && node.tagName === 'svg') {
             const hasForeignObject = node.querySelector('foreignObject');
             return !hasForeignObject;
@@ -356,7 +387,6 @@ export default function ResultsPage() {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       alert(`Failed to generate image: ${errorMessage}`);
     } finally {
-      // Remove the branding div when we're done
       if (brandingDiv.parentNode === elementToCapture) {
         elementToCapture.removeChild(brandingDiv);
       }
@@ -405,7 +435,6 @@ export default function ResultsPage() {
         </button>
       </div>
       <div className="p-4" ref={sectionRef} >
-        {/* Overall Chat Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
           <ChatStatistic
             title="you guys have sent"
@@ -413,14 +442,14 @@ export default function ResultsPage() {
             icon="chat.svg"
             altText="Total Messages"
             bgColor="bg-purple-100"
-            textColor="text-violet-800"
+            textColor="text-purple-800"
             iconWidth={40}
             iconHeight={20}
           />
 
           <ChatStatistic
             title="you&apos;ve been chatting for"
-            value={`${results.days_since_first_message} ${results.days_since_first_message === 1 ? 'day' : 'days'}`}
+            value={`${results.days_active ?? 'N/A'} ${results.days_active === 1 ? 'day' : 'days'}`}
             icon="calendar.svg"
             altText="Days Since First Message"
             bgColor="bg-emerald-100"
@@ -431,12 +460,7 @@ export default function ResultsPage() {
 
           <ChatStatistic
             title="who gets ghosted the most?"
-            value={
-              Object.entries(results.most_ignored_users)
-                .sort(([, percentageA], [, percentageB]) => percentageB - percentageA)
-                .slice(0, 1)
-                .map(([user]) => user.split(' ')[0])[0]
-            }
+            value={formatMostIgnored(results.most_ignored_users_pct)}
             icon="frown.svg"
             altText="Most Ignored Users"
             bgColor="bg-sky-50"
@@ -447,22 +471,22 @@ export default function ResultsPage() {
 
           <ChatStatistic
             title="when does your conversations peak?"
-            value={results.peak_hour}
+            value={formatPeakHour(results.peak_hour)}
             icon="peak.svg"
             altText="Peak Hour"
             bgColor="bg-sky-100"
-            textColor="text-gray-800"
+            textColor="text-sky-900"
             iconWidth={25}
             iconHeight={48}
           />
 
           <ChatStatistic
             title="who texts first usually?"
-            value={`${results.first_text_champion.user.split(' ')[0]}: ${results.first_text_champion.percentage.toFixed(2)}%`}
+            value={formatFirstTextChampion(results.first_text_champion)}
             icon="trophy.svg"
             altText="First Text Champion"
             bgColor="bg-violet-100"
-            textColor="text-gray-800"
+            textColor="text-violet-800"
             iconWidth={48}
             iconHeight={48}
           />
@@ -479,9 +503,7 @@ export default function ResultsPage() {
           />
         </div>
 
-        {/* Common Words and Emojis in a Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          {/* Common Words */}
           <section className="p-4 border-2 border-neutral-800 rounded-lg bg-zinc-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
             <div className='flex items-center justify-between'>
               <h2 className="text-xl font-bold mb-4 text-gray-700">you guys use these {topWords.length} words a lot</h2>
@@ -497,7 +519,6 @@ export default function ResultsPage() {
               {topWords.length > 0 ? (
                 topWords.map(({ text, value }, wordIndex) => {
                   const bgColor = bgColors[wordIndex % bgColors.length];
-                  // Call getCharSize with text and value
                   const charSizeStyle = getCharSize(value, text);
 
                   return (
@@ -533,7 +554,6 @@ export default function ResultsPage() {
             </div>
           </section>
 
-          {/* Common Emojis */}
           <section className="p-4 lg:h-full md:h-fit  border-2 border-neutral-800 rounded-lg bg-zinc-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
             <div className='flex items-center justify-between'>
               <h2 className="text-xl font-semibold mb-4 text-gray-700">can&apos;t get enough of these emojis</h2>
@@ -564,9 +584,8 @@ export default function ResultsPage() {
             </div>
           </section>
         </div>
-        {/* AI Summary and Weekday vs Weekend Activity side by side */}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          {/* AI Summary */}
           <section className="p-4 border-2 border-neutral-800 rounded-lg bg-purple-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-gray-700">wtf was all the yapping about?</h2>
@@ -579,14 +598,13 @@ export default function ResultsPage() {
               />
             </div>
             <AIAnalysis
-              summary={results.ai_analysis?.summary || ''}
+              summary={results.ai_analysis?.summary || 'Summary not available.'}
               people={results.ai_analysis?.people || []}
               summaryOnly={true}
             />
           </section>
 
-          {/* weekend vs weekday pie chart */}
-          {Object.keys(results.most_active_users).length <= 2 && (
+          {results.most_active_users_pct && Object.keys(results.most_active_users_pct).length <= 2 && (
             <section className="p-4 border-2 border-neutral-800 rounded-lg bg-lime-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
               <div className='flex items-center justify-between mb-4'>
                 <h2 className="text-xl font-semibold mb-4 text-gray-700">banter on weekday or relaxing on weekend?</h2>
@@ -619,7 +637,6 @@ export default function ResultsPage() {
             </section>
           )}
 
-          {/* User Interaction Matrix (Chord Diagram) */}
           {results.user_interaction_matrix && chordKeys.length > 2 && chordMatrix.length > 2 && (
             <section className="p-4 border-2 border-neutral-800 rounded-lg bg-lime-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
               <div className='flex items-center justify-between mb-4'>
@@ -655,7 +672,6 @@ export default function ResultsPage() {
           )}
         </div>
 
-        {/* AI Analysis - Personality Profiles*/}
         <div className="bg-emerald-50 px-6 rounded-lg shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] border-2 border-neutral-800  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out mb-8">
           <div className="flex items-center justify-between my-6">
             <h2 className="text-xl font-semibold text-gray-700">what kinda animal are you?</h2>
@@ -668,13 +684,12 @@ export default function ResultsPage() {
             />
           </div>
           <AIAnalysis
-            summary={results.ai_analysis?.summary || ''}
+            summary={results.ai_analysis?.summary || 'Summary not available.'}
             people={results.ai_analysis?.people || []}
             profilesOnly={true}
           />
         </div>
 
-        {/* Most Active Users and Conversation Starters in a Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           <section
             className="p-4 border-2 border-neutral-800 rounded-lg bg-teal-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out"
@@ -692,7 +707,7 @@ export default function ResultsPage() {
             </div>
             <div className='h-96'>
               <ResponsivePie
-                data={Object.entries(filterPhoneNumbers(results.most_active_users)).map(([user, percentage]) => ({
+                data={Object.entries(filterPhoneNumbers(results.most_active_users_pct)).map(([user, percentage]) => ({
                   id: user,
                   label: user,
                   value: percentage,
@@ -701,7 +716,7 @@ export default function ResultsPage() {
                 innerRadius={0.1}
                 padAngle={0}
                 cornerRadius={1}
-                activeOuterRadiusOffset={10}
+                activeOuterRadiusOffset={8}
                 borderWidth={1}
                 colors={{ scheme: 'pastel1' }}
                 enableArcLabels={true}
@@ -727,7 +742,7 @@ export default function ResultsPage() {
             </div>
             <div className='h-96'>
               <ResponsivePie
-                data={Object.entries(filterPhoneNumbers(results.conversation_starters)).map(([user, percentage]) => ({
+                data={Object.entries(filterPhoneNumbers(results.conversation_starters_pct)).map(([user, percentage]) => ({
                   id: user,
                   label: user,
                   value: percentage,
@@ -747,8 +762,6 @@ export default function ResultsPage() {
           </section>
         </div>
 
-
-        {/* User Monthly Activity using Nivo Line */}
         {results.user_monthly_activity && results.user_monthly_activity.length > 0 && (
           <section className="p-4 mb-20 border-2 border-neutral-800 rounded-lg bg-pink-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out"
             data-exclude-from-download="true">

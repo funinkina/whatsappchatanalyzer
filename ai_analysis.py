@@ -1,76 +1,185 @@
-from groq import AsyncGroq
 import os
-from dotenv import load_dotenv
-from utils import group_messages_by_topic, stratify_messages
+import asyncio
 import json
+import logging
 from collections import Counter
 
+from dotenv import load_dotenv
+from groq import AsyncGroq, RateLimitError, APIError
+
+try:
+    from utils import group_messages_by_topic, stratify_messages
+except ImportError:
+
+    def group_messages_by_topic(data, gap):
+        return [{"topic_id": 1, "messages": data}]
+
+    def stratify_messages(topics):
+        return topics
+
+
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_exponential,
+    retry_if_exception_type,
+)
+
 load_dotenv()
+logger = logging.getLogger(__name__)
+
+GROQ_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
+
+GROQ_MAX_TOKENS = 4096
+GROQ_TEMPERATURE = 1.3
+RETRY_ATTEMPTS = 3
+RETRY_WAIT_MIN_SECONDS = 1
+RETRY_WAIT_MAX_SECONDS = 5
+
+ALL_KEYS = {i: os.getenv(f"GROQ_API_KEY{i}") for i in list(range(1, 8)) + [9]}
+
+PRIMARY_KEYS = {i: key for i, key in ALL_KEYS.items() if i in range(1, 8) and key}
+FALLBACK_KEY = ALL_KEYS.get(9)
+
+if not PRIMARY_KEYS and not FALLBACK_KEY:
+    logger.error(
+        "CRITICAL: No valid GROQ_API_KEYs (1-7 or 9) found in environment variables. AI Analysis disabled."
+    )
+else:
+    logger.info(
+        f"Found {len(PRIMARY_KEYS)} primary Groq keys and {'1 fallback key' if FALLBACK_KEY else 'no fallback key'}."
+    )
+
+_primary_key_indices = list(PRIMARY_KEYS.keys())
+_current_primary_key_index = 0
+_key_rotation_lock = asyncio.Lock()
+
+
+async def get_next_primary_key():
+    """Safely gets the next primary key index and value using round-robin."""
+    if not _primary_key_indices:
+        return None, None
+
+    async with _key_rotation_lock:
+        global _current_primary_key_index
+        key_num = _primary_key_indices[_current_primary_key_index]
+        key_value = PRIMARY_KEYS[key_num]
+        _current_primary_key_index = (_current_primary_key_index + 1) % len(
+            _primary_key_indices
+        )
+        return key_num, key_value
+
+
+RETRYABLE_ERRORS = (
+    RateLimitError,
+    APIError,
+    asyncio.TimeoutError,
+)
+
+retry_decorator = retry(
+    stop=stop_after_attempt(RETRY_ATTEMPTS),
+    wait=wait_exponential(
+        multiplier=1, min=RETRY_WAIT_MIN_SECONDS, max=RETRY_WAIT_MAX_SECONDS
+    ),
+    retry=retry_if_exception_type(RETRYABLE_ERRORS),
+    before_sleep=lambda retry_state: logger.warning(
+        f"Retrying Groq API call (attempt {retry_state.attempt_number}) after error: {retry_state.outcome.exception()}"
+    ),
+)
+
+
+@retry_decorator
+async def invoke_groq(
+    api_key: str, key_name: str, system_prompt: str, user_content: str
+):
+    """Invokes the Groq API for a single key, with retry logic."""
+    if not api_key:
+
+        raise ValueError(f"Attempted to call Groq with empty API key ({key_name})")
+
+    logger.info(f"Attempting Groq analysis with {key_name}...")
+    try:
+        client = AsyncGroq(api_key=api_key)
+
+        response = await client.chat.completions.create(
+            model=GROQ_MODEL,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_content},
+            ],
+            temperature=GROQ_TEMPERATURE,
+            max_tokens=GROQ_MAX_TOKENS,
+            response_format={"type": "json_object"},
+        )
+        if response and response.choices:
+            content = response.choices[0].message.content
+
+            if (
+                content
+                and content.strip().startswith("{")
+                and content.strip().endswith("}")
+            ):
+                try:
+
+                    json.loads(content)
+                    logger.info(f"Successfully received valid JSON with {key_name}.")
+                    return content
+                except json.JSONDecodeError as json_err:
+
+                    error_msg = f"Invalid JSON received with {key_name}: {json_err}. Content: {content[:100]}..."
+                    logger.error(error_msg)
+                    raise ValueError(error_msg)
+            else:
+
+                error_msg = f"Output from {key_name} does not look like JSON. Content: {content[:100]}..."
+                logger.error(error_msg)
+                raise ValueError(error_msg)
+        else:
+
+            error_msg = f"No valid choices returned from Groq with {key_name}. Response: {response}"
+            logger.error(error_msg)
+
+            raise APIError(error_msg)
+
+    except (RateLimitError, APIError, asyncio.TimeoutError) as e:
+        logger.warning(
+            f"Retryable Groq API Error with {key_name}: {type(e).__name__} - {e}"
+        )
+        raise
+
+    except Exception as e:
+
+        logger.error(
+            f"Unexpected Error during Groq call with {key_name}: {type(e).__name__} - {e}",
+            exc_info=True,
+        )
+
+        raise APIError(f"Unexpected error: {e}") from e
+
 
 async def analyze_messages_with_llm(data, gap_hours=6):
     """
-    Analyze messages using Groq API by grouping and stratifying them first.
-
-    Args:
-        data: List of messages to analyze
-        gap_hours: Time gap in hours to group messages into topics
-
-    Returns:
-        Structured analysis from the Groq API as a JSON string, or None if analysis fails.
+    Analyze messages using Groq API with key rotation, retries, and improved error handling.
     """
+    if not PRIMARY_KEYS and not FALLBACK_KEY:
+        logger.warning("Skipping AI Analysis: No Groq API keys configured.")
+        return None
+
     topics = group_messages_by_topic(data, gap_hours)
     stratified_topics = stratify_messages(topics)
-    grouped_messages_json = json.dumps(stratified_topics, indent=2)
+
+    try:
+        grouped_messages_json = json.dumps(stratified_topics, indent=2)
+    except TypeError as e:
+        logger.error(f"Failed to serialize messages for LLM: {e}", exc_info=True)
+        return None
 
     if not grouped_messages_json or grouped_messages_json == "[]":
-        print("Error: No messages to analyze after grouping and stratifying.")
+        logger.warning("No messages to analyze after grouping and stratifying.")
         return None
 
     unique_users = Counter([message[2] for message in data]).keys()
     user_count = len(unique_users)
-
-    groq_api_key1 = os.getenv("GROQ_API_KEY1")
-    groq_api_key2 = os.getenv("GROQ_API_KEY2")
-    groq_api_key3 = os.getenv("GROQ_API_KEY3")
-
-    api_keys = [key for key in [groq_api_key1, groq_api_key2, groq_api_key3] if key]
-
-    if not api_keys:
-        print("Error: No valid GROQ_API_KEY found in environment variables.")
-        return None
-
-    async def invoke_groq_api(api_key):
-        if not api_key:
-            return None, "API key not provided"
-        try:
-            client = AsyncGroq(api_key=api_key)
-            response = await client.chat.completions.create(
-                model="llama3-70b-8192",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": grouped_messages_json}
-                ],
-                temperature=1.0,
-                max_tokens=2048,
-                response_format={"type": "json_object"}
-            )
-            if response and response.choices:
-                content = response.choices[0].message.content
-                # Basic check if it looks like JSON
-                if content and content.strip().startswith('{') and content.strip().endswith('}'):
-                    try:
-                        json.loads(content)
-                        return content, None
-                    except json.JSONDecodeError as json_err:
-                        return None, f"Invalid JSON received: {json_err}. Content: {content[:100]}..."
-                else:
-                    return None, f"Output does not look like JSON. Content: {content[:100]}..."
-            else:
-                return None, "No valid choices returned from Groq."
-        except Exception as e:
-            # Log the full error for debugging but return a simpler message
-            print(f"Groq API Error details: {e}")
-            return None, f"Error connecting to Groq API: {type(e).__name__}"
 
     system_prompt = """
     You are a Gen Z teenager judging a group chat. You're a quirky, playful, and unfiltered AI with chaotic energy.
@@ -81,6 +190,8 @@ async def analyze_messages_with_llm(data, gap_hours=6):
     Do not say that the chats are random or jumping from topic to topic.
 
     Your job? Deliver an unhinged, brutally honest, and funny breakdown of the chat in JSON format.
+    But remember to not actually make fun of the people in the chat. Just be a little spicy, okay?
+    And make sure to analyse all the people in the chat.
 
     *STRICT INSTRUCTIONS*
     - Output ONLY valid JSON.
@@ -105,26 +216,42 @@ async def analyze_messages_with_llm(data, gap_hours=6):
     }
     """
     else:
-        # Close the JSON object if 'people' key is not added
         system_prompt += """
     }
     """
-    if user_count > 10:
-        system_prompt = system_prompt.strip()
 
-    last_error = "No attempts made."
-    for i, key in enumerate(api_keys):
-        print(f"Attempting analysis with API Key {i + 1}...")
-        result, error = await invoke_groq_api(key)
+    last_exception = None
 
-        if result is not None:
-            # We already validated JSON in invoke_groq_api
-            print(f"Successfully received valid JSON with API Key {i + 1}.")
-            # print(result) # Optional: print the successful JSON result
+    num_primary_keys = len(PRIMARY_KEYS)
+    for _ in range(num_primary_keys):
+        key_num, key_to_try = await get_next_primary_key()
+        if key_num is None:
+            break
+
+        key_name = f"Primary Key #{key_num}"
+        try:
+            result = await invoke_groq(
+                key_to_try, key_name, system_prompt, grouped_messages_json
+            )
             return result
-        else:
-            print(f"Attempt with API Key {i + 1} failed: {error}")
-            last_error = error
+        except Exception as e:
+            logger.warning(f"Failed attempt with {key_name}: {e}")
+            last_exception = e
 
-    print(f"All API key attempts failed. Last error: {last_error}")
+    if FALLBACK_KEY:
+        key_name = "Fallback Key #9"
+        try:
+            logger.info("Primary keys failed or unavailable, attempting fallback key.")
+            result = await invoke_groq(
+                FALLBACK_KEY, key_name, system_prompt, grouped_messages_json
+            )
+            return result
+        except Exception as e:
+            logger.error(f"Fallback key {key_name} also failed: {e}")
+            last_exception = e
+
+    logger.error(
+        f"All Groq API key attempts failed. Last error: {last_exception}",
+        exc_info=last_exception is not None,
+    )
     return None
