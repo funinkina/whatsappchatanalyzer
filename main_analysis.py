@@ -38,7 +38,14 @@ async def analyze_chat(chat_file, original_filename=None):
 
     messages_data = preprocess_messages(chat_file)
 
-    ai_analysis_task = asyncio.create_task(analyze_messages_with_llm(messages_data))
+    # Get unique users from the messages data
+    unique_users = set(sender for _, _, sender, _ in messages_data)
+
+    ai_analysis_task = None
+    if len(unique_users) <= 10:
+        ai_analysis_task = asyncio.create_task(analyze_messages_with_llm(messages_data))
+    else:
+        print(f"Skipping AI analysis due to large number of users: {len(unique_users)}")
 
     user_message_count = defaultdict(int)
     user_starts_convo = defaultdict(int)
@@ -184,21 +191,23 @@ async def analyze_chat(chat_file, original_filename=None):
     average_weekday_messages = round(total_weekday_messages / 5, 2) if total_weekday_messages > 0 else 0
     average_weekend_messages = round(total_weekend_messages / 2, 2) if total_weekend_messages > 0 else 0
 
-    ai_analysis = await ai_analysis_task
-    if ai_analysis is None:
-        ai_analysis = {
-            "summary": "No AI analysis available for this chat.",
-            "people": []
-        }
-    else:
-        try:
-            ai_analysis = json.loads(ai_analysis)
-        except json.JSONDecodeError as e:
-            print(f"Error parsing AI analysis JSON: {e}")
+    ai_analysis = None
+    if ai_analysis_task:
+        ai_analysis = await ai_analysis_task
+        if ai_analysis is None:
             ai_analysis = {
-                "summary": "Error parsing AI analysis.",
+                "summary": "No AI analysis available for this chat.",
                 "people": []
             }
+        else:
+            try:
+                ai_analysis = json.loads(ai_analysis)
+            except json.JSONDecodeError as e:
+                print(f"Error parsing AI analysis JSON: {e}")
+                ai_analysis = {
+                    "summary": "Error parsing AI analysis.",
+                    "people": []
+                }
     nivo_interaction_matrix = None
     if len(user_message_count) > 1:
         matrix_header = [None] + all_users_list
