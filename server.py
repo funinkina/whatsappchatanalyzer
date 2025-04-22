@@ -30,9 +30,9 @@ except ImportError:
 load_dotenv()
 
 API_KEY = os.getenv("VAL_API_KEY")
-MAX_CONCURRENT_ANALYSES = 10
+MAX_CONCURRENT_ANALYSES = 15
 TEMP_DIR_ROOT = Path(tempfile.gettempdir()) / "whatsapp_analyzer_temp"
-MAX_TEMP_FILE_AGE_SECONDS = int(os.getenv("MAX_TEMP_FILE_AGE_SECONDS", 3600))
+MAX_TEMP_FILE_AGE_SECONDS = 6000
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", "8000"))

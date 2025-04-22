@@ -1,57 +1,91 @@
 # Whatsapp Chat Analyzer
-Provides some cool analysis of your whatsapp chat, such as:
-- Top words and emojis
-- Most replies
-- Most ignored
-- Biggest conversation starter
-- AI analysis of the chat
+
+This project provides insightful analysis of your WhatsApp chat history. Gain a deeper understanding of your conversations with features like:
+
+*   **Top Words and Emojis:** Discover the most frequently used words and emojis in your chat.
+*   **Engagement Metrics:** Identify who replies the most and whose messages tend to be ignored.
+*   **Conversation Starters:** Find out who initiates conversations most often.
+*   **AI-Powered Analysis:** Get an AI-generated summary and analysis of the chat dynamics (powered by models via Genezio).
+
+## Project Structure
+
+*   **Backend (`server.py`, `main_analysis.py`, `ai_analysis.py`, `utils.py`):** A Python application using FastAPI to provide an API for chat analysis and a script for direct command-line analysis.
+*   **Frontend (`whatsfrontend/`):** A Next.js application to provide a user-friendly web interface for uploading and analyzing chats.
 
 ## Installation
 
-### Linux
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
+### Backend (Python)
 
-### Windows
-```bash
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-```
+1.  **Clone the repository:**
+    ```bash
+    git clone <your-repository-url>
+    cd whatsappchatanalyzer
+    ```
+2.  **Create and activate a virtual environment:**
+
+    *   **Linux/macOS:**
+        ```bash
+        python -m venv .venv
+        source .venv/bin/activate
+        ```
+    *   **Windows:**
+        ```bash
+        python -m venv .venv
+        .venv\Scripts\activate
+        ```
+3.  **Install dependencies:**
+    ```bash
+    pip install -r requirements.txt
+    ```
+4.  **Set up environment variables:**
+    Copy `.env.example` to `.env` and fill in your API keys (e.g., for the AI analysis service).
+
+### Frontend (Next.js)
+
+1.  **Navigate to the frontend directory:**
+    ```bash
+    cd whatsfrontend
+    ```
+2.  **Install dependencies:**
+    ```bash
+    npm install
+    # or
+    yarn install
+    # or
+    pnpm install
+    ```
+3.  **Set up environment variables:**
+    Copy `whatsfrontend/.env.example` to `whatsfrontend/.env` and configure necessary variables (e.g., the backend API endpoint).
 
 ## Usage
-```bash
-fastapi dev server.py
-```
 
-### You can also use the script to analyze the chat
-```bash
-python main_analysis.py --file </path/to/your/Whatsapp Chat with friend.txt>
-```
+### Running the Backend Server
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+1.  Make sure you are in the project's root directory (`whatsappchatanalyzer`) and your Python virtual environment is activated.
+2.  Run the FastAPI development server:
+    ```bash
+    fastapi dev server.py
+    ```
+    The API will typically be available at `http://127.0.0.1:8000`.
 
-## Getting Started
+### Running the Frontend Development Server
 
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1.  Navigate to the `whatsfrontend/` directory.
+2.  Start the Next.js development server:
+    ```bash
+    npm run dev
+    # or
+    yarn dev
+    # or
+    pnpm dev
+    ```
+    The frontend will usually be accessible at `http://localhost:3000`.
 
 ## TODO
-- [ ] Add more analysis
-- [ ] Build a frontend
-- [ ] Make the llm return a json object
-- [ ] Add more error handling
-- [ ] Enable optional logging
-- [ ] Add more validations
+
+*   [ ] Add more analysis features (e.g., activity over time, sentiment analysis).
+*   [x] Build a frontend (Initial version exists in `whatsfrontend/`).
+*   [x] Make the LLM return a structured JSON object for easier frontend integration.
+*   [x] Implement more robust error handling for file parsing and API calls.
+*   [ ] Add optional logging for debugging and monitoring.
+*   [ ] Include more input validations (file type, size, format).
