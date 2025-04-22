@@ -27,14 +27,6 @@ pip install -r requirements.txt
 fastapi dev server.py
 ```
 
-### You can send the request using curl such as:
-```bash
-curl -X POST "http://127.0.0.1:8000/analyze/?convo_break_minutes=60" \
-    -H "accept: application/json" \
-    -H "Content-Type: multipart/form-data" \
-    -F "file=@</path/to/your/Whatsapp Chat with friend.txt>"
-```
-
 ### You can also use the script to analyze the chat
 ```bash
 python main_analysis.py --file </path/to/your/Whatsapp Chat with friend.txt>
