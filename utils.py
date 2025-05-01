@@ -2,109 +2,76 @@ import re
 from datetime import datetime
 import random
 import string
+import json
 
 timestamp_pattern = re.compile(
-    r"(\d{1,2}/\d{1,2}/\d{2,4}), "  # Date (Group 1)
-    r"(\d{1,2}:\d{2}(?:[\s\u202f](?:AM|PM))?)"  # Time (Group 2) - Handles space or \u202f before AM/PM
-    r" - (.*?): (.*)",  # Sender (Group 3), Message (Group 4)
-    re.IGNORECASE,
+    r"^\u200e?"
+    r"\[?"
+    r"(\d{1,2}/\d{1,2}/\d{2,4}),\s*"  # Date (Group 1)
+    r"(\d{1,2}:\d{2}(?::\d{2})?(?:[\s\u202f](?:AM|PM))?)"  # Time (Group 2) - Optional seconds, handles space or \u202f before AM/PM
+    r"(?:\]?\s*-\s*|\]\s*)"  # Separator: Optional closing bracket + hyphen OR Closing bracket + space
+    r"(.*?):\s*(.*)",  # Sender (Group 3), Message (Group 4)
+    re.IGNORECASE | re.UNICODE,
 )
-system_message_patterns = [
-    # Encryption & System
-    "Messages and calls are end-to-end encrypted",
-    "Disappearing messages were turned",
-    "changed the subject to",
-    "changed this group’s icon",
-    "changed this group’s description",
-    "changed this group's icon",
-    "changed this group's description",
-    "You joined using a link",
-    "You left",
-    "You were added",
-    "You removed",
-    "You changed the group icon",
-    "You changed the group name",
-    "You changed the group description",
-    "You changed the group settings",
-    "You changed the group type",
-    "You changed the group",
-    "You changed the group subject",
-    "You changed the group subject to",
-    "You changed the group name to",
-    "You changed the group description to",
-    "You changed the group type to",
-    "You changed the group settings to",
-    "You changed the group icon to",
-    # Deleted/Edited Messages
-    "This message was deleted",
-    "You deleted this message",
-    "deleted message",
-    "This message edited",
-    "message deleted",
-    "Message deleted",
-    "message was deleted",
-    # Media/File Omitted
-    "Media omitted",
-    "Image omitted",
-    "Video omitted",
-    "Sticker omitted",
-    "Document omitted",
-    "GIF omitted",
-    "Audio omitted",
-    "You sent a photo",
-    "You sent a voice message",
-    "You sent a video",
-    "You sent a document",
-    "You sent an audio",
-    # Calls
-    "Missed voice call",
-    "Missed video call",
-    "You missed a call",
-    "Call back",
-    "Incoming call",
-    "Outgoing call",
-    # Contact Cards & Metadata
-    ".vcf",
-    "Contact card",
-    # Formatting artifacts / junk lines
-    "<",
-    ">",
-    "{",
-    "}",
-    "\u200e",  # Left-to-right mark
-    "\u200f",  # Right-to-left mark
-    # Extra vague terms to catch junk
-    "Group created",
-    "Group notification",
-    "icon",
-    "description",
-]
+
+
+def load_system_message_patterns():
+    """Loads system message patterns from a JSON file."""
+    try:
+        with open("data/system_message_patterns.json", "r", encoding="utf-8") as f:
+            patterns = json.load(f)
+            # print(f"Loaded {len(patterns)} system message patterns.")
+            return patterns
+    except FileNotFoundError:
+        print(
+            "Error: System message patterns file 'data/system_message_patterns.json' not found."
+        )
+        return []
+    except json.JSONDecodeError:
+        print("Error: Could not decode JSON from 'data/system_message_patterns.json'.")
+        return []
+
+
+system_message_patterns = load_system_message_patterns()  # Load patterns from JSON
+
 url_pattern = re.compile(r"https?://\S+|www\.\S+")
 
 
 def preprocess_messages(chat_file):
     """Parse chat messages, remove links and stopwords."""
     messages_data = []
+    # Updated timestamp formats to include seconds
     timestamp_formats = [
         # US style with AM/PM (handles m/d/yy and mm/dd/yyyy)
         "%m/%d/%y %I:%M %p",
         "%m/%d/%Y %I:%M %p",
+        "%m/%d/%y %I:%M:%S %p",  # Added seconds
+        "%m/%d/%Y %I:%M:%S %p",  # Added seconds
         # European style 24-hour (handles d/m/yy and dd/mm/yyyy)
         "%d/%m/%y %H:%M",
         "%d/%m/%Y %H:%M",
+        "%d/%m/%y %H:%M:%S",  # Added seconds
+        "%d/%m/%Y %H:%M:%S",  # Added seconds
     ]
     with open(chat_file, "r", encoding="utf-8") as f:
         for line in f:
-            full_match = timestamp_pattern.search(line)
+            full_match = timestamp_pattern.match(line)
             if not full_match:
-                continue
-            match_start = full_match.group(0).split(" - ")[0]
-            if not line.startswith(match_start):
-                continue
+                if line.startswith("\u200e"):
+                    full_match = timestamp_pattern.match(line[1:])
+                if not full_match:
+                    # print(f"Skipping line (no timestamp match): {line.strip()}")
+                    continue
 
             date_str, time_str, sender, message = full_match.groups()
 
-            if any(pattern in message for pattern in system_message_patterns):
+            if message.startswith("\u200e"):
+                message = message[1:]
+
+            if (
+                any(pattern in message for pattern in system_message_patterns)
+                or "<attached:" in message
+            ):
                 continue
 
             timestamp = None
@@ -114,22 +81,27 @@ def preprocess_messages(chat_file):
 
             for fmt in timestamp_formats:
                 try:
-                    # Ensure AM/PM formats are only tried if AM/PM is present
+                    if "%S" in fmt and time_cleaned.count(":") < 2:
+                        continue
+
+                    if "%S" not in fmt and time_cleaned.count(":") >= 2:
+                        continue
+
                     if "%p" in fmt and not (
                         " AM" in datetime_str or " PM" in datetime_str
                     ):
                         continue
-                    # Ensure 24hr formats are only tried if AM/PM is NOT present
+
                     if "%p" not in fmt and (
                         " AM" in datetime_str or " PM" in datetime_str
                     ):
                         continue
 
                     timestamp = datetime.strptime(datetime_str, fmt)
-                    # print(f"Success: Parsed '{datetime_str}' with format '{fmt}' -> {timestamp}") # Debug
+                    # print(f"Success: Parsed '{datetime_str}' with format '{fmt}' -> {timestamp}")
                     break
                 except ValueError:
-                    # print(f"Failed: Parsing '{datetime_str}' with format '{fmt}'") # Debug
+                    # print(f"Failed: Parsing '{datetime_str}' with format '{fmt}'")
                     continue
 
             if timestamp is None:
@@ -287,7 +259,7 @@ def stratify_messages(topics):
 
     final_sampled = {}
     max_tokens_per_sender = 500
-    max_individual_message_length = 400  # Max characters for a single message
+    max_individual_message_length = 600  # Max characters for a single message
 
     num_senders = len(consolidated_messages)
     if num_senders == 2:
