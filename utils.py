@@ -207,6 +207,17 @@ def clean_text_remove_stopwords(text):
     return " ".join(filtered_words)
 
 
+def contains_excessive_special_chars(text, allowed_punctuation=".,?!'\"()"):
+    """Checks if a string contains characters other than letters, numbers, whitespace, and allowed punctuation."""
+    allowed_chars = set(
+        string.ascii_letters + string.digits + string.whitespace + allowed_punctuation
+    )
+    for char in text:
+        if char not in allowed_chars:
+            return True
+    return False
+
+
 def group_messages_by_topic(data, gap_hours):
     """Group messages into topics based on time gap, remove emojis."""
     if not data:
@@ -247,6 +258,10 @@ def estimate_tokens(text):
 
 
 def stratify_messages(topics):
+    """
+    Groups messages by sender from topics, filters unsuitable messages,
+    and samples representative messages, prioritizing longer ones with some randomness.
+    """
     consolidated_messages = {}
 
     for topic in topics:
@@ -256,11 +271,13 @@ def stratify_messages(topics):
 
             if not message_text.strip():
                 continue
-            if len(message_text.split()) < 2:
+            if len(message_text.split()) < 3:
                 continue
             if message_text.isnumeric():
                 continue
             if not any(char.isalnum() for char in message_text):
+                continue
+            if contains_excessive_special_chars(message_text):
                 continue
 
             if sender not in consolidated_messages:
@@ -270,6 +287,7 @@ def stratify_messages(topics):
 
     final_sampled = {}
     max_tokens_per_sender = 500
+    max_individual_message_length = 400  # Max characters for a single message
 
     num_senders = len(consolidated_messages)
     if num_senders == 2:
@@ -280,21 +298,48 @@ def stratify_messages(topics):
         max_messages_per_sender = 25
 
     for sender, msgs in consolidated_messages.items():
-        # Sort messages by length in descending order
-        msgs.sort(key=len, reverse=True)
+        eligible_msgs = [
+            msg for msg in msgs if len(msg) <= max_individual_message_length
+        ]
+
+        eligible_msgs.sort(key=len, reverse=True)
+
         selected_msgs = []
         total_tokens = 0
+        potential_indices = list(range(len(eligible_msgs)))
+        long_message_priority_prob = 0.7
 
-        for msg in msgs:
-            if len(selected_msgs) >= max_messages_per_sender:
-                break
+        while len(selected_msgs) < max_messages_per_sender and potential_indices:
+            prioritize_long = random.random() < long_message_priority_prob
 
+            if prioritize_long:
+                num_candidates = min(len(potential_indices), 5)
+                if num_candidates == 0:
+                    break
+                chosen_relative_index = random.randrange(num_candidates)
+
+                chosen_msg_index_in_eligible = potential_indices.pop(
+                    chosen_relative_index
+                )
+            else:
+                if not potential_indices:
+                    break
+
+                random_index_in_potential = random.randrange(len(potential_indices))
+
+                chosen_msg_index_in_eligible = potential_indices.pop(
+                    random_index_in_potential
+                )
+
+            msg = eligible_msgs[chosen_msg_index_in_eligible]
             token_est = estimate_tokens(msg)
+
             if total_tokens + token_est <= max_tokens_per_sender:
                 selected_msgs.append(msg)
                 total_tokens += token_est
 
         if selected_msgs:
+            random.shuffle(selected_msgs)
             final_sampled[sender] = selected_msgs
 
     return final_sampled
