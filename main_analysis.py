@@ -4,10 +4,8 @@ import json
 import os
 import logging
 from collections import defaultdict, Counter
-from pathlib import Path
 import emoji
-import numpy as np  # Added for percentile calculation
-from datetime import timedelta  # Added for time calculations
+import numpy as np
 from utils import (
     preprocess_messages,
     load_stopwords,
@@ -16,7 +14,7 @@ from ai_analysis import analyze_messages_with_llm
 
 logger = logging.getLogger(__name__)
 
-STOPWORDS_FILE = "stopwords.txt"
+STOPWORDS_FILE = "data/stopwords.txt"
 
 STOPWORDS = set()
 try:

@@ -144,13 +144,13 @@ def preprocess_messages(chat_file):
 
 def load_stopwords():
     try:
-        with open("stopwords.txt", "r", encoding="utf-8") as f:
+        with open("data/stopwords.txt", "r", encoding="utf-8") as f:
             stopwords_set = set(f.read().splitlines())
             # print(f"Loaded {len(stopwords_set)} stopwords.")
             return stopwords_set
     except FileNotFoundError:
         print(
-            "Warning: Stopwords file 'stopwords.txt' not found. Using empty stopwords set."
+            "Warning: Stopwords file 'data/stopwords.txt' not found. Using empty stopwords set."
         )
         return set()
 
@@ -158,7 +158,7 @@ def load_stopwords():
 STOPWORDS = {word.lower() for word in load_stopwords()}
 if not STOPWORDS:
     print(
-        "Warning: Stopwords set is empty. Ensure 'stopwords.txt' exists and is populated."
+        "Warning: Stopwords set is empty. Ensure 'data/stopwords.txt' exists and is populated."
     )
 
 
