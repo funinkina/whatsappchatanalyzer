@@ -7,7 +7,7 @@ timestamp_pattern = re.compile(
     r"(\d{1,2}/\d{1,2}/\d{2,4}), "  # Date (Group 1)
     r"(\d{1,2}:\d{2}(?:[\s\u202f](?:AM|PM))?)"  # Time (Group 2) - Handles space or \u202f before AM/PM
     r" - (.*?): (.*)",  # Sender (Group 3), Message (Group 4)
-    re.IGNORECASE
+    re.IGNORECASE,
 )
 system_message_patterns = [
     # Encryption & System
@@ -22,7 +22,19 @@ system_message_patterns = [
     "You left",
     "You were added",
     "You removed",
-
+    "You changed the group icon",
+    "You changed the group name",
+    "You changed the group description",
+    "You changed the group settings",
+    "You changed the group type",
+    "You changed the group",
+    "You changed the group subject",
+    "You changed the group subject to",
+    "You changed the group name to",
+    "You changed the group description to",
+    "You changed the group type to",
+    "You changed the group settings to",
+    "You changed the group icon to",
     # Deleted/Edited Messages
     "This message was deleted",
     "You deleted this message",
@@ -31,7 +43,6 @@ system_message_patterns = [
     "message deleted",
     "Message deleted",
     "message was deleted",
-
     # Media/File Omitted
     "Media omitted",
     "Image omitted",
@@ -45,7 +56,6 @@ system_message_patterns = [
     "You sent a video",
     "You sent a document",
     "You sent an audio",
-
     # Calls
     "Missed voice call",
     "Missed video call",
@@ -53,11 +63,9 @@ system_message_patterns = [
     "Call back",
     "Incoming call",
     "Outgoing call",
-
     # Contact Cards & Metadata
     ".vcf",
     "Contact card",
-
     # Formatting artifacts / junk lines
     "<",
     ">",
@@ -65,14 +73,14 @@ system_message_patterns = [
     "}",
     "\u200e",  # Left-to-right mark
     "\u200f",  # Right-to-left mark
-
     # Extra vague terms to catch junk
     "Group created",
     "Group notification",
     "icon",
-    "description"
+    "description",
 ]
-url_pattern = re.compile(r'https?://\S+|www\.\S+')
+url_pattern = re.compile(r"https?://\S+|www\.\S+")
+
 
 def preprocess_messages(chat_file):
     """Parse chat messages, remove links and stopwords."""
@@ -90,7 +98,7 @@ def preprocess_messages(chat_file):
             full_match = timestamp_pattern.search(line)
             if not full_match:
                 continue
-            match_start = full_match.group(0).split(' - ')[0]
+            match_start = full_match.group(0).split(" - ")[0]
             if not line.startswith(match_start):
                 continue
 
@@ -100,17 +108,21 @@ def preprocess_messages(chat_file):
                 continue
 
             timestamp = None
-            time_cleaned = time_str.replace('\u202f', ' ').strip().upper()
+            time_cleaned = time_str.replace("\u202f", " ").strip().upper()
             date_cleaned = date_str.strip()
             datetime_str = f"{date_cleaned} {time_cleaned}"
 
             for fmt in timestamp_formats:
                 try:
                     # Ensure AM/PM formats are only tried if AM/PM is present
-                    if "%p" in fmt and not (" AM" in datetime_str or " PM" in datetime_str):
+                    if "%p" in fmt and not (
+                        " AM" in datetime_str or " PM" in datetime_str
+                    ):
                         continue
                     # Ensure 24hr formats are only tried if AM/PM is NOT present
-                    if "%p" not in fmt and (" AM" in datetime_str or " PM" in datetime_str):
+                    if "%p" not in fmt and (
+                        " AM" in datetime_str or " PM" in datetime_str
+                    ):
                         continue
 
                     timestamp = datetime.strptime(datetime_str, fmt)
@@ -129,45 +141,56 @@ def preprocess_messages(chat_file):
                 messages_data.append((timestamp, date_cleaned, sender, cleaned_message))
     return messages_data
 
+
 def load_stopwords():
     try:
-        with open("stopwords.txt", 'r', encoding='utf-8') as f:
+        with open("stopwords.txt", "r", encoding="utf-8") as f:
             stopwords_set = set(f.read().splitlines())
             # print(f"Loaded {len(stopwords_set)} stopwords.")
             return stopwords_set
     except FileNotFoundError:
-        print("Warning: Stopwords file 'stopwords.txt' not found. Using empty stopwords set.")
+        print(
+            "Warning: Stopwords file 'stopwords.txt' not found. Using empty stopwords set."
+        )
         return set()
+
 
 STOPWORDS = {word.lower() for word in load_stopwords()}
 if not STOPWORDS:
-    print("Warning: Stopwords set is empty. Ensure 'stopwords.txt' exists and is populated.")
+    print(
+        "Warning: Stopwords set is empty. Ensure 'stopwords.txt' exists and is populated."
+    )
+
 
 def remove_links(text):
-    return url_pattern.sub('', text)
+    return url_pattern.sub("", text)
+
 
 def remove_emojis(text):
     emoji_pattern = re.compile(
         "["
-        "\U0001F600-\U0001F64F"  # emoticons
-        "\U0001F300-\U0001F5FF"  # symbols & pictographs
-        "\U0001F680-\U0001F6FF"  # transport & map symbols
-        "\U0001F1E0-\U0001F1FF"  # flags
-        "\U00002500-\U00002BEF"
-        "\U00002702-\U000027B0"
-        "\U000024C2-\U0001F251"
+        "\U0001f600-\U0001f64f"  # emoticons
+        "\U0001f300-\U0001f5ff"  # symbols & pictographs
+        "\U0001f680-\U0001f6ff"  # transport & map symbols
+        "\U0001f1e0-\U0001f1ff"  # flags
+        "\U00002500-\U00002bef"
+        "\U00002702-\U000027b0"
+        "\U000024c2-\U0001f251"
         "\U0001f926-\U0001f937"
         "\U00010000-\U0010ffff"
         "\u200d"
         "\u2640-\u2642"
-        "\u2600-\u2B55"
+        "\u2600-\u2b55"
         "\u23cf"
         "\u23e9"
         "\u231a"
         "\ufe0f"
         "\u3030"
-        "]+", flags=re.UNICODE)
-    return emoji_pattern.sub('', text)
+        "]+",
+        flags=re.UNICODE,
+    )
+    return emoji_pattern.sub("", text)
+
 
 def clean_text_remove_stopwords(text):
     text = remove_links(text)
@@ -177,10 +200,12 @@ def clean_text_remove_stopwords(text):
         return word.strip(string.punctuation).lower()
 
     filtered_words = [
-        w for w in map(normalize_word, text.split())
+        w
+        for w in map(normalize_word, text.split())
         if w not in STOPWORDS and len(w) > 2
     ]
-    return ' '.join(filtered_words)
+    return " ".join(filtered_words)
+
 
 def group_messages_by_topic(data, gap_hours):
     """Group messages into topics based on time gap, remove emojis."""
@@ -215,9 +240,11 @@ def group_messages_by_topic(data, gap_hours):
 
     return processed_topics
 
+
 def estimate_tokens(text):
     """Estimate tokens in a message."""
     return int(len(text.split()) * 1.3)
+
 
 def stratify_messages(topics):
     consolidated_messages = {}

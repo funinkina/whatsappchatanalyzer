@@ -6,6 +6,8 @@ import logging
 from collections import defaultdict, Counter
 from pathlib import Path
 import emoji
+import numpy as np  # Added for percentile calculation
+from datetime import timedelta  # Added for time calculations
 from utils import (
     preprocess_messages,
     load_stopwords,
@@ -14,12 +16,11 @@ from ai_analysis import analyze_messages_with_llm
 
 logger = logging.getLogger(__name__)
 
-CONVO_BREAK_MINUTES = 120
 STOPWORDS_FILE = "stopwords.txt"
 
 STOPWORDS = set()
 try:
-    STOPWORDS = load_stopwords(STOPWORDS_FILE)
+    STOPWORDS = load_stopwords()
     logger.info(f"Successfully loaded {len(STOPWORDS)} stopwords from {STOPWORDS_FILE}")
 
 except FileNotFoundError:
@@ -36,9 +37,53 @@ async def run_sync(func, *args):
     return await loop.run_in_executor(None, func, *args)
 
 
-async def chat_statistics(messages_data):
+def calculate_dynamic_convo_break(
+    messages_data, default_break_minutes=120, min_break=30, max_break=300
+):
+    """Calculates a dynamic conversation break time based on response times."""
+    response_times_minutes = []
+    last_timestamp = None
+    last_sender = None
+
+    for timestamp, _, sender, _ in messages_data:
+        if last_timestamp and last_sender and sender != last_sender:
+            time_diff_seconds = (timestamp - last_timestamp).total_seconds()
+            # Only consider plausible response times (e.g., > 5s and < 12 hours)
+            if 5 < time_diff_seconds < 12 * 3600:
+                response_times_minutes.append(time_diff_seconds / 60)
+        last_timestamp = timestamp
+        last_sender = sender
+
+    if len(response_times_minutes) < 20:  # Need sufficient data points
+        logger.info(
+            f"Not enough response time data ({len(response_times_minutes)} points), using default break: {default_break_minutes} mins"
+        )
+        return default_break_minutes
+
+    try:
+        # Use a percentile (e.g., 85th) to find a point separating typical replies from longer gaps
+        p85 = np.percentile(response_times_minutes, 85)
+        # Set break slightly above this percentile, e.g., p85 * 1.5 or p85 + 30
+        dynamic_break = p85 + 30
+        # Clamp the value within reasonable bounds
+        dynamic_break = max(min_break, min(dynamic_break, max_break))
+        logger.info(
+            f"Calculated dynamic conversation break: {dynamic_break:.2f} minutes (based on p85={p85:.2f})"
+        )
+        return round(dynamic_break)
+    except Exception as e:
+        logger.error(
+            f"Error calculating dynamic break: {e}. Falling back to default.",
+            exc_info=True,
+        )
+        return default_break_minutes
+
+
+async def chat_statistics(messages_data, convo_break_minutes):
     """Calculates various statistics from preprocessed message data."""
-    logger.debug(f"Calculating statistics for {len(messages_data)} messages.")
+    logger.debug(
+        f"Calculating statistics for {len(messages_data)} messages using break time: {convo_break_minutes} mins."
+    )
 
     user_message_count = defaultdict(int)
     user_starts_convo = defaultdict(int)
@@ -71,7 +116,7 @@ async def chat_statistics(messages_data):
 
         if last_timestamp:
             time_diff_minutes = (timestamp - last_timestamp).total_seconds() / 60
-            if time_diff_minutes > CONVO_BREAK_MINUTES:
+            if time_diff_minutes > convo_break_minutes:
                 current_convo_start = True
 
             if last_sender and sender != last_sender:
@@ -132,7 +177,6 @@ async def chat_statistics(messages_data):
     if len(messages_data) > 1:
         for i in range(len(messages_data) - 1):
             if messages_data[i][2] == messages_data[i + 1][2]:
-
                 user_ignored_count[messages_data[i][2]] += 1
 
     average_response_time_minutes = (
@@ -306,6 +350,9 @@ async def analyze_chat(chat_file, original_filename=None):
             "error": f"Preprocessing failed: {str(e)}",
         }
 
+    # Calculate dynamic conversation break time *after* preprocessing
+    dynamic_convo_break = calculate_dynamic_convo_break(messages_data)
+
     try:
         unique_users = {msg[2] for msg in messages_data}
         user_count = len(unique_users)
@@ -317,7 +364,10 @@ async def analyze_chat(chat_file, original_filename=None):
             "error": f"Data processing error: {str(e)}",
         }
 
-    stats_task = asyncio.create_task(chat_statistics(messages_data))
+    # Pass the dynamic break time to chat_statistics
+    stats_task = asyncio.create_task(
+        chat_statistics(messages_data, dynamic_convo_break)
+    )
     ai_task = None
 
     if user_count <= 10:

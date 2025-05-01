@@ -31,7 +31,7 @@ load_dotenv()
 
 API_KEY = os.getenv("VAL_API_KEY")
 MAX_CONCURRENT_ANALYSES = 50
-TEMP_DIR_ROOT = Path(tempfile.gettempdir()) / "whatsapp_analyzer_temp"
+TEMP_DIR_ROOT = Path(tempfile.gettempdir()) / "bloop"
 MAX_TEMP_FILE_AGE_SECONDS = 6000
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 HOST = os.getenv("HOST", "0.0.0.0")
