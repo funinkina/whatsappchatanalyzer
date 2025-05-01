@@ -61,9 +61,7 @@ def calculate_dynamic_convo_break(
         p85 = np.percentile(response_times_minutes, 85)
         dynamic_break = p85 + 30
         dynamic_break = max(min_break, min(dynamic_break, max_break))
-        logger.info(
-            f"Calculated dynamic conversation break: {dynamic_break:.2f} minutes (based on p85={p85:.2f})"
-        )
+        # logger.info(f"Calculated dynamic conversation break: {dynamic_break:.2f} minutes (based on p85={p85:.2f})")
         return round(dynamic_break)
     except Exception as e:
         logger.error(
@@ -75,9 +73,7 @@ def calculate_dynamic_convo_break(
 
 async def chat_statistics(messages_data, convo_break_minutes):
     """Calculates various statistics from preprocessed message data."""
-    logger.debug(
-        f"Calculating statistics for {len(messages_data)} messages using break time: {convo_break_minutes} mins."
-    )
+    # logger.debug(f"Calculating statistics for {len(messages_data)} messages using break time: {convo_break_minutes} mins.")
 
     user_message_count = defaultdict(int)
     user_starts_convo = defaultdict(int)
@@ -235,7 +231,7 @@ async def chat_statistics(messages_data, convo_break_minutes):
         ),
     }
 
-    logger.debug("Finished calculating statistics.")
+    # logger.debug("Finished calculating statistics.")
     return stats
 
 
@@ -289,9 +285,7 @@ async def analyze_chat(chat_file, original_filename=None):
     Asynchronously analyzes WhatsApp chat, preprocesses, calculates stats,
     and optionally calls AI analysis in parallel.
     """
-    logger.info(
-        f"Starting analysis for chat file: {chat_file} (Original: {original_filename})"
-    )
+    logger.info(f"Starting analysis for chat file: {chat_file}")
 
     messages_data = None
     try:
@@ -303,9 +297,9 @@ async def analyze_chat(chat_file, original_filename=None):
                 "preprocess_messages function not found. Check import from utils."
             )
 
-        logger.debug(
-            f"Running synchronous preprocess_messages for {chat_file} in executor."
-        )
+        # logger.debug(
+        #     f"Running synchronous preprocess_messages for {chat_file} in executor."
+        # )
         messages_data = await run_sync(preprocess_messages, chat_file)
 
         if not messages_data:
@@ -342,11 +336,9 @@ async def analyze_chat(chat_file, original_filename=None):
         )
         if match:
             chat_name = match.group(1).strip()
-            logger.info(f"Determined chat name from filename: {chat_name}")
+            # logger.info(f"Determined chat name from filename: {chat_name}")
         else:
-            logger.info(
-                f"Could not determine chat name from filename: '{filename_used_for_name}'. Will use participants."
-            )
+            # logger.info(f"Could not determine chat name from filename: '{filename_used_for_name}'. Will use participants.")
             if user_count > 0:
                 if user_count == 1:
                     chat_name = unique_users[0]
@@ -356,9 +348,7 @@ async def analyze_chat(chat_file, original_filename=None):
                     chat_name = f"{unique_users[0]}, {unique_users[1]} and others"
 
     except Exception as e:
-        logger.warning(
-            f"Error processing filename '{filename_used_for_name}' for chat name: {e}. Attempted to use participants."
-        )
+        # logger.warning(f"Error processing filename '{filename_used_for_name}' for chat name: {e}. Attempted to use participants.")
         if not chat_name and user_count > 0:
             if user_count == 1:
                 chat_name = unique_users[0]
@@ -375,21 +365,17 @@ async def analyze_chat(chat_file, original_filename=None):
     ai_task = None
 
     if user_count > 0 and user_count <= 10:
-        logger.info(f"Scheduling AI analysis ({user_count} users <= 10).")
+        # logger.info(f"Scheduling AI analysis ({user_count} users <= 10).")
         ai_task = asyncio.create_task(analyze_messages_with_llm(messages_data))
-    elif user_count > 10:
-        logger.info(f"Skipping AI analysis: Too many users ({user_count} > 10).")
-    else:
-        logger.info("Skipping AI analysis: No users found.")
 
     tasks_to_gather = [stats_task]
     if ai_task is not None:
         tasks_to_gather.append(ai_task)
 
-    logger.debug(f"Gathering {len(tasks_to_gather)} tasks...")
+    # logger.debug(f"Gathering {len(tasks_to_gather)} tasks...")
 
     gathered_results = await asyncio.gather(*tasks_to_gather, return_exceptions=True)
-    logger.debug("Gather finished.")
+    # logger.debug("Gather finished.")
 
     final_results = {"chat_name": chat_name}
 

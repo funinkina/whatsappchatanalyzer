@@ -87,7 +87,7 @@ async def invoke_groq(
 
         raise ValueError(f"Attempted to call Groq with empty API key ({key_name})")
 
-    logger.info(f"Attempting Groq analysis with {key_name}...")
+    # logger.info(f"Attempting Groq analysis with {key_name}...")
     try:
         client = AsyncGroq(api_key=api_key)
 
@@ -112,7 +112,7 @@ async def invoke_groq(
                 try:
 
                     json.loads(content)
-                    logger.info(f"Successfully received valid JSON with {key_name}.")
+                    # logger.info(f"Successfully received valid JSON with {key_name}.")
                     return content
                 except json.JSONDecodeError as json_err:
 

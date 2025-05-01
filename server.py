@@ -65,10 +65,6 @@ async def cleanup_temp_files():
                         continue
                     except OSError as e:
                         logger.error(f"Error removing temp file {item}: {e}")
-            if count > 0:
-                logger.info(
-                    f"Temporary file cleanup finished. Removed {count} old files."
-                )
         except Exception as e:
             logger.error(f"Error during periodic temp file cleanup: {e}")
 
@@ -177,9 +173,9 @@ async def analyze_whatsapp_chat(
 
     try:
 
-        logger.debug("Attempting to acquire analysis semaphore...")
+        # logger.debug("Attempting to acquire analysis semaphore...")
         async with analysis_semaphore:
-            logger.debug("Analysis semaphore acquired.")
+            # logger.debug("Analysis semaphore acquired.")
 
             with tempfile.NamedTemporaryFile(
                 delete=False, suffix=".txt", dir=TEMP_DIR_ROOT, mode="wb"
@@ -187,9 +183,6 @@ async def analyze_whatsapp_chat(
                 temp_file_path = Path(temp_file.name)
 
                 await run_sync_io(shutil.copyfileobj, file.file, temp_file)
-                logger.info(
-                    f"Saved uploaded file '{original_filename}' to temporary path: {temp_file_path}"
-                )
 
             if not temp_file_path or not await run_sync_io(
                 os.path.exists, temp_file_path
@@ -202,10 +195,9 @@ async def analyze_whatsapp_chat(
                     detail="Server error: Failed to prepare chat file for analysis.",
                 )
 
-            logger.info(
-                f"Starting analysis for {original_filename} (path: {temp_file_path})"
-            )
-            start_time = time.time()
+            # logger.info(
+            #     f"Starting analysis for {original_filename} (path: {temp_file_path})"
+            # )
 
             ANALYSIS_TIMEOUT_SECONDS = 120
             try:
@@ -226,10 +218,7 @@ async def analyze_whatsapp_chat(
                     detail=f"Analysis processing timed out after {ANALYSIS_TIMEOUT_SECONDS} seconds.",
                 )
 
-            end_time = time.time()
-            logger.info(
-                f"Analysis for {original_filename} completed in {end_time - start_time:.2f} seconds."
-            )
+            logger.info(f"Analysis for {original_filename} completed.")
 
             return JSONResponse(content=results)
 
@@ -264,7 +253,7 @@ async def analyze_whatsapp_chat(
 
     finally:
 
-        logger.debug("Analysis semaphore released (implicitly).")
+        # logger.debug("Analysis semaphore released (implicitly).")
 
         try:
             await file.close()
@@ -277,7 +266,7 @@ async def analyze_whatsapp_chat(
             try:
 
                 await run_sync_io(os.remove, temp_file_path)
-                logger.info(f"Successfully removed temporary file: {temp_file_path}")
+                # logger.info(f"Successfully removed temporary file: {temp_file_path}")
             except Exception as e:
 
                 logger.error(
