@@ -84,8 +84,9 @@ This project provides insightful analysis of your WhatsApp chat history. Gain a 
 ## TODO
 
 *   [ ] Add more analysis features (e.g., activity over time, sentiment analysis).
+*   [ ] Give users a shareable link to their analysis.
 *   [x] Build a frontend (Initial version exists in `whatsfrontend/`).
 *   [x] Make the LLM return a structured JSON object for easier frontend integration.
 *   [x] Implement more robust error handling for file parsing and API calls.
-*   [ ] Add optional logging for debugging and monitoring.
+*   [x] Add optional logging for debugging and monitoring.
 *   [ ] Include more input validations (file type, size, format).
