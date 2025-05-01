@@ -408,8 +408,10 @@ export default function ResultsPage() {
             height={50}
             className='mb-2'
           />
-          <h1 className="text-3xl font-bold mb-4 md:mb-0 text-gray-800 text-center md:text-left">
-            {results.chat_name ? `Analysis with ${results.chat_name}` : "Analysis Results"}
+          <h1 className="text-3xl mb-4 md:mb-0 text-gray-800 text-center md:text-left">
+            {results.chat_name ? (
+              <>Analysis of chats with <strong>{results.chat_name}</strong></>
+            ) : "Analysis Results"}
           </h1>
         </div>
         <button
@@ -434,6 +436,8 @@ export default function ResultsPage() {
           )}
         </button>
       </div>
+
+      {/* chat stats */}
       <div className="p-4" ref={sectionRef} >
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
           <ChatStatistic
@@ -503,6 +507,7 @@ export default function ResultsPage() {
           />
         </div>
 
+        {/* top words and emojis */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           <section className="p-4 border-2 border-neutral-800 rounded-lg bg-zinc-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
             <div className='flex items-center justify-between'>
@@ -585,6 +590,7 @@ export default function ResultsPage() {
           </section>
         </div>
 
+        {/* ai analysis, weekday/weekend, interaction matrix */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           <section className="p-4 border-2 border-neutral-800 rounded-lg bg-purple-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
             <div className="flex items-center justify-between mb-4">
@@ -624,14 +630,14 @@ export default function ResultsPage() {
                   ]}
                   margin={{ top: 10, bottom: 10 }}
                   innerRadius={0.1}
-                  padAngle={0.7}
+                  padAngle={0}
                   cornerRadius={1}
-                  enableArcLinkLabels={false}
+                  activeOuterRadiusOffset={8}
+                  borderWidth={1}
+                  colors={{ scheme: 'set3' }}
                   enableArcLabels={true}
                   arcLabel={e => `${e.id}`}
-                  activeOuterRadiusOffset={0}
-                  borderWidth={1}
-                  colors={{ scheme: 'pastel1' }}
+                  enableArcLinkLabels={false}
                 />
               </div>
             </section>
@@ -649,7 +655,7 @@ export default function ResultsPage() {
                   className="mr-3"
                 />
               </div>
-              <div className="h-96 w-full">
+              <div className="h-80 w-full">
                 <ResponsiveChord
                   data={chordMatrix}
                   keys={chordKeys}
@@ -672,6 +678,7 @@ export default function ResultsPage() {
           )}
         </div>
 
+        {/* people animal assignment*/}
         <div className="bg-emerald-50 px-6 rounded-lg shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] border-2 border-neutral-800  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out mb-8">
           <div className="flex items-center justify-between my-6">
             <h2 className="text-xl font-semibold text-gray-700">what kinda animal are you?</h2>
@@ -690,6 +697,7 @@ export default function ResultsPage() {
           />
         </div>
 
+        {/* top yappers and first texters */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           <section
             className="p-4 border-2 border-neutral-800 rounded-lg bg-teal-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out"
@@ -705,14 +713,14 @@ export default function ResultsPage() {
                 className="mr-3"
               />
             </div>
-            <div className='h-96'>
+            <div className='h-80'>
               <ResponsivePie
                 data={Object.entries(filterPhoneNumbers(results.most_active_users_pct)).map(([user, percentage]) => ({
                   id: user,
                   label: user,
                   value: percentage,
                 }))}
-                margin={{ top: 40, bottom: 40 }}
+                margin={{ top: 10, bottom: 10 }}
                 innerRadius={0.1}
                 padAngle={0}
                 cornerRadius={1}
@@ -740,16 +748,16 @@ export default function ResultsPage() {
                 className="mr-3"
               />
             </div>
-            <div className='h-96'>
+            <div className='h-80'>
               <ResponsivePie
                 data={Object.entries(filterPhoneNumbers(results.conversation_starters_pct)).map(([user, percentage]) => ({
                   id: user,
                   label: user,
                   value: percentage,
                 }))}
-                margin={{ top: 40, bottom: 40 }}
+                margin={{ top: 10, bottom: 10 }}
                 innerRadius={0.1}
-                padAngle={0.7}
+                padAngle={0}
                 cornerRadius={1}
                 activeOuterRadiusOffset={8}
                 borderWidth={1}
@@ -762,6 +770,7 @@ export default function ResultsPage() {
           </section>
         </div>
 
+        {/* user monthly activity */}
         {results.user_monthly_activity && results.user_monthly_activity.length > 0 && (
           <section className="p-4 mb-20 border-2 border-neutral-800 rounded-lg bg-pink-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out"
             data-exclude-from-download="true">
