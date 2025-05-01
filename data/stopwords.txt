@@ -396,10 +396,6 @@ hither
 ho
 ho gaya
 hoke
-home
-hon
-hona
-honaa
 hone
 honestly
 honge
@@ -411,6 +407,7 @@ hota
 hotaa
 hote
 hoti
+how
 howbeit
 hoye
 hoyenge
@@ -1237,8 +1234,11 @@ weren
 weren't
 werent
 wha
+what
 what'll
 whatever
+where
+when
 whence
 whether
 whichever

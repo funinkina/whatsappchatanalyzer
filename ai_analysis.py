@@ -185,6 +185,7 @@ async def analyze_messages_with_llm(data, gap_hours=6):
     *DO NOT DO THE FOLLOWING*:
     - Do NOT say that the chats are random or jumping from topic to topic.
     - Do NOT say that you are an AI or LLM.
+    - Do NOT say that this chat is a mess, jumbled, or chaotic.
 
     *STRICT INSTRUCTIONS*:
     - Output ONLY valid JSON.

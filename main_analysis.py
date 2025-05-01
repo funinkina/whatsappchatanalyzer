@@ -293,20 +293,6 @@ async def analyze_chat(chat_file, original_filename=None):
         f"Starting analysis for chat file: {chat_file} (Original: {original_filename})"
     )
 
-    chat_name = "Unknown Chat"
-    try:
-        filename = original_filename or os.path.basename(chat_file)
-        match = re.match(
-            r"WhatsApp Chat with (.+?)(?:\.txt)?$", filename, re.IGNORECASE
-        )
-        if match:
-            chat_name = match.group(1).strip()
-    except Exception as e:
-        logger.warning(
-            f"Could not determine chat name from '{original_filename or chat_file}': {e}"
-        )
-    logger.info(f"Determined chat name: {chat_name}")
-
     messages_data = None
     try:
         if (
@@ -325,7 +311,7 @@ async def analyze_chat(chat_file, original_filename=None):
         if not messages_data:
             logger.warning(f"No messages found or extracted from {chat_file}.")
             return {
-                "chat_name": chat_name,
+                "chat_name": None,
                 "total_messages": 0,
                 "error": "No messages found",
             }
@@ -337,39 +323,64 @@ async def analyze_chat(chat_file, original_filename=None):
         logger.error(
             f"Error during message preprocessing for {chat_file}: {e}", exc_info=True
         )
-
         return {
-            "chat_name": chat_name,
+            "chat_name": None,
             "total_messages": 0,
             "error": f"Preprocessing failed: {str(e)}",
         }
 
-    # Calculate dynamic conversation break time *after* preprocessing
+    unique_users = sorted(list({msg[2] for msg in messages_data}))
+    user_count = len(unique_users)
+
+    chat_name = None
+    filename_used_for_name = original_filename or os.path.basename(chat_file)
+    try:
+        match = re.match(
+            r"WhatsApp Chat with (.+?)(?:\.txt)?$",
+            filename_used_for_name,
+            re.IGNORECASE,
+        )
+        if match:
+            chat_name = match.group(1).strip()
+            logger.info(f"Determined chat name from filename: {chat_name}")
+        else:
+            logger.info(
+                f"Could not determine chat name from filename: '{filename_used_for_name}'. Will use participants."
+            )
+            if user_count > 0:
+                if user_count == 1:
+                    chat_name = unique_users[0]
+                elif user_count == 2:
+                    chat_name = f"{unique_users[0]} and {unique_users[1]}"
+                else:
+                    chat_name = f"{unique_users[0]}, {unique_users[1]} and others"
+
+    except Exception as e:
+        logger.warning(
+            f"Error processing filename '{filename_used_for_name}' for chat name: {e}. Attempted to use participants."
+        )
+        if not chat_name and user_count > 0:
+            if user_count == 1:
+                chat_name = unique_users[0]
+            elif user_count == 2:
+                chat_name = f"{unique_users[0]} and {unique_users[1]}"
+            else:
+                chat_name = f"{unique_users[0]}, {unique_users[1]} and others"
+
     dynamic_convo_break = calculate_dynamic_convo_break(messages_data)
 
-    try:
-        unique_users = {msg[2] for msg in messages_data}
-        user_count = len(unique_users)
-    except Exception as e:
-        logger.error(f"Error processing message data to get users: {e}", exc_info=True)
-        return {
-            "chat_name": chat_name,
-            "total_messages": 0,
-            "error": f"Data processing error: {str(e)}",
-        }
-
-    # Pass the dynamic break time to chat_statistics
     stats_task = asyncio.create_task(
         chat_statistics(messages_data, dynamic_convo_break)
     )
     ai_task = None
 
-    if user_count <= 10:
+    if user_count > 0 and user_count <= 10:
         logger.info(f"Scheduling AI analysis ({user_count} users <= 10).")
-
         ai_task = asyncio.create_task(analyze_messages_with_llm(messages_data))
-    else:
+    elif user_count > 10:
         logger.info(f"Skipping AI analysis: Too many users ({user_count} > 10).")
+    else:
+        logger.info("Skipping AI analysis: No users found.")
 
     tasks_to_gather = [stats_task]
     if ai_task is not None:
@@ -388,7 +399,9 @@ async def analyze_chat(chat_file, original_filename=None):
             f"Error calculating statistics: {stats_result}", exc_info=stats_result
         )
         final_results["error"] = f"Statistics calculation failed: {str(stats_result)}"
-        final_results.update({"total_messages": 0})
+        final_results.setdefault(
+            "total_messages", len(messages_data) if messages_data else 0
+        )
     elif isinstance(stats_result, dict):
         try:
             final_results.update(stats_result)
@@ -400,7 +413,9 @@ async def analyze_chat(chat_file, original_filename=None):
             final_results["error"] = (
                 "Internal error: Failed to combine statistics results."
             )
-            final_results.setdefault("total_messages", 0)
+            final_results.setdefault(
+                "total_messages", len(messages_data) if messages_data else 0
+            )
     else:
         logger.error(
             f"Statistics calculation returned unexpected type: {type(stats_result)}. Value: {str(stats_result)[:200]}"
@@ -408,11 +423,13 @@ async def analyze_chat(chat_file, original_filename=None):
         final_results["error"] = (
             "Internal error: Statistics calculation returned invalid data."
         )
-        final_results.update({"total_messages": 0})
+        final_results.setdefault(
+            "total_messages", len(messages_data) if messages_data else 0
+        )
 
     if ai_task is not None:
-
-        ai_result = gathered_results[1]
+        ai_result_index = 1
+        ai_result = gathered_results[ai_result_index]
         if isinstance(ai_result, Exception):
             logger.error(f"Error during AI analysis: {ai_result}", exc_info=ai_result)
             final_results["ai_analysis"] = {
@@ -431,15 +448,17 @@ async def analyze_chat(chat_file, original_filename=None):
         else:
             try:
                 if isinstance(ai_result, str):
-                    final_results["ai_analysis"] = json.loads(ai_result)
+                    ai_data = json.loads(ai_result)
+                elif isinstance(ai_result, dict):
+                    ai_data = ai_result
                 else:
-
                     logger.error(
-                        f"AI analysis returned unexpected type {type(ai_result)}, expected string."
+                        f"AI analysis returned unexpected type {type(ai_result)}, expected string or dict."
                     )
                     raise TypeError(
-                        f"AI analysis returned non-string: {type(ai_result)}"
+                        f"AI analysis returned non-string/non-dict: {type(ai_result)}"
                     )
+                final_results["ai_analysis"] = ai_data
 
             except json.JSONDecodeError as e:
                 logger.error(
@@ -462,7 +481,6 @@ async def analyze_chat(chat_file, original_filename=None):
                     "error": str(e),
                 }
     else:
-
         final_results["ai_analysis"] = None
 
     logger.info(f"Analysis complete for {chat_name}.")
