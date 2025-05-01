@@ -12,20 +12,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from dotenv import load_dotenv
-
-try:
-    from main_analysis import analyze_chat
-except ImportError:
-
-    async def analyze_chat(chat_file: str, original_filename: str):
-        logging.warning("Using dummy analyze_chat function.")
-        await asyncio.sleep(1)
-        return {
-            "analysis": "dummy_results",
-            "filename": original_filename,
-            "file_path": chat_file,
-        }
-
+from main_analysis import analyze_chat
 
 load_dotenv()
 
