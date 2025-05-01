@@ -6,17 +6,7 @@ from collections import Counter
 
 from dotenv import load_dotenv
 from groq import AsyncGroq, RateLimitError, APIError
-
-try:
-    from utils import group_messages_by_topic, stratify_messages
-except ImportError:
-
-    def group_messages_by_topic(data, gap):
-        return [{"topic_id": 1, "messages": data}]
-
-    def stratify_messages(topics):
-        return topics
-
+from utils import group_messages_by_topic, stratify_messages
 
 from tenacity import (
     retry,

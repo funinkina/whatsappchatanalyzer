@@ -46,24 +46,20 @@ def calculate_dynamic_convo_break(
     for timestamp, _, sender, _ in messages_data:
         if last_timestamp and last_sender and sender != last_sender:
             time_diff_seconds = (timestamp - last_timestamp).total_seconds()
-            # Only consider plausible response times (e.g., > 5s and < 12 hours)
             if 5 < time_diff_seconds < 12 * 3600:
                 response_times_minutes.append(time_diff_seconds / 60)
         last_timestamp = timestamp
         last_sender = sender
 
-    if len(response_times_minutes) < 20:  # Need sufficient data points
+    if len(response_times_minutes) < 20:
         logger.info(
             f"Not enough response time data ({len(response_times_minutes)} points), using default break: {default_break_minutes} mins"
         )
         return default_break_minutes
 
     try:
-        # Use a percentile (e.g., 85th) to find a point separating typical replies from longer gaps
         p85 = np.percentile(response_times_minutes, 85)
-        # Set break slightly above this percentile, e.g., p85 * 1.5 or p85 + 30
         dynamic_break = p85 + 30
-        # Clamp the value within reasonable bounds
         dynamic_break = max(min_break, min(dynamic_break, max_break))
         logger.info(
             f"Calculated dynamic conversation break: {dynamic_break:.2f} minutes (based on p85={p85:.2f})"
