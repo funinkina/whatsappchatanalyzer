@@ -40,8 +40,7 @@ const filterChordData = (matrix: (string | number | null)[][], keys: string[]) =
   return { filteredMatrix: filteredMatrix as number[][], filteredKeys };
 };
 
-interface AnalysisResults {
-  chat_name?: string;
+interface Stats {
   total_messages: number;
   days_active: number | null;
   user_message_count: { [username: string]: number };
@@ -74,15 +73,26 @@ interface AnalysisResults {
     percentage_difference: number;
   };
   user_interaction_matrix: (string | number | null)[][] | null;
-  ai_analysis: {
-    summary: string;
-    people?: Array<{
-      name: string;
-      animal: string;
-      description: string;
-    }>;
-    error?: string;
-  } | null;
+}
+
+interface PersonAnalysis {
+  name: string;
+  animal: string;
+  description: string;
+  fun_lines?: string[];
+}
+
+interface AiAnalysis {
+  summary: string;
+  people?: PersonAnalysis[];
+  error?: string;
+}
+
+interface AnalysisResults {
+  chat_name?: string;
+  stats: Stats;
+  ai_analysis: AiAnalysis | null;
+  processing_time_seconds?: number;
   error?: string;
 }
 
@@ -133,8 +143,8 @@ export default function ResultsPage() {
         setResults(parsedResults);
         console.log("AI Analysis data:", parsedResults.ai_analysis);
 
-        if (parsedResults.common_words) {
-          const sortedWords = Object.entries(parsedResults.common_words)
+        if (parsedResults.stats?.common_words) {
+          const sortedWords = Object.entries(parsedResults.stats.common_words)
             .map(([text, value]) => ({ text: text.toUpperCase(), value }))
             .sort((a, b) => b.value - a.value)
             .slice(0, 6);
@@ -227,7 +237,7 @@ export default function ResultsPage() {
     return `${displayHour} ${ampm}`;
   };
 
-  const formatFirstTextChampion = (champion: AnalysisResults['first_text_champion']): string => {
+  const formatFirstTextChampion = (champion: Stats['first_text_champion']): string => {
     if (!champion || !champion.user) {
       return 'N/A';
     }
@@ -235,7 +245,7 @@ export default function ResultsPage() {
     return `${displayName} (${champion.count} times)`;
   };
 
-  const formatMostIgnored = (ignoredData: AnalysisResults['most_ignored_users_pct']): string => {
+  const formatMostIgnored = (ignoredData: Stats['most_ignored_users_pct']): string => {
     if (!ignoredData || Object.keys(ignoredData).length === 0) {
       return 'N/A';
     }
@@ -249,6 +259,7 @@ export default function ResultsPage() {
     const displayName = isPhoneNumber(user) ? user : user.split(' ')[0];
     return `${displayName} (${percentage.toFixed(1)}%)`;
   };
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -273,7 +284,7 @@ export default function ResultsPage() {
     );
   }
 
-  if (!results) {
+  if (!results || !results.stats) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <p className="text-lg text-gray-600">No results data available.</p>
@@ -281,16 +292,18 @@ export default function ResultsPage() {
     );
   }
 
-  const rawChordKeys = results.user_interaction_matrix
-    ? results.user_interaction_matrix[0].slice(1).map(key => key as string)
+  const rawChordKeys = results.stats.user_interaction_matrix
+    ? results.stats.user_interaction_matrix[0].slice(1).map(key => key as string)
     : [];
 
   const { filteredMatrix: chordMatrix, filteredKeys: chordKeys } =
-    filterChordData(results.user_interaction_matrix || [], rawChordKeys);
+    filterChordData(results.stats.user_interaction_matrix || [], rawChordKeys);
 
-  const sortedEmojis = Object.entries(results.common_emojis)
-    .map(([emoji, count]) => ({ emoji, count }))
-    .sort((a, b) => b.count - a.count);
+  const sortedEmojis = (results.stats.common_emojis)
+    ? Object.entries(results.stats.common_emojis)
+      .map(([emoji, count]) => ({ emoji, count }))
+      .sort((a, b) => b.count - a.count)
+    : [];
 
   const handleDownload = async () => {
     if (sectionRef.current === null) return;
@@ -437,7 +450,7 @@ export default function ResultsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
           <ChatStatistic
             title="you guys have sent"
-            value={results.total_messages.toLocaleString() + " messages"}
+            value={results.stats.total_messages.toLocaleString() + " messages"}
             icon="chat.svg"
             altText="Total Messages"
             bgColor="bg-purple-100"
@@ -448,7 +461,7 @@ export default function ResultsPage() {
 
           <ChatStatistic
             title="you&apos;ve been chatting for"
-            value={`${results.days_active ?? 'N/A'} ${results.days_active === 1 ? 'day' : 'days'}`}
+            value={`${results.stats.days_active ?? 'N/A'} ${results.stats.days_active === 1 ? 'day' : 'days'}`}
             icon="calendar.svg"
             altText="Days Since First Message"
             bgColor="bg-emerald-100"
@@ -459,7 +472,7 @@ export default function ResultsPage() {
 
           <ChatStatistic
             title="who gets ghosted the most?"
-            value={formatMostIgnored(results.most_ignored_users_pct)}
+            value={formatMostIgnored(results.stats.most_ignored_users_pct)}
             icon="frown.svg"
             altText="Most Ignored Users"
             bgColor="bg-sky-50"
@@ -470,7 +483,7 @@ export default function ResultsPage() {
 
           <ChatStatistic
             title="when does your conversations peak?"
-            value={formatPeakHour(results.peak_hour)}
+            value={formatPeakHour(results.stats.peak_hour)}
             icon="peak.svg"
             altText="Peak Hour"
             bgColor="bg-sky-100"
@@ -481,7 +494,7 @@ export default function ResultsPage() {
 
           <ChatStatistic
             title="who texts first usually?"
-            value={formatFirstTextChampion(results.first_text_champion)}
+            value={formatFirstTextChampion(results.stats.first_text_champion)}
             icon="trophy.svg"
             altText="First Text Champion"
             bgColor="bg-violet-100"
@@ -492,7 +505,7 @@ export default function ResultsPage() {
 
           <ChatStatistic
             title="you get the reply back in"
-            value={`~ ${results.average_response_time_minutes.toFixed(2)} minutes`}
+            value={`~ ${results.stats.average_response_time_minutes.toFixed(2)} minutes`}
             icon="time.svg"
             altText="Average Response Time"
             bgColor="bg-red-100"
@@ -605,7 +618,7 @@ export default function ResultsPage() {
             />
           </section>
 
-          {results.most_active_users_pct && Object.keys(results.most_active_users_pct).length <= 2 && (
+          {results.stats.most_active_users_pct && Object.keys(results.stats.most_active_users_pct).length <= 2 && (
             <section className="p-4 border-2 border-neutral-800 rounded-lg bg-sky-100 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
               <div className='flex items-center justify-between mb-4'>
                 <h2 className="text-xl font-semibold mb-4 text-gray-700">banter on weekday or relaxing on weekend?</h2>
@@ -620,8 +633,8 @@ export default function ResultsPage() {
               <div className="h-80">
                 <ResponsivePie
                   data={[
-                    { id: 'Weekday', label: 'Weekday', value: results.weekday_vs_weekend_avg.average_weekday_messages },
-                    { id: 'Weekend', label: 'Weekend', value: results.weekday_vs_weekend_avg.average_weekend_messages },
+                    { id: 'Weekday', label: 'Weekday', value: results.stats.weekday_vs_weekend_avg.average_weekday_messages },
+                    { id: 'Weekend', label: 'Weekend', value: results.stats.weekday_vs_weekend_avg.average_weekend_messages },
                   ]}
                   margin={{ top: 10, bottom: 10 }}
                   innerRadius={0.1}
@@ -638,7 +651,7 @@ export default function ResultsPage() {
             </section>
           )}
 
-          {results.user_interaction_matrix && chordKeys.length > 2 && chordMatrix.length > 2 && (
+          {results.stats.user_interaction_matrix && chordKeys.length > 2 && chordMatrix.length > 2 && (
             <section className="p-4 border-2 border-neutral-800 rounded-lg bg-lime-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
               <div className='flex items-center justify-between mb-4'>
                 <h2 className="text-xl font-semibold mb-4 text-gray-700">you guys are really chaotic huh?</h2>
@@ -710,7 +723,7 @@ export default function ResultsPage() {
             </div>
             <div className='h-80'>
               <ResponsivePie
-                data={Object.entries(filterPhoneNumbers(results.most_active_users_pct)).map(([user, percentage]) => ({
+                data={Object.entries(filterPhoneNumbers(results.stats.most_active_users_pct)).map(([user, percentage]) => ({
                   id: user,
                   label: user,
                   value: percentage,
@@ -745,7 +758,7 @@ export default function ResultsPage() {
             </div>
             <div className='h-80'>
               <ResponsivePie
-                data={Object.entries(filterPhoneNumbers(results.conversation_starters_pct)).map(([user, percentage]) => ({
+                data={Object.entries(filterPhoneNumbers(results.stats.conversation_starters_pct)).map(([user, percentage]) => ({
                   id: user,
                   label: user,
                   value: percentage,
@@ -766,7 +779,7 @@ export default function ResultsPage() {
         </div>
 
         {/* user monthly activity */}
-        {results.user_monthly_activity && results.user_monthly_activity.length > 0 && (
+        {results.stats.user_monthly_activity && results.stats.user_monthly_activity.length > 0 && (
           <section className="p-4 mb-20 border-2 border-neutral-800 rounded-lg bg-pink-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out"
             data-exclude-from-download="true">
             <div className='flex items-center justify-between'>
@@ -783,7 +796,7 @@ export default function ResultsPage() {
               <ResponsiveLine
                 data={[{
                   id: 'All Users',
-                  data: results.user_monthly_activity.reduce((acc, user) => {
+                  data: results.stats.user_monthly_activity.reduce((acc, user) => {
                     user.data.forEach(item => {
                       const existing = acc.find(a => a.x === item.x);
                       if (existing) {
