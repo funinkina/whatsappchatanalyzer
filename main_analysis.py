@@ -3,34 +3,41 @@ import re
 import json
 import os
 import logging
+import time
+import gc
 from collections import defaultdict, Counter
 import emoji
 import numpy as np
+
 from utils import (
     preprocess_messages,
     load_stopwords,
+    group_messages_by_topic,
+    stratify_messages,
 )
 from ai_analysis import analyze_messages_with_llm
 
 logger = logging.getLogger(__name__)
 
-STOPWORDS_FILE = "data/stopwords.txt"
 
 STOPWORDS = set()
 try:
     STOPWORDS = load_stopwords()
-    logger.info(f"Successfully loaded {len(STOPWORDS)} stopwords from {STOPWORDS_FILE}")
-
+    logger.info(f"Successfully loaded {len(STOPWORDS)}")
 except FileNotFoundError:
     logger.warning(
-        f"Stopwords file not found at {STOPWORDS_FILE}. Word counts will include common words."
+        "Stopwords file not found Word counts will include common words. Continuing without stopwords."
     )
 
 except Exception as e:
-    logger.error(f"Failed to load stopwords from {STOPWORDS_FILE}: {e}", exc_info=True)
+    logger.error(
+        f"Failed to load stopwords: {e}. Continuing without stopwords.",
+        exc_info=True,
+    )
 
 
-async def run_sync(func, *args):
+async def run_sync_in_executor(func, *args):
+    """Runs a blocking synchronous function in FastAPI's default thread pool."""
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(None, func, *args)
 
@@ -39,41 +46,55 @@ def calculate_dynamic_convo_break(
     messages_data, default_break_minutes=120, min_break=30, max_break=300
 ):
     """Calculates a dynamic conversation break time based on response times."""
+
     response_times_minutes = []
     last_timestamp = None
     last_sender = None
 
     for timestamp, _, sender, _ in messages_data:
         if last_timestamp and last_sender and sender != last_sender:
+
             time_diff_seconds = (timestamp - last_timestamp).total_seconds()
-            if 5 < time_diff_seconds < 12 * 3600:
+
+            if 5 < time_diff_seconds < (12 * 3600):
                 response_times_minutes.append(time_diff_seconds / 60)
         last_timestamp = timestamp
         last_sender = sender
 
     if len(response_times_minutes) < 20:
         logger.info(
-            f"Not enough response time data ({len(response_times_minutes)} points), using default break: {default_break_minutes} mins"
+            f"Not enough response time data ({len(response_times_minutes)} points) for dynamic break, using default: {default_break_minutes} mins"
         )
         return default_break_minutes
 
     try:
+
         p85 = np.percentile(response_times_minutes, 85)
+
         dynamic_break = p85 + 30
+
         dynamic_break = max(min_break, min(dynamic_break, max_break))
-        # logger.info(f"Calculated dynamic conversation break: {dynamic_break:.2f} minutes (based on p85={p85:.2f})")
+        logger.info(
+            f"Calculated dynamic conversation break: {dynamic_break:.2f} minutes (based on p85={p85:.2f})"
+        )
         return round(dynamic_break)
     except Exception as e:
         logger.error(
-            f"Error calculating dynamic break: {e}. Falling back to default.",
+            f"Error calculating dynamic break: {e}. Falling back to default {default_break_minutes}.",
             exc_info=True,
         )
         return default_break_minutes
 
 
 async def chat_statistics(messages_data, convo_break_minutes):
-    """Calculates various statistics from preprocessed message data."""
-    # logger.debug(f"Calculating statistics for {len(messages_data)} messages using break time: {convo_break_minutes} mins.")
+    """
+    Calculates various statistics from preprocessed message data.
+    Optimized for a single pass where possible.
+    """
+    start_time = time.monotonic()
+    logger.debug(
+        f"Starting statistics calculation for {len(messages_data)} messages..."
+    )
 
     user_message_count = defaultdict(int)
     user_starts_convo = defaultdict(int)
@@ -85,17 +106,20 @@ async def chat_statistics(messages_data, convo_break_minutes):
     hourly_message_count = Counter()
     daily_message_count_by_weekday = Counter()
     monthly_activity_by_user = defaultdict(lambda: Counter())
+
     total_response_time_seconds = 0
     response_count = 0
     interaction_matrix = defaultdict(lambda: defaultdict(int))
+
     max_monologue_count = 0
     max_monologue_sender = None
     current_streak_count = 0
     current_streak_sender = None
+
     last_timestamp = None
     last_sender = None
     last_date_str = None
-    current_convo_start = True
+    current_convo_start_sender = None
     all_months = set()
     user_ignored_count = defaultdict(int)
 
@@ -104,22 +128,28 @@ async def chat_statistics(messages_data, convo_break_minutes):
 
     for i, (timestamp, date_obj, sender, filtered_message) in enumerate(messages_data):
 
+        is_new_convo = False
         if last_timestamp:
             time_diff_minutes = (timestamp - last_timestamp).total_seconds() / 60
             if time_diff_minutes > convo_break_minutes:
-                current_convo_start = True
+                is_new_convo = True
+                current_convo_start_sender = sender
 
-            if last_sender and sender != last_sender:
+            elif last_sender and sender != last_sender:
                 response_diff_seconds = (timestamp - last_timestamp).total_seconds()
 
-                if 0 < response_diff_seconds < 12 * 3600:
+                if 5 < response_diff_seconds < (12 * 3600):
                     total_response_time_seconds += response_diff_seconds
                     response_count += 1
                 interaction_matrix[last_sender][sender] += 1
+        else:
 
-        if current_convo_start:
-            user_starts_convo[sender] += 1
-            current_convo_start = False
+            is_new_convo = True
+            current_convo_start_sender = sender
+
+        if is_new_convo and current_convo_start_sender:
+            user_starts_convo[current_convo_start_sender] += 1
+            current_convo_start_sender = None
 
         user_message_count[sender] += 1
 
@@ -143,11 +173,15 @@ async def chat_statistics(messages_data, convo_break_minutes):
             current_streak_count = 1
 
         words = re.findall(r"\b\w{3,}\b", filtered_message.lower())
-        valid_words = [word for word in words if word not in STOPWORDS]
-        word_counter.update(valid_words)
+        if STOPWORDS:
+            valid_words = [word for word in words if word not in STOPWORDS]
+            word_counter.update(valid_words)
+        else:
+            word_counter.update(words)
 
-        message_emojis = [char for char in filtered_message if emoji.is_emoji(char)]
-        emoji_counter.update(message_emojis)
+        message_emojis = emoji.distinct_emoji_list(filtered_message)
+        if message_emojis:
+            emoji_counter.update(message_emojis)
 
         daily_message_count_by_date[current_date_str] += 1
         hourly_message_count[timestamp.hour] += 1
@@ -157,17 +191,15 @@ async def chat_statistics(messages_data, convo_break_minutes):
         monthly_activity_by_user[sender][month_str] += 1
         all_months.add(month_str)
 
+        if i + 1 < len(messages_data) and messages_data[i + 1][2] == sender:
+            user_ignored_count[sender] += 1
+
         last_sender = sender
         last_timestamp = timestamp
 
     if current_streak_sender is not None and current_streak_count > max_monologue_count:
         max_monologue_count = current_streak_count
         max_monologue_sender = current_streak_sender
-
-    if len(messages_data) > 1:
-        for i in range(len(messages_data) - 1):
-            if messages_data[i][2] == messages_data[i + 1][2]:
-                user_ignored_count[messages_data[i][2]] += 1
 
     average_response_time_minutes = (
         round((total_response_time_seconds / response_count) / 60, 2)
@@ -176,10 +208,13 @@ async def chat_statistics(messages_data, convo_break_minutes):
     )
 
     total_messages = sum(user_message_count.values())
+    total_starts = sum(user_starts_convo.values())
+    total_ignored = sum(user_ignored_count.values())
+
     days_active = (
         (latest_message_timestamp.date() - first_message_timestamp.date()).days + 1
         if first_message_timestamp and latest_message_timestamp
-        else None
+        else 0
     )
 
     stats = {
@@ -191,19 +226,11 @@ async def chat_statistics(messages_data, convo_break_minutes):
             for user, count in user_message_count.items()
         },
         "conversation_starters_pct": {
-            user: (
-                round((count / sum(user_starts_convo.values())) * 100, 2)
-                if sum(user_starts_convo.values()) > 0
-                else 0
-            )
+            user: round((count / total_starts) * 100, 2) if total_starts > 0 else 0
             for user, count in user_starts_convo.items()
         },
         "most_ignored_users_pct": {
-            user: (
-                round((count / sum(user_ignored_count.values())) * 100, 2)
-                if sum(user_ignored_count.values()) > 0
-                else 0
-            )
+            user: round((count / total_ignored) * 100, 2) if total_ignored > 0 else 0
             for user, count in user_ignored_count.items()
         },
         "first_text_champion": {
@@ -215,7 +242,7 @@ async def chat_statistics(messages_data, convo_break_minutes):
             "count": max_monologue_count,
         },
         "common_words": dict(word_counter.most_common(10)),
-        "common_emojis": {emj: count for emj, count in emoji_counter.most_common(6)},
+        "common_emojis": dict(emoji_counter.most_common(6)),
         "average_response_time_minutes": average_response_time_minutes,
         "peak_hour": (
             hourly_message_count.most_common(1)[0][0] if hourly_message_count else None
@@ -231,11 +258,17 @@ async def chat_statistics(messages_data, convo_break_minutes):
         ),
     }
 
-    # logger.debug("Finished calculating statistics.")
+    end_time = time.monotonic()
+    logger.debug(
+        f"Statistics calculation finished in {end_time - start_time:.4f} seconds."
+    )
     return stats
 
 
 def get_monthly_activity(monthly_activity_by_user, all_months, all_users_list):
+    """Formats monthly activity for Nivo charts."""
+    if not all_months or not all_users_list:
+        return []
     user_monthly_stats = []
     sorted_months = sorted(list(all_months))
     sorted_users = sorted(list(all_users_list))
@@ -252,10 +285,15 @@ def get_monthly_activity(monthly_activity_by_user, all_months, all_users_list):
 
 
 def calc_weekday_weekend_avg(daily_message_count_by_weekday):
-    total_weekday = sum(daily_message_count_by_weekday[day] for day in range(5))
-    total_weekend = sum(daily_message_count_by_weekday[day] for day in range(5, 7))
-    avg_weekday = round(total_weekday / 5, 2) if total_weekday > 0 else 0
-    avg_weekend = round(total_weekend / 2, 2) if total_weekend > 0 else 0
+    """Calculates average messages on weekdays vs weekends."""
+
+    total_weekday = sum(daily_message_count_by_weekday.get(day, 0) for day in range(5))
+    total_weekend = sum(
+        daily_message_count_by_weekday.get(day, 0) for day in range(5, 7)
+    )
+
+    avg_weekday = round(total_weekday / 5, 2)
+    avg_weekend = round(total_weekend / 2, 2)
     diff = round(avg_weekday - avg_weekend, 2)
     pct_diff = round((diff / avg_weekday) * 100, 2) if avg_weekday > 0 else 0
     return {
@@ -266,185 +304,263 @@ def calc_weekday_weekend_avg(daily_message_count_by_weekday):
     }
 
 
+# In main_analysis.py
+
+
 def format_interaction_matrix(interaction_matrix, all_users_list):
+    """
+    Formats interaction matrix as a list of lists for frontend compatibility.
+    The first row contains headers [None, UserA, UserB, ...].
+    Subsequent rows are [Sender, Count_to_UserA, Count_to_UserB, ...].
+    Returns None if there are 1 or fewer users.
+    """
     if len(all_users_list) <= 1:
         return None
-    sorted_users = sorted(all_users_list)
+
+    sorted_users = sorted(list(all_users_list))
+
+    # Create the header row: [None, 'UserA', 'UserB', ...]
     matrix_header = [None] + sorted_users
-    nivo_matrix = [matrix_header]
+    # Initialize the matrix with the header row
+    list_of_lists_matrix = [matrix_header]
+
+    # Create data rows: ['SenderA', 0, 5, ...]
     for sender in sorted_users:
-        row = [sender] + [
-            interaction_matrix[sender].get(target, 0) for target in sorted_users
+        # Start the row with the sender's name
+        row = [sender]
+        # Append the interaction counts for this sender to each target user
+        counts = [
+            interaction_matrix.get(sender, defaultdict(int)).get(target, 0)
+            for target in sorted_users
         ]
-        nivo_matrix.append(row)
-    return nivo_matrix
+        row.extend(counts)
+        list_of_lists_matrix.append(row)
+
+    return list_of_lists_matrix
 
 
 async def analyze_chat(chat_file, original_filename=None):
     """
     Asynchronously analyzes WhatsApp chat, preprocesses, calculates stats,
-    and optionally calls AI analysis in parallel.
+    and optionally calls AI analysis in parallel, with memory optimization.
     """
-    logger.info(f"Starting analysis for chat file: {chat_file}")
+    overall_start_time = time.monotonic()
+    log_prefix = f"[{original_filename or os.path.basename(chat_file)}]"
+    logger.info(f"Starting analysis for chat file: {original_filename or chat_file}")
 
     messages_data = None
+    message_count = 0
+    preprocess_time = 0
+    stats_time = 0
+    ai_prep_time = 0
+    ai_api_time = 0
+    gather_time = 0
+
     try:
-        if (
-            "preprocess_messages" not in globals()
-            and "preprocess_messages" not in locals()
-        ):
-            raise NameError(
-                "preprocess_messages function not found. Check import from utils."
+
+        preprocess_start = time.monotonic()
+        messages_data = await run_sync_in_executor(preprocess_messages, chat_file)
+        preprocess_time = time.monotonic() - preprocess_start
+
+        if messages_data:
+            message_count = len(messages_data)
+            logger.info(
+                f"{log_prefix} Preprocessing finished in {preprocess_time:.4f}s. Found {message_count} messages."
+            )
+        else:
+
+            message_count = 0
+            logger.warning(
+                f"{log_prefix} Preprocessing finished in {preprocess_time:.4f}s but found no messages."
             )
 
-        # logger.debug(
-        #     f"Running synchronous preprocess_messages for {chat_file} in executor."
-        # )
-        messages_data = await run_sync(preprocess_messages, chat_file)
-
-        if not messages_data:
-            logger.warning(f"No messages found or extracted from {chat_file}.")
             return {
-                "chat_name": None,
+                "chat_name": original_filename or "Unknown Chat",
                 "total_messages": 0,
-                "error": "No messages found",
+                "error": "No messages found in the file after preprocessing.",
+                "ai_analysis": None,
             }
 
+        unique_users = sorted(list({msg[2] for msg in messages_data}))
+        user_count = len(unique_users)
+        chat_name = f"{user_count} User Chat"
+        if user_count == 1:
+            chat_name = f"Notes ({unique_users[0]})"
+        elif user_count == 2:
+            chat_name = f"{unique_users[0]} & {unique_users[1]}"
+        elif user_count > 2:
+
+            chat_name = (
+                f"{unique_users[0]}, {unique_users[1]} & {user_count - 2} others"
+            )
+
+        convo_break_start = time.monotonic()
+        dynamic_convo_break = calculate_dynamic_convo_break(messages_data)
+        convo_break_time = time.monotonic() - convo_break_start
+        logger.debug(
+            f"{log_prefix} Dynamic convo break calculated ({dynamic_convo_break} mins) in {convo_break_time:.4f}s"
+        )
+
+        logger.debug(f"{log_prefix} Creating analysis tasks...")
+
+        stats_task = asyncio.create_task(
+            chat_statistics(messages_data, dynamic_convo_break),
+            name=f"StatsTask-{original_filename}",
+        )
+
+        ai_task = None
+
+        if 1 < user_count <= 10:
+            logger.info(f"{log_prefix} Scheduling AI analysis for {user_count} users.")
+            ai_prep_start = time.monotonic()
+
+            ai_task = asyncio.create_task(
+                analyze_messages_with_llm(messages_data),
+                name=f"AITask-{original_filename}",
+            )
+            ai_prep_time = time.monotonic() - ai_prep_start
+            logger.debug(f"{log_prefix} AI task created in {ai_prep_time:.4f}s.")
+        elif user_count <= 1:
+            logger.info(f"{log_prefix} Skipping AI analysis: Only 1 user.")
+        else:
+            logger.info(
+                f"{log_prefix} Skipping AI analysis: User count ({user_count}) > 10."
+            )
+
+        logger.debug(
+            f"{log_prefix} Releasing reference to messages_data list and suggesting GC."
+        )
+        messages_data = None
+        collected = gc.collect()
+        logger.debug(
+            f"{log_prefix} Garbage collection suggested, collected {collected} objects."
+        )
+
+        tasks_to_gather = [stats_task]
+        if ai_task:
+            tasks_to_gather.append(ai_task)
+
+        logger.debug(f"{log_prefix} Gathering {len(tasks_to_gather)} tasks...")
+        gather_start = time.monotonic()
+
+        gathered_results = await asyncio.gather(
+            *tasks_to_gather, return_exceptions=True
+        )
+        gather_time = time.monotonic() - gather_start
+        logger.info(f"{log_prefix} Tasks gathered in {gather_time:.4f}s.")
+
+        final_results = {"chat_name": chat_name}
+        task_error_occurred = False
+
+        stats_result = gathered_results[0]
+        if isinstance(stats_result, Exception):
+            logger.error(
+                f"{log_prefix} Statistics task failed: {stats_result}",
+                exc_info=stats_result,
+            )
+            final_results["error"] = (
+                f"Statistics calculation failed: {type(stats_result).__name__}"
+            )
+            final_results["stats"] = None
+
+            final_results["total_messages"] = message_count
+            task_error_occurred = True
+        elif isinstance(stats_result, dict):
+            stats_time = time.monotonic()
+            final_results.update(stats_result)
+            logger.debug(f"{log_prefix} Statistics processing successful.")
+
+            if "total_messages" not in final_results:
+                logger.warning(
+                    f"{log_prefix} 'total_messages' missing from stats dict, using stored count."
+                )
+                final_results["total_messages"] = message_count
+        else:
+            logger.error(
+                f"{log_prefix} Statistics task returned unexpected type: {type(stats_result)}"
+            )
+            final_results["error"] = "Internal error: Invalid statistics data."
+            final_results["stats"] = None
+
+            final_results["total_messages"] = message_count
+            task_error_occurred = True
+
+        if ai_task:
+            ai_result = gathered_results[1]
+            ai_api_time = time.monotonic()
+            if isinstance(ai_result, Exception):
+                logger.error(
+                    f"{log_prefix} AI analysis task failed: {ai_result}",
+                    exc_info=ai_result,
+                )
+                final_results["ai_analysis"] = {
+                    "summary": "AI analysis failed.",
+                    "people": [],
+                    "error": str(ai_result),
+                }
+                task_error_occurred = True
+            elif ai_result is None:
+                logger.warning(
+                    f"{log_prefix} AI analysis task returned None (e.g., skipped due to keys/API issues)."
+                )
+                final_results["ai_analysis"] = None
+            else:
+
+                try:
+                    if isinstance(ai_result, str):
+                        ai_data = json.loads(ai_result)
+                    elif isinstance(ai_result, dict):
+                        ai_data = ai_result
+                    else:
+                        raise TypeError(
+                            f"AI task returned unexpected type: {type(ai_result)}"
+                        )
+                    final_results["ai_analysis"] = ai_data
+                    logger.debug(f"{log_prefix} AI analysis processing successful.")
+                except (json.JSONDecodeError, TypeError) as ai_proc_err:
+                    logger.error(
+                        f"{log_prefix} Failed to process AI analysis result: {ai_proc_err}",
+                        exc_info=True,
+                    )
+                    final_results["ai_analysis"] = {
+                        "summary": "AI analysis failed (result processing error).",
+                        "people": [],
+                        "error": str(ai_proc_err),
+                    }
+                    task_error_occurred = True
+        else:
+
+            final_results["ai_analysis"] = None
+
     except FileNotFoundError:
-        logger.error(f"Chat file not found: {chat_file}")
+        logger.error(f"{log_prefix} Chat file not found: {chat_file}")
         raise
     except Exception as e:
         logger.error(
-            f"Error during message preprocessing for {chat_file}: {e}", exc_info=True
+            f"{log_prefix} Unexpected error during main analysis workflow: {e}",
+            exc_info=True,
         )
+
         return {
-            "chat_name": None,
-            "total_messages": 0,
-            "error": f"Preprocessing failed: {str(e)}",
+            "chat_name": original_filename or "Unknown Chat",
+            "total_messages": message_count,
+            "error": f"Core analysis failed unexpectedly: {type(e).__name__}",
+            "ai_analysis": None,
         }
 
-    unique_users = sorted(list({msg[2] for msg in messages_data}))
-    user_count = len(unique_users)
+    finally:
 
-    chat_name = None
+        overall_time = time.monotonic() - overall_start_time
+        logger.info(
+            f"{log_prefix} Analysis complete in {overall_time:.4f}s. "
+            f"[Preproc: {preprocess_time:.4f}s | Stats: {stats_time - (gather_start if stats_time else 0):.4f}s (approx) | "
+            f"AI Prep: {ai_prep_time:.4f}s | AI API: {ai_api_time - (gather_start if ai_api_time else 0):.4f}s (approx) | "
+            f"Gather: {gather_time:.4f}s]"
+        )
 
-    if user_count == 2:
-        chat_name = f"{unique_users[0]} and {unique_users[1]}"
+    if task_error_occurred:
+        logger.warning(f"{log_prefix} Analysis completed with errors in sub-tasks.")
     else:
-        chat_name = f"{unique_users[0]}, {unique_users[1]} and others"
-
-    dynamic_convo_break = calculate_dynamic_convo_break(messages_data)
-
-    stats_task = asyncio.create_task(
-        chat_statistics(messages_data, dynamic_convo_break)
-    )
-    ai_task = None
-
-    if user_count > 0 and user_count <= 10:
-        # logger.info(f"Scheduling AI analysis ({user_count} users <= 10).")
-        ai_task = asyncio.create_task(analyze_messages_with_llm(messages_data))
-
-    tasks_to_gather = [stats_task]
-    if ai_task is not None:
-        tasks_to_gather.append(ai_task)
-
-    # logger.debug(f"Gathering {len(tasks_to_gather)} tasks...")
-
-    gathered_results = await asyncio.gather(*tasks_to_gather, return_exceptions=True)
-    # logger.debug("Gather finished.")
-
-    final_results = {"chat_name": chat_name}
-
-    stats_result = gathered_results[0]
-    if isinstance(stats_result, Exception):
-        logger.error(
-            f"Error calculating statistics: {stats_result}", exc_info=stats_result
-        )
-        final_results["error"] = f"Statistics calculation failed: {str(stats_result)}"
-        final_results.setdefault(
-            "total_messages", len(messages_data) if messages_data else 0
-        )
-    elif isinstance(stats_result, dict):
-        try:
-            final_results.update(stats_result)
-        except TypeError as e:
-            logger.error(
-                f"TypeError during final_results.update(stats_result): {e}. stats_result type: {type(stats_result)}",
-                exc_info=True,
-            )
-            final_results["error"] = (
-                "Internal error: Failed to combine statistics results."
-            )
-            final_results.setdefault(
-                "total_messages", len(messages_data) if messages_data else 0
-            )
-    else:
-        logger.error(
-            f"Statistics calculation returned unexpected type: {type(stats_result)}. Value: {str(stats_result)[:200]}"
-        )
-        final_results["error"] = (
-            "Internal error: Statistics calculation returned invalid data."
-        )
-        final_results.setdefault(
-            "total_messages", len(messages_data) if messages_data else 0
-        )
-
-    if ai_task is not None:
-        ai_result_index = 1
-        ai_result = gathered_results[ai_result_index]
-        if isinstance(ai_result, Exception):
-            logger.error(f"Error during AI analysis: {ai_result}", exc_info=ai_result)
-            final_results["ai_analysis"] = {
-                "summary": "AI analysis failed.",
-                "people": [],
-                "error": str(ai_result),
-            }
-        elif ai_result is None:
-            logger.warning(
-                "AI analysis function returned None (e.g., API keys failed, no messages for AI)."
-            )
-            final_results["ai_analysis"] = {
-                "summary": "AI analysis could not be completed.",
-                "people": [],
-            }
-        else:
-            try:
-                if isinstance(ai_result, str):
-                    ai_data = json.loads(ai_result)
-                elif isinstance(ai_result, dict):
-                    ai_data = ai_result
-                else:
-                    logger.error(
-                        f"AI analysis returned unexpected type {type(ai_result)}, expected string or dict."
-                    )
-                    raise TypeError(
-                        f"AI analysis returned non-string/non-dict: {type(ai_result)}"
-                    )
-                final_results["ai_analysis"] = ai_data
-
-            except json.JSONDecodeError as e:
-                logger.error(
-                    f"Failed to parse JSON from successful AI analysis: {e}. Content snippet: {str(ai_result)[:100]}...",
-                    exc_info=True,
-                )
-                final_results["ai_analysis"] = {
-                    "summary": "AI analysis returned invalid JSON.",
-                    "people": [],
-                    "error": str(e),
-                }
-            except TypeError as e:
-                logger.error(
-                    f"TypeError processing AI result (ai_result type: {type(ai_result)}): {e}",
-                    exc_info=True,
-                )
-                final_results["ai_analysis"] = {
-                    "summary": "Internal error processing AI result.",
-                    "people": [],
-                    "error": str(e),
-                }
-    else:
-        final_results["ai_analysis"] = None
-
-    logger.info(f"Analysis complete for {chat_name}.")
+        logger.info(f"{log_prefix} Analysis completed successfully.")
 
     return final_results
