@@ -123,3 +123,4 @@ next-env.d.ts
 chat.txt
 grouped_messages.json
 bloop-server
+app
