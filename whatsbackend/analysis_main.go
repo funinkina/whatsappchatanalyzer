@@ -69,13 +69,13 @@ func AnalyzeChat(ctx context.Context, chatFilePath string, originalFilename stri
 	chatName := deriveChatName(originalFilename, uniqueUsers)
 
 	// calc dynamic convo break
-	convoBreakStartTime := time.Now()
+	// convoBreakStartTime := time.Now()
 	dynamicConvoBreakMinutes := calculateDynamicConvoBreak(messagesData, 120, 30, 300)
-	convoBreakDuration := time.Since(convoBreakStartTime)
-	log.Printf("%s Dynamic convo break calculated (%d mins) in %s", logPrefix, dynamicConvoBreakMinutes, convoBreakDuration)
+	// convoBreakDuration := time.Since(convoBreakStartTime)
+	// log.Printf("%s Dynamic convo break calculated (%d mins) in %s", logPrefix, dynamicConvoBreakMinutes, convoBreakDuration)
 
 	// stats and ai analysis
-	log.Printf("%s Starting concurrent statistics and AI analysis...", logPrefix)
+	// log.Printf("%s Starting concurrent statistics and AI analysis...", logPrefix)
 	concurrentStartTime := time.Now()
 	var wg sync.WaitGroup
 
@@ -104,19 +104,17 @@ func AnalyzeChat(ctx context.Context, chatFilePath string, originalFilename stri
 		wg.Add(1)
 		go func(data []ParsedMessage, gapMinutes float64) {
 			defer wg.Done()
-			aiStartTime := time.Now()
 			log.Printf("%s Starting AI analysis goroutine for %d users...", logPrefix, userCount)
 			aiResult, aiErr = AnalyzeMessagesWithLLM(ctx, data, gapMinutes/60.0)
-			aiDuration := time.Since(aiStartTime)
 			if aiErr != nil {
-				log.Printf("%s AI analysis goroutine finished with error in %s: %v", logPrefix, aiDuration, aiErr)
+				log.Printf("%s AI analysis goroutine finished with error: %v", logPrefix, aiErr)
 				if errors.Is(aiErr, context.Canceled) || errors.Is(aiErr, context.DeadlineExceeded) {
 					log.Printf("%s AI analysis was cancelled or timed out.", logPrefix)
 				}
 			} else if aiResult == "" {
-				log.Printf("%s AI analysis goroutine finished successfully in %s, but returned no result (e.g., skipped due to keys).", logPrefix, aiDuration)
+				log.Printf("%s AI analysis goroutine finished successfully, but returned no result (e.g., skipped due to keys).", logPrefix)
 			} else {
-				log.Printf("%s AI analysis goroutine finished successfully in %s.", logPrefix, aiDuration)
+				log.Printf("%s AI analysis goroutine finished successfully", logPrefix)
 			}
 		}(messagesDataForAI, float64(dynamicConvoBreakMinutes))
 	} else {
