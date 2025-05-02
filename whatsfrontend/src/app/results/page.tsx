@@ -20,19 +20,15 @@ const filterPhoneNumbers = (data: Record<string, number>): Record<string, number
   );
 };
 
-// Filter phone numbers from the user interaction matrix
 const filterChordData = (matrix: (string | number | null)[][], keys: string[]) => {
   if (!matrix || matrix.length <= 1 || !keys.length) return { filteredMatrix: [] as number[][], filteredKeys: [] };
 
-  // Find indices of non-phone number users
   const validIndices = keys.map((key, index) => ({ key, index }))
     .filter(item => !isPhoneNumber(item.key))
     .map(item => item.index);
 
-  // Extract filtered keys
   const filteredKeys = validIndices.map(index => keys[index]);
 
-  // Extract rows and columns for non-phone number users
   const filteredMatrix = matrix.slice(1)
     .filter((_, rowIdx) => validIndices.includes(rowIdx))
     .map(row =>
@@ -44,7 +40,6 @@ const filterChordData = (matrix: (string | number | null)[][], keys: string[]) =
   return { filteredMatrix: filteredMatrix as number[][], filteredKeys };
 };
 
-// Define an interface for the expected data structure
 interface AnalysisResults {
   chat_name?: string;
   total_messages: number;
@@ -611,7 +606,7 @@ export default function ResultsPage() {
           </section>
 
           {results.most_active_users_pct && Object.keys(results.most_active_users_pct).length <= 2 && (
-            <section className="p-4 border-2 border-neutral-800 rounded-lg bg-lime-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
+            <section className="p-4 border-2 border-neutral-800 rounded-lg bg-sky-100 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)]  hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out">
               <div className='flex items-center justify-between mb-4'>
                 <h2 className="text-xl font-semibold mb-4 text-gray-700">banter on weekday or relaxing on weekend?</h2>
                 <Image
@@ -700,7 +695,7 @@ export default function ResultsPage() {
         {/* top yappers and first texters */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           <section
-            className="p-4 border-2 border-neutral-800 rounded-lg bg-teal-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out"
+            className="p-4 border-2 border-neutral-800 rounded-lg bg-sky-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out"
             data-exclude-from-download="true"
           >
             <div className='flex items-center justify-between'>
@@ -735,7 +730,7 @@ export default function ResultsPage() {
           </section>
 
           <section
-            className="p-4 border-2 border-neutral-800 rounded-lg bg-teal-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out"
+            className="p-4 border-2 border-neutral-800 rounded-lg bg-sky-50 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.85)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] transition duration-150 ease-in-out"
             data-exclude-from-download="true"
           >
             <div className='flex items-center justify-between'>

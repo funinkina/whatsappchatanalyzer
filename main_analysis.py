@@ -327,35 +327,11 @@ async def analyze_chat(chat_file, original_filename=None):
     user_count = len(unique_users)
 
     chat_name = None
-    filename_used_for_name = original_filename or os.path.basename(chat_file)
-    try:
-        match = re.match(
-            r"WhatsApp Chat with (.+?)(?:\.txt)?$",
-            filename_used_for_name,
-            re.IGNORECASE,
-        )
-        if match:
-            chat_name = match.group(1).strip()
-            # logger.info(f"Determined chat name from filename: {chat_name}")
-        else:
-            # logger.info(f"Could not determine chat name from filename: '{filename_used_for_name}'. Will use participants.")
-            if user_count > 0:
-                if user_count == 1:
-                    chat_name = unique_users[0]
-                elif user_count == 2:
-                    chat_name = f"{unique_users[0]} and {unique_users[1]}"
-                else:
-                    chat_name = f"{unique_users[0]}, {unique_users[1]} and others"
 
-    except Exception as e:
-        # logger.warning(f"Error processing filename '{filename_used_for_name}' for chat name: {e}. Attempted to use participants.")
-        if not chat_name and user_count > 0:
-            if user_count == 1:
-                chat_name = unique_users[0]
-            elif user_count == 2:
-                chat_name = f"{unique_users[0]} and {unique_users[1]}"
-            else:
-                chat_name = f"{unique_users[0]}, {unique_users[1]} and others"
+    if user_count == 2:
+        chat_name = f"{unique_users[0]} and {unique_users[1]}"
+    else:
+        chat_name = f"{unique_users[0]}, {unique_users[1]} and others"
 
     dynamic_convo_break = calculate_dynamic_convo_break(messages_data)
 
