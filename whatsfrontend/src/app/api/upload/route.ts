@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-interface BackendResponse {
-  chat_name?: string;
+interface Stats {
   total_messages: number;
   days_active: number | null;
-  user_message_count: { [username: string]: number }; 
-  most_active_users_pct: { [username: string]: number }; 
-  conversation_starters_pct: { [username: string]: number }; 
+  user_message_count: { [username: string]: number };
+  most_active_users_pct: { [username: string]: number };
+  conversation_starters_pct: { [username: string]: number };
   most_ignored_users_pct: { [username: string]: number };
   first_text_champion: {
-    user: string | null; 
-    count: number; 
+    user: string | null;
+    count: number;
   };
   longest_monologue: {
     user: string | null;
@@ -37,23 +36,33 @@ interface BackendResponse {
     difference: number;
     percentage_difference: number;
   };
-  ai_analysis: {
-    summary: string;
-    people?: Array<{
-      name: string;
-      animal: string;
-      description: string;
-    }>;
-    error?: string;
-  } | null;
   user_interaction_matrix?: (string | number | null)[][] | null;
+}
+
+interface PersonAnalysis {
+  name: string;
+  animal: string;
+  description: string;
+  fun_lines?: string[];
+}
+
+interface AiAnalysis {
+  summary: string;
+  people?: PersonAnalysis[];
+  error?: string;
+}
+
+interface BackendResponse {
+  chat_name?: string;
+  total_messages: number;
+  stats: Stats;
+  ai_analysis: AiAnalysis | null;
+  processing_time_seconds?: number;
   error?: string;
 }
 
 export async function POST(request: NextRequest) {
   try {
-    // console.log('Request received:', request);
-
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
 
@@ -67,7 +76,7 @@ export async function POST(request: NextRequest) {
     backendFormData.append('file', file);
 
     const apiKey = process.env.VAL_API_KEY;
-    
+
     if (!apiKey) {
       console.error('API_KEY not configured in environment variables');
       return NextResponse.json({ message: 'API key configuration missing' }, { status: 500 });
