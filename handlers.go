@@ -2,23 +2,25 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
-	"os"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
+var ErrAIQueueTimeout = errors.New("AI analysis queue is full, server is busy")
+
 func healthCheckHandler(c *gin.Context) {
-	pending := config.MaxConcurrentAnalyses - len(analysisSemaphore)
+	queuedAITasks := len(aiTaskQueue)
+	maxAITasks := cap(aiTaskQueue)
 
 	c.JSON(http.StatusOK, gin.H{
-		"status":           "ok",
-		"pending_analyses": pending,
+		"status":          "ok",
+		"ai_tasks_queued": queuedAITasks,
+		"ai_tasks_max":    maxAITasks,
 	})
 }
 
@@ -50,40 +52,6 @@ func analyzeHandler(c *gin.Context) {
 		return
 	}
 
-	var tempFilePath string
-
-	defer func() {
-		if tempFilePath != "" {
-			err := os.Remove(tempFilePath)
-			if err != nil && !os.IsNotExist(err) {
-				log.Printf("%s Error removing temporary file %s in defer: %v. Will be cleaned up later.", logPrefix, tempFilePath, err)
-			} else if err == nil {
-				// log.Printf("%s Successfully removed temporary file: %s", logPrefix, tempFilePath)
-			}
-		}
-	}()
-
-	// get semaphore
-	// log.Printf("%s Attempting to acquire analysis semaphore (%d available)...", logPrefix, config.MaxConcurrentAnalyses-len(analysisSemaphore))
-	acquireCtx, acquireCancel := context.WithTimeout(c.Request.Context(), 30*time.Second) // Use request context as base
-	defer acquireCancel()
-
-	select {
-	case analysisSemaphore <- struct{}{}:
-		// log.Printf("%s Analysis semaphore acquired (%d available).", logPrefix, config.MaxConcurrentAnalyses-len(analysisSemaphore))
-
-		defer func() {
-			<-analysisSemaphore
-			// log.Printf("%s Analysis semaphore released (%d available).", logPrefix, config.MaxConcurrentAnalyses-len(analysisSemaphore)+1)
-		}()
-	case <-acquireCtx.Done():
-
-		log.Printf("%s Could not acquire analysis semaphore within 30s: %v", logPrefix, acquireCtx.Err())
-		c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{"detail": "Server is busy, please try again later."})
-		return
-	}
-
-	// save upload temporarily
 	uploadedFile, err := fileHeader.Open()
 	if err != nil {
 		log.Printf("%s Error opening uploaded file header: %v", logPrefix, err)
@@ -92,53 +60,34 @@ func analyzeHandler(c *gin.Context) {
 	}
 	defer uploadedFile.Close()
 
-	tempFile, err := os.CreateTemp(config.TempDirRoot, "upload_*.txt")
-	if err != nil {
-		log.Printf("%s Error creating temporary file: %v", logPrefix, err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"detail": "Server error: Failed to create temporary storage."})
-		return
-	}
-	tempFilePath = tempFile.Name()
-	defer tempFile.Close()
-
-	bytesWritten, err := io.Copy(tempFile, uploadedFile)
-	if err != nil {
-		log.Printf("%s Error saving uploaded file to %s: %v", logPrefix, tempFilePath, err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"detail": "Server error: Failed to save chat file."})
-		return
-	}
-
-	if err := tempFile.Close(); err != nil {
-		log.Printf("%s Error closing temporary file %s after writing: %v", logPrefix, tempFilePath, err)
-	}
-
-	if bytesWritten == 0 {
-		log.Printf("%s Uploaded file appears to be empty.", logPrefix)
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"detail": "Uploaded file is empty."})
-		return
-	}
-
-	// log.Printf("%s Saved uploaded file to temporary path: %s (%.2f MB)", logPrefix, tempFilePath, float64(bytesWritten)/(1024*1024))
-
-	// log.Printf("%s Starting analysis (Timeout: %s)...", logPrefix, config.AnalysisTimeout)
 	analysisCtx, analysisCancel := context.WithTimeout(c.Request.Context(), config.AnalysisTimeout)
 	defer analysisCancel()
 
-	results, err := AnalyzeChat(analysisCtx, tempFilePath, filename)
+	results, err := AnalyzeChat(analysisCtx, uploadedFile, filename, aiTaskQueue, config.AIQueueTimeout)
 
-	// handle result/error
 	if err != nil {
-		log.Printf("%s Analysis function failed: %v", logPrefix, err)
-		if err == context.DeadlineExceeded {
-			log.Printf("%s Analysis timed out after %s.", logPrefix, config.AnalysisTimeout)
+		if errors.Is(err, ErrAIQueueTimeout) {
+			log.Printf("%s AI Queue Timeout: %v", logPrefix, err)
+			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{"detail": fmt.Sprintf("Server is busy processing AI requests, please try again later. (Queue wait > %s)", config.AIQueueTimeout)})
+			return
+		}
+
+		log.Printf("%s AnalyzeChat setup/preprocessing failed: %v", logPrefix, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"detail": fmt.Sprintf("Analysis setup failed: %s", err.Error())})
+		return
+	}
+
+	select {
+	case <-analysisCtx.Done():
+		log.Printf("%s Analysis context ended after AnalyzeChat returned: %v", logPrefix, analysisCtx.Err())
+
+		if errors.Is(analysisCtx.Err(), context.DeadlineExceeded) {
 			c.AbortWithStatusJSON(http.StatusGatewayTimeout, gin.H{"detail": fmt.Sprintf("Analysis processing timed out after %s.", config.AnalysisTimeout)})
-		} else if err == context.Canceled {
-			log.Printf("%s Analysis canceled, possibly due to client disconnect.", logPrefix)
-			c.Abort()
 		} else {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"detail": fmt.Sprintf("Analysis failed: %s", err.Error())})
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"detail": "Analysis context error after processing."})
 		}
 		return
+	default:
 	}
 
 	if results != nil && results.Error != "" {
@@ -147,24 +96,11 @@ func analyzeHandler(c *gin.Context) {
 		return
 	}
 
-	select {
-	case <-analysisCtx.Done():
-		log.Printf("%s Analysis context ended: %v", logPrefix, analysisCtx.Err())
-		if analysisCtx.Err() == context.DeadlineExceeded {
-			log.Printf("%s Analysis timed out after %s.", logPrefix, config.AnalysisTimeout)
-			c.AbortWithStatusJSON(http.StatusGatewayTimeout, gin.H{"detail": fmt.Sprintf("Analysis processing timed out after %s.", config.AnalysisTimeout)})
-		} else if analysisCtx.Err() == context.Canceled {
-
-			log.Printf("%s Analysis canceled.", logPrefix)
-			c.AbortWithStatus(http.StatusRequestTimeout)
-		} else {
-
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"detail": "Analysis context error."})
-		}
-		return
-	default:
+	if results != nil {
+		log.Printf("%s Analysis successful.", logPrefix)
+		c.JSON(http.StatusOK, results)
+	} else {
+		log.Printf("%s Analysis returned nil result and nil error unexpectedly.", logPrefix)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"detail": "Analysis failed unexpectedly."})
 	}
-
-	// log.Printf("%s Analysis completed successfully.", logPrefix)
-	c.JSON(http.StatusOK, results)
 }

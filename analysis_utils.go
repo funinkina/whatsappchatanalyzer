@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"math/rand"
 	"os"
@@ -143,15 +144,9 @@ func loadSystemMessagePatterns(filepath string) ([]string, error) {
 	return patterns, nil
 }
 
-func preprocessMessages(chatFilePath string) ([]ParsedMessage, error) {
-	file, err := os.Open(chatFilePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open chat file %s: %w", chatFilePath, err)
-	}
-	defer file.Close()
-
+func preprocessMessages(reader io.Reader) ([]ParsedMessage, error) {
 	messagesData := []ParsedMessage{}
-	scanner := bufio.NewScanner(file)
+	scanner := bufio.NewScanner(reader)
 	lineNumber := 0
 
 	for scanner.Scan() {
@@ -164,6 +159,9 @@ func preprocessMessages(chatFilePath string) ([]ParsedMessage, error) {
 
 		line = strings.TrimPrefix(line, "\u200e")
 
+		if timestampPattern == nil {
+			return nil, fmt.Errorf("timestampPattern regex is not initialized")
+		}
 		match := timestampPattern.FindStringSubmatch(line)
 		if match == nil || len(match) != 5 {
 			continue
@@ -211,7 +209,6 @@ func preprocessMessages(chatFilePath string) ([]ParsedMessage, error) {
 		}
 
 		if !parsed {
-			log.Printf("Warning line %d: Could not parse timestamp from string: '%s' in line: %s", lineNumber, datetimeStr, line)
 			continue
 		}
 
@@ -226,13 +223,14 @@ func preprocessMessages(chatFilePath string) ([]ParsedMessage, error) {
 				OriginalMessage: message,
 			})
 		}
+
 	}
 
 	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("error reading chat file %s: %w", chatFilePath, err)
+
+		return nil, fmt.Errorf("error reading data stream: %w", err)
 	}
 
-	// log.Printf("Preprocessing finished for %s. Found %d valid messages.", chatFilePath, len(messagesData))
 	return messagesData, nil
 }
 
@@ -296,7 +294,6 @@ func groupMessagesByTopic(data []ParsedMessage, gapHours float64) []Topic {
 		timeDiff := currTime.Sub(prevTime)
 
 		if timeDiff >= gapDuration {
-			// Start a new topic
 			if len(currentTopicRaw) > 0 {
 				groupedTopicsRaw = append(groupedTopicsRaw, currentTopicRaw)
 			}

@@ -5,14 +5,29 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"runtime"
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"golang.org/x/exp/maps"
 )
+
+type aiResultTuple struct {
+	result string
+	err    error
+}
+
+type aiTask struct {
+	ctx          context.Context
+	messagesData []ParsedMessage
+	gapHours     float64
+	resultChan   chan aiResultTuple
+	logPrefix    string
+}
 
 type AnalysisResult struct {
 	ChatName      string          `json:"chat_name"`
@@ -22,27 +37,24 @@ type AnalysisResult struct {
 	Error         string          `json:"error,omitempty"`
 }
 
-func AnalyzeChat(ctx context.Context, chatFilePath string, originalFilename string) (*AnalysisResult, error) {
+func AnalyzeChat(ctx context.Context, chatReader io.Reader, originalFilename string, aiQueue chan<- aiTask, aiQueueTimeout time.Duration) (*AnalysisResult, error) {
 	logPrefix := fmt.Sprintf("[%s]", originalFilename)
-	// log.Printf("%s Starting analysis for chat file: %s", logPrefix, chatFilePath)
+	// log.Printf("%s Starting analysis using reader", logPrefix)
 
 	var messagesData []ParsedMessage
 	var statsResult *ChatStatistics
-	var aiResult string
-	var statsErr, aiErr, preprocessErr error
+	var statsErr, aiErr error
+	var preprocessErr error
 	var messageCount int
 	var userCount int
 	var uniqueUsers []string
 
-	// preprocessing
-	messagesData, preprocessErr = preprocessMessages(chatFilePath)
-
+	messagesData, preprocessErr = preprocessMessages(chatReader)
 	if preprocessErr != nil {
 		log.Printf("%s Preprocessing failed: %v", logPrefix, preprocessErr)
 		return nil, fmt.Errorf("preprocessing failed: %w", preprocessErr)
 	}
 	messageCount = len(messagesData)
-	// log.Printf("%s Preprocessing finished. Found %d messages.", logPrefix, messageCount)
 
 	if messageCount == 0 {
 		log.Printf("%s No messages found after preprocessing.", logPrefix)
@@ -61,62 +73,87 @@ func AnalyzeChat(ctx context.Context, chatFilePath string, originalFilename stri
 	sort.Strings(uniqueUsers)
 	userCount = len(uniqueUsers)
 	chatName := deriveChatName(originalFilename, uniqueUsers)
-
-	// calc dynamic convo break
 	dynamicConvoBreakMinutes := calculateDynamicConvoBreak(messagesData, 120, 30, 300)
 
-	// stats and ai analysis
 	var wg sync.WaitGroup
-
-	messagesDataForStats := messagesData
-	var messagesDataForAI []ParsedMessage
-	shouldRunAI := userCount > 1 && userCount <= maxUsersForPeopleBlock
-	if shouldRunAI {
-		messagesDataForAI = messagesData
-	}
+	var aiResultChan chan aiResultTuple
 
 	wg.Add(1)
 	go func(data []ParsedMessage, breakMinutes int) {
 		defer wg.Done()
-		// log.Printf("%s Starting statistics calculation goroutine...", logPrefix)
 		statsResult, statsErr = calculateChatStatistics(data, breakMinutes)
 		if statsErr != nil {
 			log.Printf("%s Statistics goroutine finished with error: %v", logPrefix, statsErr)
-		} else {
-			// log.Printf("%s Statistics goroutine finished successfully.", logPrefix)
 		}
-	}(messagesDataForStats, dynamicConvoBreakMinutes)
+		data = nil
+	}(messagesData, dynamicConvoBreakMinutes)
 
+	shouldRunAI := userCount > 1 && userCount <= maxUsersForPeopleBlock // Assuming maxUsersForPeopleBlock is defined
 	if shouldRunAI {
-		wg.Add(1)
-		go func(data []ParsedMessage, gapMinutes float64) {
-			defer wg.Done()
-			// log.Printf("%s Starting AI analysis goroutine for %d users...", logPrefix, userCount)
-			aiResult, aiErr = AnalyzeMessagesWithLLM(ctx, data, gapMinutes/60.0)
-			if aiErr != nil {
-				log.Printf("%s AI analysis goroutine finished with error: %v", logPrefix, aiErr)
-				if errors.Is(aiErr, context.Canceled) || errors.Is(aiErr, context.DeadlineExceeded) {
-					log.Printf("%s AI analysis was cancelled or timed out.", logPrefix)
-				}
-			} else if aiResult == "" {
-				log.Printf("%s AI analysis goroutine finished successfully, but returned no result (e.g., skipped due to keys).", logPrefix)
-			} else {
-				// log.Printf("%s AI analysis goroutine finished successfully", logPrefix)
+		log.Printf("%s Preparing AI analysis task.", logPrefix)
+		aiResultChan = make(chan aiResultTuple, 1)
+		task := aiTask{
+			ctx:          ctx,
+			messagesData: messagesData,
+			gapHours:     float64(dynamicConvoBreakMinutes) / 60.0,
+			resultChan:   aiResultChan,
+			logPrefix:    logPrefix,
+		}
+
+		sendTimer := time.NewTimer(aiQueueTimeout)
+		select {
+		case aiQueue <- task:
+			log.Printf("%s AI task successfully queued.", logPrefix)
+
+		case <-ctx.Done():
+			log.Printf("%s Context cancelled before AI task could be queued: %v", logPrefix, ctx.Err())
+			aiErr = ctx.Err()
+			if !sendTimer.Stop() {
+				<-sendTimer.C
 			}
-		}(messagesDataForAI, float64(dynamicConvoBreakMinutes))
+		case <-sendTimer.C:
+			log.Printf("%s Timed out (%s) waiting to queue AI task.", logPrefix, aiQueueTimeout)
+			return nil, ErrAIQueueTimeout
+		}
+		if !sendTimer.Stop() {
+			select {
+			case <-sendTimer.C:
+			default:
+			}
+		}
+
 	} else {
 		log.Printf("%s Skipping AI analysis: User count (%d) is not between 2 and %d.", logPrefix, userCount, maxUsersForPeopleBlock)
 	}
 
-	// log.Printf("%s Releasing reference to messagesData list (%d messages) and suggesting GC.", logPrefix, messageCount)
 	messagesData = nil
-	messagesDataForStats = nil
-	messagesDataForAI = nil
 	runtime.GC()
-	// log.Printf("%s Garbage collection suggested.", logPrefix)
 
-	// waiting for goroutines to finish
 	wg.Wait()
+	log.Printf("%s Statistics calculation finished.", logPrefix)
+
+	var aiFinalResult string
+	if aiResultChan != nil && aiErr == nil {
+		log.Printf("%s Waiting for AI result...", logPrefix)
+		select {
+		case resultTuple, ok := <-aiResultChan:
+			if !ok {
+				log.Printf("%s AI result channel closed unexpectedly.", logPrefix)
+				aiErr = errors.New("AI worker closed channel unexpectedly")
+			} else {
+				aiFinalResult = resultTuple.result
+				aiErr = resultTuple.err
+				if aiErr != nil {
+					log.Printf("%s AI analysis returned an error: %v", logPrefix, aiErr)
+				} else {
+					log.Printf("%s Successfully received AI result.", logPrefix)
+				}
+			}
+		case <-ctx.Done():
+			log.Printf("%s Context cancelled while waiting for AI result: %v", logPrefix, ctx.Err())
+			aiErr = ctx.Err()
+		}
+	}
 
 	finalResult := &AnalysisResult{
 		ChatName:      chatName,
@@ -124,9 +161,8 @@ func AnalyzeChat(ctx context.Context, chatFilePath string, originalFilename stri
 		Stats:         statsResult,
 	}
 
-	// handle AI result
-	if aiResult != "" {
-		finalResult.AIAnalysis = json.RawMessage(aiResult)
+	if aiFinalResult != "" && aiErr == nil {
+		finalResult.AIAnalysis = json.RawMessage(aiFinalResult)
 	} else {
 		finalResult.AIAnalysis = nil
 	}
@@ -136,25 +172,24 @@ func AnalyzeChat(ctx context.Context, chatFilePath string, originalFilename stri
 		errorMessages = append(errorMessages, fmt.Sprintf("Statistics failed: %s", statsErr.Error()))
 		finalResult.Stats = nil
 	}
-	if aiErr != nil {
-		if !(errors.Is(aiErr, context.Canceled) || errors.Is(aiErr, context.DeadlineExceeded)) {
-			errorMessages = append(errorMessages, fmt.Sprintf("AI analysis failed: %s", aiErr.Error()))
-		}
+
+	if aiErr != nil && !errors.Is(aiErr, context.Canceled) && !errors.Is(aiErr, context.DeadlineExceeded) {
+		errorMessages = append(errorMessages, fmt.Sprintf("AI analysis failed: %s", aiErr.Error()))
 	}
 
 	if len(errorMessages) > 0 {
 		finalResult.Error = strings.Join(errorMessages, "; ")
 		log.Printf("%s Analysis complete with errors: %s", logPrefix, finalResult.Error)
-		return finalResult, nil
+	} else {
+		log.Printf("%s Analysis complete successfully.", logPrefix)
 	}
 
-	// log.Printf("%s Analysis complete successfully.", logPrefix)
 	return finalResult, nil
 }
 
 func deriveChatName(originalFilename string, users []string) string {
 	userCount := len(users)
-	defaultName := originalFilename
+	defaultName := strings.TrimSuffix(originalFilename, ".txt")
 	if defaultName == "" {
 		defaultName = "WhatsApp Chat"
 	}

@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -15,8 +17,9 @@ import (
 )
 
 var (
-	config            *Config
-	analysisSemaphore chan struct{}
+	config      *Config
+	aiTaskQueue chan aiTask
+	aiWorkerWg  sync.WaitGroup
 )
 
 func main() {
@@ -26,7 +29,14 @@ func main() {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
-	analysisSemaphore = make(chan struct{}, config.MaxConcurrentAnalyses)
+	aiTaskQueue = make(chan aiTask, config.MaxConcurrentAICalls)
+
+	log.Printf("Starting %d AI worker goroutines...", config.MaxConcurrentAICalls)
+	aiWorkerWg.Add(config.MaxConcurrentAICalls)
+	for i := 0; i < config.MaxConcurrentAICalls; i++ {
+		go aiWorker(i, aiTaskQueue, &aiWorkerWg)
+	}
+	log.Printf("AI workers started.")
 
 	err = os.MkdirAll(config.TempDirRoot, 0755)
 	if err != nil {
@@ -35,7 +45,7 @@ func main() {
 
 	router := gin.Default()
 
-	// CORS
+	// CORS configuration
 	corsConfig := cors.DefaultConfig()
 	corsConfig.AllowOrigins = []string{"http://localhost:3000", "https://bloopit.vercel.app"}
 	corsConfig.AllowCredentials = true
@@ -55,10 +65,8 @@ func main() {
 	}
 	analyzeGroup.POST("/analyze/", analyzeHandler)
 
-	// bg tasks
 	cleanupCtx, cleanupCancel := context.WithCancel(context.Background())
 	defer cleanupCancel()
-
 	go runPeriodicTempCleanup(cleanupCtx, config.TempDirRoot, config.MaxTempFileAge, config.MaxTempFileAge/2)
 
 	// start server
@@ -69,7 +77,8 @@ func main() {
 	}
 
 	log.Printf("Server starting...")
-	log.Printf("Max concurrent analyses: %d", config.MaxConcurrentAnalyses)
+	log.Printf("Max concurrent AI calls: %d", config.MaxConcurrentAICalls)
+	log.Printf("AI queue timeout: %s", config.AIQueueTimeout)
 	log.Printf("Temporary directory: %s", config.TempDirRoot)
 	log.Printf("Max temp file age: %s", config.MaxTempFileAge)
 	log.Printf("Max upload size: %.1f MB", float64(config.MaxUploadSizeBytes)/(1024*1024))
@@ -89,6 +98,22 @@ func main() {
 
 	cleanupCancel()
 
+	log.Println("Closing AI task queue...")
+	close(aiTaskQueue)
+	log.Println("Waiting for AI workers to finish...")
+	aiWorkerDone := make(chan struct{})
+	go func() {
+		aiWorkerWg.Wait()
+		close(aiWorkerDone)
+	}()
+	select {
+	case <-aiWorkerDone:
+		log.Println("All AI workers finished.")
+	case <-time.After(10 * time.Second):
+		log.Println("Warning: AI workers did not finish gracefully within timeout.")
+	}
+
+	// Shutdown HTTP server
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
@@ -96,4 +121,32 @@ func main() {
 	}
 
 	log.Println("Server exiting")
+}
+
+func aiWorker(id int, tasks <-chan aiTask, wg *sync.WaitGroup) {
+	defer wg.Done()
+	log.Printf("AI Worker %d started", id)
+	for task := range tasks {
+		log.Printf("[AI Worker %d] Processing task for %s", id, task.logPrefix)
+
+		aiResult, aiErr := AnalyzeMessagesWithLLM(task.ctx, task.messagesData, task.gapHours)
+
+		if errors.Is(aiErr, context.Canceled) {
+			log.Printf("[AI Worker %d] Task cancelled via context for %s", id, task.logPrefix)
+		} else if errors.Is(aiErr, context.DeadlineExceeded) {
+			log.Printf("[AI Worker %d] Task timed out via context for %s", id, task.logPrefix)
+		} else if aiErr != nil {
+			log.Printf("[AI Worker %d] Error during AI analysis for %s: %v", id, task.logPrefix, aiErr)
+		} else {
+			log.Printf("[AI Worker %d] Finished AI analysis for %s", id, task.logPrefix)
+		}
+
+		select {
+		case task.resultChan <- aiResultTuple{result: aiResult, err: aiErr}:
+		default:
+			log.Printf("[AI Worker %d] Failed to send result back for %s (receiver might have timed out or cancelled)", id, task.logPrefix)
+		}
+		close(task.resultChan)
+	}
+	log.Printf("AI Worker %d stopped", id)
 }
