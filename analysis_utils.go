@@ -232,7 +232,7 @@ func preprocessMessages(chatFilePath string) ([]ParsedMessage, error) {
 		return nil, fmt.Errorf("error reading chat file %s: %w", chatFilePath, err)
 	}
 
-	log.Printf("Preprocessing finished for %s. Found %d valid messages.", chatFilePath, len(messagesData))
+	// log.Printf("Preprocessing finished for %s. Found %d valid messages.", chatFilePath, len(messagesData))
 	return messagesData, nil
 }
 

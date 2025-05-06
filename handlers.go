@@ -35,7 +35,7 @@ func analyzeHandler(c *gin.Context) {
 	}
 
 	filename := fileHeader.Filename
-	logPrefix = fmt.Sprintf("[Req from %s | File: %s]", clientHost, filename) // Update log prefix
+	logPrefix = fmt.Sprintf("[Req from %s | File: %s]", clientHost, filename)
 	log.Printf("%s Received analysis request. Content-Type: %s", logPrefix, fileHeader.Header.Get("Content-Type"))
 
 	// validate filename
@@ -58,23 +58,23 @@ func analyzeHandler(c *gin.Context) {
 			if err != nil && !os.IsNotExist(err) {
 				log.Printf("%s Error removing temporary file %s in defer: %v. Will be cleaned up later.", logPrefix, tempFilePath, err)
 			} else if err == nil {
-				log.Printf("%s Successfully removed temporary file: %s", logPrefix, tempFilePath)
+				// log.Printf("%s Successfully removed temporary file: %s", logPrefix, tempFilePath)
 			}
 		}
 	}()
 
 	// get semaphore
-	log.Printf("%s Attempting to acquire analysis semaphore (%d available)...", logPrefix, config.MaxConcurrentAnalyses-len(analysisSemaphore))
+	// log.Printf("%s Attempting to acquire analysis semaphore (%d available)...", logPrefix, config.MaxConcurrentAnalyses-len(analysisSemaphore))
 	acquireCtx, acquireCancel := context.WithTimeout(c.Request.Context(), 30*time.Second) // Use request context as base
 	defer acquireCancel()
 
 	select {
 	case analysisSemaphore <- struct{}{}:
-		log.Printf("%s Analysis semaphore acquired (%d available).", logPrefix, config.MaxConcurrentAnalyses-len(analysisSemaphore))
+		// log.Printf("%s Analysis semaphore acquired (%d available).", logPrefix, config.MaxConcurrentAnalyses-len(analysisSemaphore))
 
 		defer func() {
 			<-analysisSemaphore
-			log.Printf("%s Analysis semaphore released (%d available).", logPrefix, config.MaxConcurrentAnalyses-len(analysisSemaphore)+1) // +1 because it's after release
+			// log.Printf("%s Analysis semaphore released (%d available).", logPrefix, config.MaxConcurrentAnalyses-len(analysisSemaphore)+1)
 		}()
 	case <-acquireCtx.Done():
 
@@ -118,9 +118,9 @@ func analyzeHandler(c *gin.Context) {
 		return
 	}
 
-	log.Printf("%s Saved uploaded file to temporary path: %s (%.2f MB)", logPrefix, tempFilePath, float64(bytesWritten)/(1024*1024))
+	// log.Printf("%s Saved uploaded file to temporary path: %s (%.2f MB)", logPrefix, tempFilePath, float64(bytesWritten)/(1024*1024))
 
-	log.Printf("%s Starting analysis (Timeout: %s)...", logPrefix, config.AnalysisTimeout)
+	// log.Printf("%s Starting analysis (Timeout: %s)...", logPrefix, config.AnalysisTimeout)
 	analysisCtx, analysisCancel := context.WithTimeout(c.Request.Context(), config.AnalysisTimeout)
 	defer analysisCancel()
 
@@ -165,6 +165,6 @@ func analyzeHandler(c *gin.Context) {
 	default:
 	}
 
-	log.Printf("%s Analysis completed successfully.", logPrefix)
+	// log.Printf("%s Analysis completed successfully.", logPrefix)
 	c.JSON(http.StatusOK, results)
 }

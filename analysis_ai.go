@@ -273,7 +273,7 @@ func invokeGroq(ctx context.Context, apiKey, keyName, systemPrompt, userContent 
 		if strings.HasPrefix(trimmedContent, "{") && strings.HasSuffix(trimmedContent, "}") {
 			var js json.RawMessage
 			if err := json.Unmarshal([]byte(trimmedContent), &js); err == nil {
-				log.Printf("Successfully received valid JSON with %s.", keyName)
+				// log.Printf("Successfully received valid JSON with %s.", keyName)
 				return trimmedContent, nil
 			} else {
 				lastErr = fmt.Errorf("output from %s looks like JSON but failed validation: %w Content: %s", keyName, err, func() string {
@@ -309,9 +309,9 @@ func AnalyzeMessagesWithLLM(ctx context.Context, data []ParsedMessage, gapHours 
 		return "", nil
 	}
 
-	log.Println("Grouping messages by topic for AI analysis...")
+	// log.Println("Grouping messages by topic for AI analysis...")
 	topics := groupMessagesByTopic(data, gapHours)
-	log.Println("Stratifying messages for AI analysis...")
+	// log.Println("Stratifying messages for AI analysis...")
 	stratifiedData := stratifyMessages(topics)
 
 	if len(stratifiedData) == 0 {
@@ -394,7 +394,7 @@ func AnalyzeMessagesWithLLM(ctx context.Context, data []ParsedMessage, gapHours 
 
 		result, err := invokeGroq(ctx, keyToTry, keyName, systemPrompt, groupedMessagesJSON)
 		if err == nil {
-			log.Printf("AI analysis successful with %s.", keyName)
+			// log.Printf("AI analysis successful with %s.", keyName)
 			return result, nil
 		} else {
 			log.Printf("Warning: Failed attempt with %s: %v", keyName, err)

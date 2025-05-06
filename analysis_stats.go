@@ -126,7 +126,7 @@ func calculateDynamicConvoBreak(messagesData []ParsedMessage, defaultBreakMinute
 	dynamicBreakClamped := math.Max(float64(minBreak), math.Min(dynamicBreak, float64(maxBreak)))
 
 	result := int(math.Round(dynamicBreakClamped))
-	log.Printf("Calculated dynamic conversation break: %d minutes (based on p85=%.2f)", result, p85)
+	// log.Printf("Calculated dynamic conversation break: %d minutes (based on p85=%.2f)", result, p85)
 	return result
 }
 
@@ -159,8 +159,7 @@ func countTopN(counter map[string]int, n int) StringIntMap {
 // main stats calculation function
 
 func calculateChatStatistics(messagesData []ParsedMessage, convoBreakMinutes int) (*ChatStatistics, error) {
-	startTime := time.Now()
-	log.Printf("Starting statistics calculation for %d messages...", len(messagesData))
+	// log.Printf("Starting statistics calculation for %d messages...", len(messagesData))
 	if len(messagesData) == 0 {
 		return nil, fmt.Errorf("cannot calculate statistics on empty message list")
 	}
@@ -383,8 +382,6 @@ func calculateChatStatistics(messagesData []ParsedMessage, convoBreakMinutes int
 		UserInteractionMatrix:      formatInteractionMatrix(interactionMatrix, maps.Keys(userMessageCount)),
 	}
 
-	duration := time.Since(startTime)
-	log.Printf("Statistics calculation finished in %s", duration)
 	return stats, nil
 }
 
