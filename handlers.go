@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"sync/atomic" // Added for reading activeAICallsCount
 
 	"github.com/gin-gonic/gin"
 )
@@ -15,12 +16,14 @@ var ErrAIQueueTimeout = errors.New("AI analysis queue is full, server is busy")
 
 func healthCheckHandler(c *gin.Context) {
 	queuedAITasks := len(aiTaskQueue)
-	maxAITasks := cap(aiTaskQueue)
+	maxConcurrentAITasks := cap(aiTaskQueue)
+	processingAITasks := atomic.LoadInt32(&activeAICallsCount)
 
 	c.JSON(http.StatusOK, gin.H{
-		"status":          "ok",
-		"ai_tasks_queued": queuedAITasks,
-		"ai_tasks_max":    maxAITasks,
+		"status":                   "ok",
+		"ai_tasks_queued":          queuedAITasks,
+		"ai_tasks_processing":      processingAITasks,
+		"ai_tasks_worker_capacity": maxConcurrentAITasks,
 	})
 }
 

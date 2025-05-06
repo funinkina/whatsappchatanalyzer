@@ -470,3 +470,40 @@ func min(a, b int) int {
 	}
 	return b
 }
+
+func extractDisplayNames(users []string) []string {
+	var displayNames []string
+	for _, user := range users {
+		trimmedUser := strings.TrimSpace(user)
+		if trimmedUser == "" {
+			continue
+		}
+
+		isName := false
+		for _, r := range trimmedUser {
+			if unicode.IsLetter(r) {
+				isName = true
+				break
+			}
+		}
+
+		if isName {
+			parts := strings.Fields(trimmedUser)
+			if len(parts) > 0 {
+				firstNameCandidate := parts[0]
+				hasLetterInFirstName := false
+				for _, r := range firstNameCandidate {
+					if unicode.IsLetter(r) {
+						hasLetterInFirstName = true
+						break
+					}
+				}
+
+				if hasLetterInFirstName {
+					displayNames = append(displayNames, firstNameCandidate)
+				}
+			}
+		}
+	}
+	return displayNames
+}

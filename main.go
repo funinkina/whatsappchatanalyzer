@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"sync"
+	"sync/atomic" // Added for activeAICallsCount
 	"syscall"
 	"time"
 
@@ -17,9 +18,10 @@ import (
 )
 
 var (
-	config      *Config
-	aiTaskQueue chan aiTask
-	aiWorkerWg  sync.WaitGroup
+	config             *Config
+	aiTaskQueue        chan aiTask
+	aiWorkerWg         sync.WaitGroup
+	activeAICallsCount int32 // New: counter for active AI calls
 )
 
 func main() {
@@ -127,7 +129,8 @@ func aiWorker(id int, tasks <-chan aiTask, wg *sync.WaitGroup) {
 	defer wg.Done()
 	log.Printf("AI Worker %d started", id)
 	for task := range tasks {
-		log.Printf("[AI Worker %d] Processing task for %s", id, task.logPrefix)
+		atomic.AddInt32(&activeAICallsCount, 1) // Increment when task processing starts
+		log.Printf("[AI Worker %d] Processing task for %s. Active calls: %d", id, task.logPrefix, atomic.LoadInt32(&activeAICallsCount))
 
 		aiResult, aiErr := AnalyzeMessagesWithLLM(task.ctx, task.messagesData, task.gapHours)
 
@@ -141,6 +144,9 @@ func aiWorker(id int, tasks <-chan aiTask, wg *sync.WaitGroup) {
 			log.Printf("[AI Worker %d] Finished AI analysis for %s", id, task.logPrefix)
 		}
 
+		atomic.AddInt32(&activeAICallsCount, -1) // Decrement when task processing ends
+		log.Printf("[AI Worker %d] Task finished for %s. Active calls: %d", id, task.logPrefix, atomic.LoadInt32(&activeAICallsCount))
+
 		select {
 		case task.resultChan <- aiResultTuple{result: aiResult, err: aiErr}:
 		default:
@@ -148,5 +154,5 @@ func aiWorker(id int, tasks <-chan aiTask, wg *sync.WaitGroup) {
 		}
 		close(task.resultChan)
 	}
-	log.Printf("AI Worker %d stopped", id)
+	log.Printf("AI Worker %d stopped. Final active calls: %d", id, atomic.LoadInt32(&activeAICallsCount))
 }

@@ -187,7 +187,9 @@ func AnalyzeChat(ctx context.Context, chatReader io.Reader, originalFilename str
 }
 
 func deriveChatName(originalFilename string, users []string) string {
-	userCount := len(users)
+	displayNames := extractDisplayNames(users)
+
+	userCount := len(displayNames)
 	defaultName := strings.TrimSuffix(originalFilename, ".txt")
 	if defaultName == "" {
 		defaultName = "WhatsApp Chat"
@@ -197,10 +199,10 @@ func deriveChatName(originalFilename string, users []string) string {
 	case 0:
 		return defaultName
 	case 1:
-		return fmt.Sprintf("Notes (%s)", users[0])
+		return fmt.Sprintf("Chat with %s", displayNames[0])
 	case 2:
-		return fmt.Sprintf("%s & %s", users[0], users[1])
+		return fmt.Sprintf("%s & %s", displayNames[0], displayNames[1])
 	default:
-		return fmt.Sprintf("%s, %s & %d others", users[0], users[1], userCount-2)
+		return fmt.Sprintf("%s, %s & %d others", displayNames[0], displayNames[1], userCount-2)
 	}
 }

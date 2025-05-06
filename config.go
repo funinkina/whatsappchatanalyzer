@@ -95,7 +95,7 @@ func LoadConfig() (*Config, error) {
 
 	maxConcurrentAICallsStr := os.Getenv("MAX_CONCURRENT_AI_CALLS")
 	if maxConcurrentAICallsStr == "" {
-		maxConcurrentAICallsStr = "5"
+		maxConcurrentAICallsStr = "10"
 	}
 	maxConcurrentAICalls, err := strconv.Atoi(maxConcurrentAICallsStr)
 	if err != nil || maxConcurrentAICalls <= 0 {
