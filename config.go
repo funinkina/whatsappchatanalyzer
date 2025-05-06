@@ -76,7 +76,6 @@ func LoadConfig() (*Config, error) {
 	if maxSizeMbStr == "" {
 		maxSizeMbStr = "25"
 	}
-
 	maxSizeMb, err := strconv.Atoi(maxSizeMbStr)
 	if err != nil || maxSizeMb <= 0 {
 		log.Printf("Warning: Invalid MAX_UPLOAD_SIZE_MB value '%s'. Using default 25. Error: %v", maxSizeMbStr, err)
@@ -94,13 +93,35 @@ func LoadConfig() (*Config, error) {
 		analysisTimeoutSec = 300
 	}
 
+	maxConcurrentAICallsStr := os.Getenv("MAX_CONCURRENT_AI_CALLS")
+	if maxConcurrentAICallsStr == "" {
+		maxConcurrentAICallsStr = "5"
+	}
+	maxConcurrentAICalls, err := strconv.Atoi(maxConcurrentAICallsStr)
+	if err != nil || maxConcurrentAICalls <= 0 {
+		log.Printf("Warning: Invalid MAX_CONCURRENT_AI_CALLS value '%s'. Using default 3. Error: %v", maxConcurrentAICallsStr, err)
+		maxConcurrentAICalls = 3
+	}
+
+	aiQueueTimeoutStr := os.Getenv("AI_QUEUE_TIMEOUT_SECONDS")
+	if aiQueueTimeoutStr == "" {
+		aiQueueTimeoutStr = "20"
+	}
+	aiQueueTimeoutSec, err := strconv.Atoi(aiQueueTimeoutStr)
+	if err != nil || aiQueueTimeoutSec < 0 {
+		log.Printf("Warning: Invalid AI_QUEUE_TIMEOUT_SECONDS value '%s'. Using default 20. Error: %v", aiQueueTimeoutStr, err)
+		aiQueueTimeoutSec = 20
+	}
+
 	return &Config{
-		Host:               host,
-		Port:               port,
-		TempDirRoot:        tempDirRoot,
-		MaxTempFileAge:     time.Duration(maxAgeSec) * time.Second,
-		MaxUploadSizeBytes: maxUploadSizeBytes,
-		AnalysisTimeout:    time.Duration(analysisTimeoutSec) * time.Second,
-		APIKey:             apiKey,
+		Host:                 host,
+		Port:                 port,
+		MaxConcurrentAICalls: maxConcurrentAICalls,
+		AIQueueTimeout:       time.Duration(aiQueueTimeoutSec) * time.Second,
+		TempDirRoot:          tempDirRoot,
+		MaxTempFileAge:       time.Duration(maxAgeSec) * time.Second,
+		MaxUploadSizeBytes:   maxUploadSizeBytes,
+		AnalysisTimeout:      time.Duration(analysisTimeoutSec) * time.Second,
+		APIKey:               apiKey,
 	}, nil
 }
