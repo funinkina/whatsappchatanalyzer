@@ -90,7 +90,7 @@ func AnalyzeChat(ctx context.Context, chatReader io.Reader, originalFilename str
 
 	shouldRunAI := userCount > 1 && userCount <= maxUsersForPeopleBlock // Assuming maxUsersForPeopleBlock is defined
 	if shouldRunAI {
-		log.Printf("%s Preparing AI analysis task.", logPrefix)
+		// log.Printf("%s Preparing AI analysis task.", logPrefix)
 		aiResultChan = make(chan aiResultTuple, 1)
 		task := aiTask{
 			ctx:          ctx,
@@ -103,7 +103,7 @@ func AnalyzeChat(ctx context.Context, chatReader io.Reader, originalFilename str
 		sendTimer := time.NewTimer(aiQueueTimeout)
 		select {
 		case aiQueue <- task:
-			log.Printf("%s AI task successfully queued.", logPrefix)
+			// log.Printf("%s AI task successfully queued.", logPrefix)
 
 		case <-ctx.Done():
 			log.Printf("%s Context cancelled before AI task could be queued: %v", logPrefix, ctx.Err())
@@ -130,11 +130,10 @@ func AnalyzeChat(ctx context.Context, chatReader io.Reader, originalFilename str
 	runtime.GC()
 
 	wg.Wait()
-	log.Printf("%s Statistics calculation finished.", logPrefix)
 
 	var aiFinalResult string
 	if aiResultChan != nil && aiErr == nil {
-		log.Printf("%s Waiting for AI result...", logPrefix)
+		// log.Printf("%s Waiting for AI result...", logPrefix)
 		select {
 		case resultTuple, ok := <-aiResultChan:
 			if !ok {
@@ -146,7 +145,7 @@ func AnalyzeChat(ctx context.Context, chatReader io.Reader, originalFilename str
 				if aiErr != nil {
 					log.Printf("%s AI analysis returned an error: %v", logPrefix, aiErr)
 				} else {
-					log.Printf("%s Successfully received AI result.", logPrefix)
+					// log.Printf("%s Successfully received AI result.", logPrefix)
 				}
 			}
 		case <-ctx.Done():
@@ -181,7 +180,7 @@ func AnalyzeChat(ctx context.Context, chatReader io.Reader, originalFilename str
 		finalResult.Error = strings.Join(errorMessages, "; ")
 		log.Printf("%s Analysis complete with errors: %s", logPrefix, finalResult.Error)
 	} else {
-		log.Printf("%s Analysis complete successfully.", logPrefix)
+		// log.Printf("%s Analysis complete successfully.", logPrefix)
 	}
 
 	return finalResult, nil

@@ -181,7 +181,7 @@ func invokeGroq(ctx context.Context, apiKey, keyName, systemPrompt, userContent 
 			}
 		}
 
-		log.Printf("Attempting Groq analysis with %s (Attempt %d/%d)...", keyName, attempt, retryAttempts)
+		// log.Printf("Attempting Groq analysis with %s (Attempt %d/%d)...", keyName, attempt, retryAttempts)
 
 		requestPayload := GroqRequest{
 			Model: groqModel,
@@ -421,7 +421,7 @@ func AnalyzeMessagesWithLLM(ctx context.Context, data []ParsedMessage, gapHours 
 		keyName := "Fallback Key #9"
 		result, err := invokeGroq(ctx, fallbackKey, keyName, systemPrompt, groupedMessagesJSON)
 		if err == nil {
-			log.Printf("AI analysis successful with %s.", keyName)
+			// log.Printf("AI analysis successful with %s.", keyName)
 			return result, nil
 		} else {
 			log.Printf("Error: Fallback key %s also failed: %v", keyName, err)
