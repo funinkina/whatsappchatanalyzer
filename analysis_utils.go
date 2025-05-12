@@ -181,7 +181,7 @@ func sniffTimestampLayouts(reader io.Reader, allLayouts []string, maxLines int) 
 	}
 
 	if len(sampleLines) == 0 {
-		log.Printf("Warning: No lines matched the general timestamp pattern during sniffing in the first %d lines. Cannot determine specific layout.", maxLines)
+		// log.Printf("Warning: No lines matched the general timestamp pattern during sniffing in the first %d lines. Cannot determine specific layout.", maxLines)
 		return nil, fmt.Errorf("no valid timestamp lines found in the first %d lines to sniff format from", maxLines)
 	}
 
@@ -222,7 +222,7 @@ func sniffTimestampLayouts(reader io.Reader, allLayouts []string, maxLines int) 
 	}
 
 	if len(candidateLayouts) == 0 {
-		log.Printf("Sniffing failed: No layout consistently parsed %d sampled timestamp lines.", actualTimestampsProcessed)
+		// log.Printf("Sniffing failed: No layout consistently parsed %d sampled timestamp lines.", actualTimestampsProcessed)
 		return nil, fmt.Errorf("no timestamp layout consistently parsed the sample data")
 	}
 
