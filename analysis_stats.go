@@ -361,7 +361,10 @@ func calculateChatStatistics(messagesData []ParsedMessage, convoBreakMinutes int
 	// days active
 	daysActive := 0
 	if !firstMessageTimestamp.IsZero() && !latestMessageTimestamp.IsZero() {
+		log.Printf("First message date: %s", firstMessageTimestamp.Format("Jan 02 2006"))
+		log.Printf("Last message date: %s", latestMessageTimestamp.Format("Jan 02 2006"))
 		daysActive = int(latestMessageTimestamp.Sub(firstMessageTimestamp).Hours()/24) + 1
+		log.Printf("Days active: %d", daysActive)
 	}
 
 	stats := &ChatStatistics{

@@ -2,7 +2,9 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -41,6 +43,7 @@ const (
 	stopwordsFile           = "stopwords.txt"
 	systemMessagesFile      = "system_message_patterns.json"
 	allowedPunctuationRegex = `.,?!'"()`
+	maxLinesToSniff         = 100
 )
 
 func init() {
@@ -103,6 +106,15 @@ func init() {
 		"02/01/2006 15:04",    // dd/mm/yyyy HH:mm
 		"02/01/06 15:04:05",   // dd/mm/yy HH:mm:ss
 		"02/01/2006 15:04:05", // dd/mm/yyyy HH:mm:ss
+
+		"2/1/06 3:04 PM",        // d/m/yy h:mm AM/PM
+		"2/1/2006 3:04 PM",      // d/m/yyyy h:mm AM/PM
+		"2/1/06 3:04:05 PM",     // d/m/yy h:mm:ss AM/PM
+		"2/1/2006 3:04:05 PM",   // d/m/yyyy h:mm:ss AM/PM
+		"02/01/06 3:04 PM",      // dd/mm/yy h:mm AM/PM
+		"02/01/2006 3:04 PM",    // dd/mm/yyyy h:mm AM/PM
+		"02/01/06 3:04:05 PM",   // dd/mm/yy h:mm:ss AM/PM
+		"02/01/2006 3:04:05 PM", // dd/mm/yyyy h:mm:ss AM/PM
 	}
 }
 
@@ -149,29 +161,141 @@ func loadSystemMessagePatterns(filepath string) ([]string, error) {
 	return lowerCasePatterns, nil
 }
 
-func preprocessMessages(reader io.Reader) (int, []ParsedMessage, error) { // Modified to return rawMessageCount
-	messagesData := []ParsedMessage{}
+func sniffTimestampLayouts(reader io.Reader, allLayouts []string, maxLines int) ([]string, error) {
 	scanner := bufio.NewScanner(reader)
+	var sampleLines []string
+	linesRead := 0
+
+	for (maxLines <= 0 || linesRead < maxLines) && scanner.Scan() {
+		line := scanner.Text()
+		trimmedLine := strings.TrimSpace(line)
+		trimmedLine = strings.TrimPrefix(trimmedLine, "\u200e")
+
+		if timestampPattern != nil && timestampPattern.MatchString(trimmedLine) {
+			sampleLines = append(sampleLines, trimmedLine)
+		}
+		linesRead++
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("error reading lines for sniffing: %w", err)
+	}
+
+	if len(sampleLines) == 0 {
+		log.Printf("Warning: No lines matched the general timestamp pattern during sniffing in the first %d lines. Cannot determine specific layout.", maxLines)
+		return nil, fmt.Errorf("no valid timestamp lines found in the first %d lines to sniff format from", maxLines)
+	}
+
+	candidateLayouts := make([]string, len(allLayouts))
+	copy(candidateLayouts, allLayouts)
+
+	actualTimestampsProcessed := 0
+
+	for _, line := range sampleLines {
+		if len(candidateLayouts) == 0 {
+			break
+		}
+
+		match := timestampPattern.FindStringSubmatch(line)
+		if match == nil || len(match) != 5 {
+			continue
+		}
+		actualTimestampsProcessed++
+
+		dateStr := strings.TrimSpace(match[1])
+		timeStr := strings.TrimSpace(match[2])
+		timeCleaned := strings.ToUpper(strings.ReplaceAll(timeStr, "\u202f", " "))
+		datetimeStr := dateStr + " " + timeCleaned
+
+		currentlyValidLayouts := []string{}
+		for _, layout := range candidateLayouts {
+			_, err := time.Parse(layout, datetimeStr)
+			if err == nil {
+				currentlyValidLayouts = append(currentlyValidLayouts, layout)
+			}
+		}
+		candidateLayouts = currentlyValidLayouts
+	}
+
+	if actualTimestampsProcessed == 0 {
+		log.Println("Warning: No actual timestamps were successfully parsed from the sampled lines.")
+		return nil, fmt.Errorf("no timestamp lines could be parsed with any layout from the sample")
+	}
+
+	if len(candidateLayouts) == 0 {
+		log.Printf("Sniffing failed: No layout consistently parsed %d sampled timestamp lines.", actualTimestampsProcessed)
+		return nil, fmt.Errorf("no timestamp layout consistently parsed the sample data")
+	}
+
+	if len(candidateLayouts) > 1 {
+		log.Printf("Multiple layouts (%d) are consistent with sniffed data: %v. Applying prioritization.", len(candidateLayouts), candidateLayouts)
+
+		var europeanStyleLayouts []string
+		var usStyleLayouts []string
+
+		for _, layout := range candidateLayouts {
+			if strings.Contains(layout, "2/1/") || strings.Contains(layout, "02/01/") {
+				europeanStyleLayouts = append(europeanStyleLayouts, layout)
+			} else if strings.Contains(layout, "1/2/") || strings.Contains(layout, "01/02/") {
+				usStyleLayouts = append(usStyleLayouts, layout)
+			}
+		}
+
+		if len(europeanStyleLayouts) > 0 {
+			log.Printf("Prioritizing European-style (d/m or dd/mm) layouts as they are among consistent options: %v", europeanStyleLayouts)
+			return europeanStyleLayouts, nil
+		}
+		if len(usStyleLayouts) > 0 {
+			log.Printf("Using US-style (m/d or mm/dd) layouts as they are the only consistent options: %v", usStyleLayouts)
+			return usStyleLayouts, nil
+		}
+
+		log.Printf("Could not strongly prioritize among consistent layouts. Using all: %v", candidateLayouts)
+		return candidateLayouts, nil
+	}
+
+	log.Printf("Determined single consistent timestamp layout(s): %v", candidateLayouts)
+	return candidateLayouts, nil
+}
+
+func preprocessMessages(reader io.Reader) (int, []ParsedMessage, error) {
+	buf, err := io.ReadAll(reader)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to read input for buffering: %w", err)
+	}
+
+	sniffReader := bytes.NewReader(buf)
+	currentTimestampParseLayouts, err := sniffTimestampLayouts(sniffReader, timestampParseLayouts, maxLinesToSniff)
+
+	if err != nil || len(currentTimestampParseLayouts) == 0 {
+		log.Printf("Warning: Timestamp sniffing failed (%v) or returned no layouts. Falling back to all %d global layouts.", err, len(timestampParseLayouts))
+		currentTimestampParseLayouts = timestampParseLayouts
+		if len(currentTimestampParseLayouts) == 0 {
+			return 0, nil, errors.New("no timestamp layouts available even in global list")
+		}
+	} else {
+		log.Printf("Using determined timestamp layouts for parsing: %v", currentTimestampParseLayouts)
+	}
+
+	messagesData := []ParsedMessage{}
+	mainScanner := bufio.NewScanner(bytes.NewReader(buf))
 	lineNumber := 0
 	rawMessageCount := 0
 
-	for scanner.Scan() {
+	for mainScanner.Scan() {
 		lineNumber++
-		line := scanner.Text()
+		line := mainScanner.Text()
 		line = strings.TrimSpace(line)
+
 		if line == "" {
 			continue
 		}
+		rawMessageCount++
 
 		line = strings.TrimPrefix(line, "\u200e")
 
 		if timestampPattern == nil {
 			return rawMessageCount, nil, fmt.Errorf("timestampPattern regex is not initialized")
 		}
-		if timestampPattern.MatchString(line) {
-			rawMessageCount++
-		}
-
 		match := timestampPattern.FindStringSubmatch(line)
 		if match == nil || len(match) != 5 {
 			continue
@@ -202,7 +326,7 @@ func preprocessMessages(reader io.Reader) (int, []ParsedMessage, error) { // Mod
 		timeCleaned := strings.ToUpper(strings.ReplaceAll(timeStr, "\u202f", " "))
 		datetimeStr := dateStr + " " + timeCleaned
 
-		for _, layout := range timestampParseLayouts {
+		for _, layout := range currentTimestampParseLayouts {
 			hasSecondsLayout := strings.Contains(layout, ":05")
 			hasSecondsData := strings.Count(timeCleaned, ":") >= 2
 			hasAmPmLayout := strings.Contains(layout, " PM")
@@ -220,6 +344,7 @@ func preprocessMessages(reader io.Reader) (int, []ParsedMessage, error) { // Mod
 		}
 
 		if !parsed {
+			log.Printf("Line %d: Failed to parse timestamp '%s' with available layouts.", lineNumber, datetimeStr)
 			continue
 		}
 
@@ -233,16 +358,18 @@ func preprocessMessages(reader io.Reader) (int, []ParsedMessage, error) { // Mod
 				CleanedMessage:  cleanedMessage,
 				OriginalMessage: message,
 			})
+		} else {
 		}
 	}
 
-	if err := scanner.Err(); err != nil {
+	if err := mainScanner.Err(); err != nil {
 		return rawMessageCount, messagesData, fmt.Errorf("error reading data stream: %w", err)
 	}
 
+	log.Printf("Preprocessing complete. Raw messages counted: %d, Parsed messages for analysis: %d", rawMessageCount, len(messagesData))
+
 	return rawMessageCount, messagesData, nil
 }
-
 func removeLinks(text string) string {
 	return urlPattern.ReplaceAllString(text, "")
 }
@@ -342,7 +469,6 @@ func estimateTokens(text string) int {
 func stratifyMessages(topics []Topic) map[string][]string {
 	consolidatedMessages := make(map[string][]string)
 
-	// group messages by sender, applying initial filters
 	for _, topic := range topics {
 		for _, msg := range topic {
 			sender := msg.Sender
@@ -391,7 +517,6 @@ func stratifyMessages(topics []Topic) map[string][]string {
 		}
 	}
 
-	// sample messages per sender
 	finalSampled := make(map[string][]string)
 	maxTokensPerSender := 500
 	maxIndividualMessageLength := 600
@@ -452,7 +577,6 @@ func stratifyMessages(topics []Topic) map[string][]string {
 			potentialIndices[chosenIndexInPotential] = potentialIndices[len(potentialIndices)-1]
 			potentialIndices = potentialIndices[:len(potentialIndices)-1]
 
-			// check token count
 			msg := eligibleMsgs[chosenMsgIndexInEligible]
 			tokenEst := estimateTokens(msg)
 
