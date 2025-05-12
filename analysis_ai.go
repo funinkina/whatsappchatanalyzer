@@ -23,7 +23,7 @@ const (
 	retryAttempts          = 2
 	singleRetryWaitSeconds = 5
 	groqAPIEndpoint        = "https://api.groq.com/openai/v1/chat/completions"
-	maxUsersForPeopleBlock = 10
+	maxUsersForPeopleBlock = 15
 )
 
 var (

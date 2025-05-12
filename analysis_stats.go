@@ -23,14 +23,14 @@ type UserStringIntMap map[string]map[string]int
 
 type InteractionMatrix map[string]map[string]int
 
-type NivoPoint struct {
+type GraphPoint struct {
 	X string `json:"x"`
 	Y int    `json:"y"`
 }
 
-type NivoLineData struct {
-	ID   string      `json:"id"`
-	Data []NivoPoint `json:"data"`
+type UserActivityChartData struct {
+	ID   string       `json:"id"`
+	Data []GraphPoint `json:"data"`
 }
 
 type WeekdayWeekendAverage struct {
@@ -46,21 +46,21 @@ type ChampionInfo struct {
 }
 
 type ChatStatistics struct {
-	TotalMessages              int                   `json:"total_messages"`
-	DaysActive                 int                   `json:"days_active"`
-	UserMessageCount           UserMessageCount      `json:"user_message_count"`
-	MostActiveUsersPct         PercentageMap         `json:"most_active_users_pct"`
-	ConversationStartersPct    PercentageMap         `json:"conversation_starters_pct"`
-	MostIgnoredUsersPct        PercentageMap         `json:"most_ignored_users_pct"`
-	FirstTextChampion          ChampionInfo          `json:"first_text_champion"`
-	LongestMonologue           ChampionInfo          `json:"longest_monologue"`
-	CommonWords                StringIntMap          `json:"common_words"`
-	CommonEmojis               StringIntMap          `json:"common_emojis"`
-	AverageResponseTimeMinutes float64               `json:"average_response_time_minutes"`
-	PeakHour                   *int                  `json:"peak_hour"`
-	UserMonthlyActivity        []NivoLineData        `json:"user_monthly_activity"`
-	WeekdayVsWeekendAvg        WeekdayWeekendAverage `json:"weekday_vs_weekend_avg"`
-	UserInteractionMatrix      [][]interface{}       `json:"user_interaction_matrix,omitempty"`
+	TotalMessages              int                     `json:"total_messages"`
+	DaysActive                 int                     `json:"days_active"`
+	UserMessageCount           UserMessageCount        `json:"user_message_count"`
+	MostActiveUsersPct         PercentageMap           `json:"most_active_users_pct"`
+	ConversationStartersPct    PercentageMap           `json:"conversation_starters_pct"`
+	MostIgnoredUsersPct        PercentageMap           `json:"most_ignored_users_pct"`
+	FirstTextChampion          ChampionInfo            `json:"first_text_champion"`
+	LongestMonologue           ChampionInfo            `json:"longest_monologue"`
+	CommonWords                StringIntMap            `json:"common_words"`
+	CommonEmojis               StringIntMap            `json:"common_emojis"`
+	AverageResponseTimeMinutes float64                 `json:"average_response_time_minutes"`
+	PeakHour                   *int                    `json:"peak_hour"`
+	UserMonthlyActivity        []UserActivityChartData `json:"user_monthly_activity"`
+	WeekdayVsWeekendAvg        WeekdayWeekendAverage   `json:"weekday_vs_weekend_avg"`
+	UserInteractionMatrix      [][]interface{}         `json:"user_interaction_matrix,omitempty"`
 }
 
 func calculatePercentile(sortedData []float64, p float64) float64 {
@@ -385,27 +385,27 @@ func calculateChatStatistics(messagesData []ParsedMessage, convoBreakMinutes int
 	return stats, nil
 }
 
-func getMonthlyActivity(monthlyActivityByUser UserStringIntMap, allMonths map[string]struct{}, allUsersList []string) []NivoLineData {
+func getMonthlyActivity(monthlyActivityByUser UserStringIntMap, allMonths map[string]struct{}, allUsersList []string) []UserActivityChartData {
 	if len(allMonths) == 0 || len(allUsersList) == 0 {
-		return []NivoLineData{}
+		return []UserActivityChartData{}
 	}
 
-	userMonthlyStats := []NivoLineData{}
+	userMonthlyStats := []UserActivityChartData{}
 	sortedMonths := maps.Keys(allMonths)
 	sort.Strings(sortedMonths)
 	sort.Strings(allUsersList)
 
 	for _, user := range allUsersList {
-		userData := []NivoPoint{}
+		userData := []GraphPoint{}
 		userActivity, userExists := monthlyActivityByUser[user]
 		for _, monthStr := range sortedMonths {
 			count := 0
 			if userExists {
 				count = userActivity[monthStr]
 			}
-			userData = append(userData, NivoPoint{X: monthStr, Y: count})
+			userData = append(userData, GraphPoint{X: monthStr, Y: count})
 		}
-		userMonthlyStats = append(userMonthlyStats, NivoLineData{ID: user, Data: userData})
+		userMonthlyStats = append(userMonthlyStats, UserActivityChartData{ID: user, Data: userData})
 	}
 	return userMonthlyStats
 }

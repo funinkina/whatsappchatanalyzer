@@ -140,14 +140,20 @@ func loadSystemMessagePatterns(filepath string) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not decode JSON from '%s': %w", filepath, err)
 	}
-	log.Printf("Loaded %d system message patterns from %s", len(patterns), filepath)
-	return patterns, nil
+
+	lowerCasePatterns := make([]string, len(patterns))
+	for i, p := range patterns {
+		lowerCasePatterns[i] = strings.ToLower(p)
+	}
+	log.Printf("Loaded %d system message patterns from %s", len(lowerCasePatterns), filepath)
+	return lowerCasePatterns, nil
 }
 
-func preprocessMessages(reader io.Reader) ([]ParsedMessage, error) {
+func preprocessMessages(reader io.Reader) (int, []ParsedMessage, error) { // Modified to return rawMessageCount
 	messagesData := []ParsedMessage{}
 	scanner := bufio.NewScanner(reader)
 	lineNumber := 0
+	rawMessageCount := 0
 
 	for scanner.Scan() {
 		lineNumber++
@@ -160,8 +166,12 @@ func preprocessMessages(reader io.Reader) ([]ParsedMessage, error) {
 		line = strings.TrimPrefix(line, "\u200e")
 
 		if timestampPattern == nil {
-			return nil, fmt.Errorf("timestampPattern regex is not initialized")
+			return rawMessageCount, nil, fmt.Errorf("timestampPattern regex is not initialized")
 		}
+		if timestampPattern.MatchString(line) {
+			rawMessageCount++
+		}
+
 		match := timestampPattern.FindStringSubmatch(line)
 		if match == nil || len(match) != 5 {
 			continue
@@ -175,8 +185,9 @@ func preprocessMessages(reader io.Reader) ([]ParsedMessage, error) {
 		message = strings.TrimPrefix(message, "\u200e")
 
 		isSystemMessage := false
+		lowerCaseMessage := strings.ToLower(message)
 		for _, pattern := range systemMessagePatterns {
-			if strings.Contains(message, pattern) {
+			if strings.Contains(lowerCaseMessage, pattern) {
 				isSystemMessage = true
 				break
 			}
@@ -223,15 +234,13 @@ func preprocessMessages(reader io.Reader) ([]ParsedMessage, error) {
 				OriginalMessage: message,
 			})
 		}
-
 	}
 
 	if err := scanner.Err(); err != nil {
-
-		return nil, fmt.Errorf("error reading data stream: %w", err)
+		return rawMessageCount, messagesData, fmt.Errorf("error reading data stream: %w", err)
 	}
 
-	return messagesData, nil
+	return rawMessageCount, messagesData, nil
 }
 
 func removeLinks(text string) string {

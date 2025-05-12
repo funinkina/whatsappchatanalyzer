@@ -67,6 +67,7 @@ func analyzeHandler(c *gin.Context) {
 	defer analysisCancel()
 
 	results, err := AnalyzeChat(analysisCtx, uploadedFile, filename, aiTaskQueue, config.AIQueueTimeout)
+	log.Printf("%s Analysis completed: %s with %d messages", logPrefix, results.ChatName, results.TotalMessages)
 
 	if err != nil {
 		if errors.Is(err, ErrAIQueueTimeout) {

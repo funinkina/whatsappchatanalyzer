@@ -40,23 +40,22 @@ type AnalysisResult struct {
 func AnalyzeChat(ctx context.Context, chatReader io.Reader, originalFilename string, aiQueue chan<- aiTask, aiQueueTimeout time.Duration) (*AnalysisResult, error) {
 	logPrefix := fmt.Sprintf("[%s]", originalFilename)
 	// log.Printf("%s Starting analysis using reader", logPrefix)
-
+	// Added to store raw message count
 	var messagesData []ParsedMessage
 	var statsResult *ChatStatistics
 	var statsErr, aiErr error
 	var preprocessErr error
-	var messageCount int
+	var rawMessageCount int
 	var userCount int
 	var uniqueUsers []string
 
-	messagesData, preprocessErr = preprocessMessages(chatReader)
+	rawMessageCount, messagesData, preprocessErr = preprocessMessages(chatReader) // Modified to get rawMessageCount
 	if preprocessErr != nil {
 		log.Printf("%s Preprocessing failed: %v", logPrefix, preprocessErr)
 		return nil, fmt.Errorf("preprocessing failed: %w", preprocessErr)
 	}
-	messageCount = len(messagesData)
 
-	if messageCount == 0 {
+	if rawMessageCount == 0 {
 		log.Printf("%s No messages found after preprocessing.", logPrefix)
 		return &AnalysisResult{
 			ChatName:      deriveChatName(originalFilename, []string{}),
@@ -156,9 +155,12 @@ func AnalyzeChat(ctx context.Context, chatReader io.Reader, originalFilename str
 
 	finalResult := &AnalysisResult{
 		ChatName:      chatName,
-		TotalMessages: messageCount,
+		TotalMessages: rawMessageCount,
 		Stats:         statsResult,
 	}
+
+	finalResult.Stats.TotalMessages = rawMessageCount
+	fmt.Println(rawMessageCount, "raw messages found")
 
 	if aiFinalResult != "" && aiErr == nil {
 		finalResult.AIAnalysis = json.RawMessage(aiFinalResult)
@@ -179,10 +181,9 @@ func AnalyzeChat(ctx context.Context, chatReader io.Reader, originalFilename str
 	if len(errorMessages) > 0 {
 		finalResult.Error = strings.Join(errorMessages, "; ")
 		log.Printf("%s Analysis complete with errors: %s", logPrefix, finalResult.Error)
-	} else {
-		// log.Printf("%s Analysis complete successfully.", logPrefix)
-	}
-
+	} //else {
+	// log.Printf("%s Analysis complete successfully.", logPrefix)
+	//	}
 	return finalResult, nil
 }
 
@@ -192,7 +193,7 @@ func deriveChatName(originalFilename string, users []string) string {
 	userCount := len(displayNames)
 	defaultName := strings.TrimSuffix(originalFilename, ".txt")
 	if defaultName == "" {
-		defaultName = "WhatsApp Chat"
+		defaultName = "Bloop Analysis"
 	}
 
 	switch userCount {
