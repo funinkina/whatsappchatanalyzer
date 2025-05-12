@@ -227,7 +227,7 @@ func sniffTimestampLayouts(reader io.Reader, allLayouts []string, maxLines int) 
 	}
 
 	if len(candidateLayouts) > 1 {
-		log.Printf("Multiple layouts (%d) are consistent with sniffed data: %v. Applying prioritization.", len(candidateLayouts), candidateLayouts)
+		// log.Printf("Multiple layouts (%d) are consistent with sniffed data: %v. Applying prioritization.", len(candidateLayouts), candidateLayouts)
 
 		var europeanStyleLayouts []string
 		var usStyleLayouts []string
@@ -241,15 +241,15 @@ func sniffTimestampLayouts(reader io.Reader, allLayouts []string, maxLines int) 
 		}
 
 		if len(europeanStyleLayouts) > 0 {
-			log.Printf("Prioritizing European-style (d/m or dd/mm) layouts as they are among consistent options: %v", europeanStyleLayouts)
+			// log.Printf("Prioritizing European-style (d/m or dd/mm) layouts as they are among consistent options: %v", europeanStyleLayouts)
 			return europeanStyleLayouts, nil
 		}
 		if len(usStyleLayouts) > 0 {
-			log.Printf("Using US-style (m/d or mm/dd) layouts as they are the only consistent options: %v", usStyleLayouts)
+			// log.Printf("Using US-style (m/d or mm/dd) layouts as they are the only consistent options: %v", usStyleLayouts)
 			return usStyleLayouts, nil
 		}
 
-		log.Printf("Could not strongly prioritize among consistent layouts. Using all: %v", candidateLayouts)
+		// log.Printf("Could not strongly prioritize among consistent layouts. Using all: %v", candidateLayouts)
 		return candidateLayouts, nil
 	}
 
@@ -462,10 +462,6 @@ func groupMessagesByTopic(data []ParsedMessage, gapHours float64) []Topic {
 	return processedTopics
 }
 
-func estimateTokens(text string) int {
-	return int(float64(len(strings.Fields(text))) * 1.3)
-}
-
 func stratifyMessages(topics []Topic) map[string][]string {
 	consolidatedMessages := make(map[string][]string)
 
@@ -518,18 +514,7 @@ func stratifyMessages(topics []Topic) map[string][]string {
 	}
 
 	finalSampled := make(map[string][]string)
-	maxTokensPerSender := 500
-	maxIndividualMessageLength := 600
-
-	numSenders := len(consolidatedMessages)
-	var maxMessagesPerSender int
-	if numSenders == 2 {
-		maxMessagesPerSender = 40
-	} else if numSenders > 6 {
-		maxMessagesPerSender = 15
-	} else {
-		maxMessagesPerSender = 25
-	}
+	maxMessagesPerSender := 10
 
 	senders := maps.Keys(consolidatedMessages)
 	sort.Strings(senders)
@@ -540,68 +525,26 @@ func stratifyMessages(topics []Topic) map[string][]string {
 		msgs := consolidatedMessages[sender]
 		eligibleMsgs := make([]string, 0, len(msgs))
 		for _, msg := range msgs {
-			if len(msg) <= maxIndividualMessageLength {
+			if len(strings.Fields(msg)) > 7 {
 				eligibleMsgs = append(eligibleMsgs, msg)
 			}
 		}
 
-		sort.SliceStable(eligibleMsgs, func(i, j int) bool {
-			return len(eligibleMsgs[i]) > len(eligibleMsgs[j])
-		})
-
-		selectedMsgs := make([]string, 0, maxMessagesPerSender)
-		totalTokens := 0
-		potentialIndices := make([]int, len(eligibleMsgs))
-		for i := range potentialIndices {
-			potentialIndices[i] = i
-		}
-		longMessagePriorityProb := 0.7
-
-		for len(selectedMsgs) < maxMessagesPerSender && len(potentialIndices) > 0 {
-			prioritizeLong := r.Float64() < longMessagePriorityProb
-			var chosenMsgIndexInEligible int
-			var chosenIndexInPotential int
-
-			if prioritizeLong {
-				numCandidates := min(len(potentialIndices), 5)
-				if numCandidates == 0 {
-					break
-				}
-				chosenIndexInPotential = r.Intn(numCandidates)
-			} else {
-				chosenIndexInPotential = r.Intn(len(potentialIndices))
-			}
-
-			chosenMsgIndexInEligible = potentialIndices[chosenIndexInPotential]
-
-			potentialIndices[chosenIndexInPotential] = potentialIndices[len(potentialIndices)-1]
-			potentialIndices = potentialIndices[:len(potentialIndices)-1]
-
-			msg := eligibleMsgs[chosenMsgIndexInEligible]
-			tokenEst := estimateTokens(msg)
-
-			if totalTokens+tokenEst <= maxTokensPerSender {
-				selectedMsgs = append(selectedMsgs, msg)
-				totalTokens += tokenEst
-			}
-		}
-
-		if len(selectedMsgs) > 0 {
-			r.Shuffle(len(selectedMsgs), func(i, j int) {
-				selectedMsgs[i], selectedMsgs[j] = selectedMsgs[j], selectedMsgs[i]
+		if len(eligibleMsgs) > 0 {
+			r.Shuffle(len(eligibleMsgs), func(i, j int) {
+				eligibleMsgs[i], eligibleMsgs[j] = eligibleMsgs[j], eligibleMsgs[i]
 			})
+
+			selectedMsgs := eligibleMsgs
+			if len(eligibleMsgs) > maxMessagesPerSender {
+				selectedMsgs = eligibleMsgs[:maxMessagesPerSender]
+			}
+
 			finalSampled[sender] = selectedMsgs
 		}
 	}
 
 	return finalSampled
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
 
 func extractDisplayNames(users []string) []string {

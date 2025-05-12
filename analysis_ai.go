@@ -17,7 +17,6 @@ import (
 )
 
 const (
-	groqModel              = "meta-llama/llama-4-scout-17b-16e-instruct"
 	groqMaxTokens          = 4096
 	groqTemperature        = 1.3
 	retryAttempts          = 2
@@ -28,6 +27,7 @@ const (
 
 var (
 	groqAPIKey string
+	groqModel  string
 	httpClient *http.Client
 )
 
@@ -37,11 +37,17 @@ func init() {
 	}
 
 	groqAPIKey = os.Getenv("GROQ_API_KEY")
+	groqModel = os.Getenv("GROQ_MODEL")
 
 	if groqAPIKey == "" {
 		log.Println("CRITICAL: GROQ_API_KEY not found in environment variables. AI Analysis disabled.")
 	} else {
 		log.Println("Found GROQ_API_KEY for AI Analysis.")
+	}
+
+	if groqModel == "" {
+		log.Println("CRITICAL: GROQ_MODEL not found in environment variables. Defaulting to meta-llama/llama-4-scout-17b-16e-instruct.")
+		groqModel = "meta-llama/llama-4-scout-17b-16e-instruct"
 	}
 
 	httpClient = &http.Client{
@@ -295,8 +301,8 @@ func AnalyzeMessagesWithLLM(ctx context.Context, data []ParsedMessage, gapHours 
         The messages are stratified and cherry picked to be the most interesting, funny, or dramatic.
         Your task is to summarize the chat in a fun, witty, and engaging way and comment on the overall content of the chat.
         Do not think of these chats as random or jumping from topic to topic.
-        Instead, think of them as a curated collection of messages that tell a story or convey a theme.
-        Your summary should be entertaining and engaging, as if you are a gossip vlogger who lives for chaos.
+        Instead, think of them as a curated collection of messages that have been handpicked for you to analyze.
+        Your summary should be entertaining and engaging.
         Your summary should be 3 to 5 sentences long and capture the overall vibe, drama, relationships, and main tea without quoting exact messages.
         You can also include some fun commentary on the users and their personalities, but keep it light and playful.
 
