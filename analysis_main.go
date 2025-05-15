@@ -159,8 +159,13 @@ func AnalyzeChat(ctx context.Context, chatReader io.Reader, originalFilename str
 		Stats:         statsResult,
 	}
 
-	finalResult.Stats.TotalMessages = rawMessageCount
-	// fmt.Println(rawMessageCount, "raw messages found")
+	if finalResult.Stats != nil {
+		finalResult.Stats.TotalMessages = rawMessageCount
+	} else if rawMessageCount > 0 && len(messagesData) == 0 {
+		finalResult.Stats = &ChatStatistics{
+			TotalMessages: rawMessageCount,
+		}
+	}
 
 	if aiFinalResult != "" && aiErr == nil {
 		finalResult.AIAnalysis = json.RawMessage(aiFinalResult)
