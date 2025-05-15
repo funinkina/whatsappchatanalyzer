@@ -344,7 +344,7 @@ func preprocessMessages(reader io.Reader) (int, []ParsedMessage, error) {
 		}
 
 		if !parsed {
-			log.Printf("Line %d: Failed to parse timestamp '%s' with available layouts.", lineNumber, datetimeStr)
+			// log.Printf("Line %d: Failed to parse timestamp '%s' with available layouts.", lineNumber, datetimeStr)
 			continue
 		}
 
