@@ -514,7 +514,7 @@ func stratifyMessages(topics []Topic) map[string][]string {
 	}
 
 	finalSampled := make(map[string][]string)
-	maxMessagesPerSender := 10
+	maxMessagesPerSender := 23
 
 	senders := maps.Keys(consolidatedMessages)
 	sort.Strings(senders)

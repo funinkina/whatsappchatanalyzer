@@ -87,7 +87,7 @@ func AnalyzeChat(ctx context.Context, chatReader io.Reader, originalFilename str
 		data = nil
 	}(messagesData, dynamicConvoBreakMinutes)
 
-	shouldRunAI := userCount > 1 && userCount <= maxUsersForPeopleBlock // Assuming maxUsersForPeopleBlock is defined
+	shouldRunAI := userCount > 1 && userCount <= maxUsersForPeopleBlock
 	if shouldRunAI {
 		// log.Printf("%s Preparing AI analysis task.", logPrefix)
 		aiResultChan = make(chan aiResultTuple, 1)
